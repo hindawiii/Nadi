@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { ProductCard } from './ProductCard';
+import { InfiniteBrandTicker } from './InfiniteBrandTicker';
 
 export const StorefrontView: React.FC = () => {
   const { lang, activeData, setCurrentRoute, navigateTo, openProductPDP, setIsReviewModalOpen, showToast } = useCommerce();
@@ -247,6 +248,9 @@ export const StorefrontView: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* LUXURY INFINITE BRAND & SLOGAN TICKER */}
+      <InfiniteBrandTicker className="my-6 sm:my-8" />
 
       {/* 2. VALUE PROPOSITIONS STRIP (Matching Photo 2: نتائج فعالة، شحن سريع، أصلية 100%، دفع آمن) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6">

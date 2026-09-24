@@ -304,35 +304,284 @@ export const siteConfig: SiteConfig = {
         },
         {
           id: "sb-04",
-          name: { ar: "مجموعة Natural Bloom الكاملة (بوكس التوفير)", en: "Natural Bloom Complete Box" },
-          category: { ar: "البكجات والعروض", en: "Gift Sets" },
-          basePriceUSD: 18.0,
-          originalPriceUSD: 24.0,
-          discountPercentage: 25,
-          stock: 3,
-          badge: { ar: "وفر 25%", en: "SAVE 25%" },
+          name: { ar: "مجموعة Natural Bloom الكاملة (بوكس التوفير الملكي)", en: "Natural Bloom Complete Box" },
+          category: { ar: "باقات ومجموعات العناية", en: "Curated Bundles" },
+          basePriceUSD: 25.6, // ~96 SAR
+          originalPriceUSD: 45.0,
+          discountPercentage: 43,
+          stock: 5,
+          badge: { ar: "باقة 6 قطع ✦ وفر 43%", en: "6-Piece Bundle ✦ 43% OFF" },
           rating: 5.0,
           reviewsCount: 88,
           images: [
             "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80",
             "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80",
           ],
+          bundle: {
+            title: { ar: "محتويات باقة الإشراقة المتكاملة (6 قطع)", en: "Radiance Essentials (6 Items)" },
+            discount: 43,
+            items: [
+              { id: "sb-01", name: { ar: "مرطب الهيالورونيك 100ml", en: "Hyaluronic Moisturizer 100ml" }, priceUSD: 5.0, image: "https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=400&q=80" },
+              { id: "sb-02", name: { ar: "سيروم فيتامين سي المركز", en: "Pure Vitamin C Serum" }, priceUSD: 5.75, image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=400&q=80" },
+              { id: "sb-03", name: { ar: "كريم لافندر الليلي للترميم", en: "Lavender Night Cream" }, priceUSD: 6.5, image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80" }
+            ]
+          },
           tabs: {
             description: {
-              ar: "البوكس الكامل الذي يضم المرطب، السيروم، كريم اللافندر، وغسول الوجه في حقيبة خشبية فاخرة مزينة بزهور الفرانجيباني.",
-              en: "The all-in-one luxury botanical box featuring moisturizer, serum, night cream, and cleanser in a wooden gift tray."
+              ar: "البوكس الملكي المتكامل: يضم 6 مستحضرات فاخرة (مرطب الهيالورونيك، سيروم فيتامين سي، كريم اللافندر الليلي، غسول رغوي ناعم، تونر الورد، ورولر تدليك روز كوارتز) في صندوق جلدي فاخر.",
+              en: "The royal comprehensive box: includes 6 luxury essentials (hyaluronic moisturizer, vitamin C serum, lavender night cream, gentle cleanser, rose water toner, and rose quartz face roller)."
             },
             usage: {
-              ar: "برنامج عناية متكامل لمدة 30 يوماً يتضمن دليل الاستخدام الصباحي والمسائي.",
-              en: "Complete 30-day regimen with morning and night routine roadmap included."
+              ar: "روتين متكامل لمدة 30 يوماً صباحاً ومساءً مرفق معه جدول عناية أسبوعي مرقم.",
+              en: "A complete 30-day morning and evening routine roadmap included inside the box."
             },
             ingredientsOrSpecs: {
-              ar: "4 منتجات كاملة الحجم خالية تماماً من الكيماويات القاسية والبارابين.",
-              en: "4 full-sized products, 100% paraben-free and vegan certified."
+              ar: "6 قطع نباتية 100%، خالية من الكبريتات والبارابين، غنية بخلاصات الورد واللافندر والهيالورونيك.",
+              en: "6 pieces, 100% vegan certified, paraben-free and sulfate-free."
             },
             reviews: {
-              ar: "تقييم 5.0/5. 'هدية فخمة جداً والنتائج سحرية بشهادة كل من جربها.'",
-              en: "Rated 5.0/5. 'The ultimate self-care gift. Remarkable results!'"
+              ar: "تقييم 5.0/5. 'أفضل باقة عناية اشتريتها، وفرت علي أكثر من نصف السعر ونتائجها مذهلة!'",
+              en: "Rated 5.0/5. 'The ultimate skincare investment. Saved more than half the regular price!'"
+            }
+          }
+        },
+        {
+          id: "bundle-02",
+          name: { ar: "مجموعة الحمام والعناية الملكية الفائقة", en: "Royal Moroccan & Body Ritual Bundle" },
+          category: { ar: "باقات ومجموعات العناية", en: "Curated Bundles" },
+          basePriceUSD: 32.0, // ~120 SAR
+          originalPriceUSD: 60.0,
+          discountPercentage: 47,
+          stock: 7,
+          badge: { ar: "باقة 5 قطع ✦ وفر 47%", en: "5-Piece Luxury ✦ 47% OFF" },
+          rating: 4.95,
+          reviewsCount: 114,
+          images: [
+            "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80",
+          ],
+          bundle: {
+            title: { ar: "محتويات باقة الحمام الملكي (5 قطع)", en: "Royal Ritual (5 Items)" },
+            discount: 47,
+            items: [
+              { id: "b2-1", name: { ar: "صابون بلدي مغربي بزيت الزيتون", en: "Moroccan Black Soap" }, priceUSD: 8.0, image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80" },
+              { id: "b2-2", name: { ar: "مقشر السكر وزبدة الشيا", en: "Shea Sugar Scrub" }, priceUSD: 9.0, image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=400&q=80" }
+            ]
+          },
+          tabs: {
+            description: {
+              ar: "باقة الدلال المغربي الملكية: صابون بلدي طبيعي معصور على البارد، مقشر السكر البني بزبدة الشيا، ليفة حرير كيس أصلية، زيت أرغان مغذي للجسم، وماسك طين نقي.",
+              en: "The royal pampering ritual: organic Moroccan black soap, raw shea sugar scrub, premium exfoliating glove, nourishing argan body oil, and pure purifying clay mask."
+            },
+            usage: {
+              ar: "تستخدم مرة إلى مرتين أسبوعياً لتقشير لطيف وتوحيد لون الجسم وإزالة الجلد الميت ونعومة حريرية.",
+              en: "Use 1-2 times weekly for gentle full-body exfoliation and silky radiance."
+            },
+            ingredientsOrSpecs: {
+              ar: "زيت زيتون معصور على البارد، زبدة شيا نقية، زيت أرغان عضوي 100%.",
+              en: "Cold-pressed extra virgin olive oil, pure organic shea butter, organic argan oil."
+            },
+            reviews: {
+              ar: "تقييم 4.95/5. 'جسمي صار حرير وريحة البكج فواحة ومنعشة بشكل خيالي.'",
+              en: "Rated 4.95/5. 'Silky smooth skin and an intoxicating spa scent.'"
+            }
+          }
+        },
+        {
+          id: "bundle-03",
+          name: { ar: "مجموعة تجديد ونضارة البشرة ومقاومة الخطوط", en: "Youth Renewal & Anti-Aging Trio" },
+          category: { ar: "باقات ومجموعات العناية", en: "Curated Bundles" },
+          basePriceUSD: 28.0, // ~105 SAR
+          originalPriceUSD: 52.0,
+          discountPercentage: 46,
+          stock: 4,
+          badge: { ar: "باقة 4 قطع ✦ الأكثر طلباً", en: "4-Piece Trio ✦ Best Seller" },
+          rating: 4.9,
+          reviewsCount: 76,
+          images: [
+            "https://images.unsplash.com/photo-1556228722-d0b5b0340fe3?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80",
+          ],
+          tabs: {
+            description: {
+              ar: "مجموعة مكثفة لشد البشرة ومقاومة علامات التقدم بالسن: سيروم كولاجين بحري، أمبولات ببتيدات فورية، كريم شد محيط العينين، ورولر تدليك بيضاوي.",
+              en: "Intensive lifting and firming set: marine collagen serum, peptide firming ampoules, eye contour renewal cream, and sculpting roller."
+            },
+            usage: {
+              ar: "يطبق السيروم صباحاً مع تدليك تصاعدي، والأمبولات قبل النوم لشد وتجديد البشرة أثناء الراحة.",
+              en: "Apply collagen serum in the morning, and the peptide ampoules before sleeping."
+            },
+            ingredientsOrSpecs: {
+              ar: "ببتيدات نباتية نشطة، كولاجين نقي، كافيين مضاد للهالات، ومستخلص الشاي الأخضر.",
+              en: "Active plant peptides, marine collagen, anti-fatigue caffeine, green tea extract."
+            },
+            reviews: {
+              ar: "تقييم 4.9/5. 'التجاعيد التعبيرية خفت بنسبة كبيرة بعد أسبوعين استخدام.'",
+              en: "Rated 4.9/5. 'Fine lines significantly softened within 2 weeks of use.'"
+            }
+          }
+        },
+        {
+          id: "dev-01",
+          name: { ar: "مصفف ومجفف الشعر الحراري الاحترافي 2 في 1", en: "Pro 2-in-1 Ionic Hair Dryer & Volumizer" },
+          category: { ar: "أجهزة الشعر والجمال", en: "Beauty Tech & Devices" },
+          basePriceUSD: 37.3, // ~140 SAR
+          originalPriceUSD: 62.0,
+          discountPercentage: 40,
+          stock: 8,
+          badge: { ar: "ضمان سنتين ✦ الأكثر مبيعاً", en: "2 Years Warranty ✦ Best Seller" },
+          rating: 4.9,
+          reviewsCount: 204,
+          isTechSpecs: true,
+          techSpecs: [
+            { label: { ar: "القوة الكهربائية", en: "Power" }, value: { ar: "1200 واط مع تقنية الأيونات السالبة", en: "1200W Negative Ionic Tech" } },
+            { label: { ar: "الطلاء والسطح", en: "Coating" }, value: { ar: "سيراميك تورمالين لحماية الشعر من الاحتراق", en: "Tourmaline Ceramic Protection" } },
+            { label: { ar: "السرعات والحرارة", en: "Settings" }, value: { ar: "3 مستويات حرارة وسرعتان + زر هواء بارد", en: "3 Heat / 2 Speed + Cool Shot" } },
+            { label: { ar: "الضمان", en: "Warranty" }, value: { ar: "ضمان استبدال فوري لمدة سنتين", en: "2-Year Direct Replacement Warranty" } }
+          ],
+          images: [
+            "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80",
+          ],
+          tabs: {
+            description: {
+              ar: "جهاز التصفيف والتجفيف المتطور بتكنولوجيا الأيونات السالبة التي تمنع تطاير الشعر وتمنحه لمعاناً حريرياً فائقاً في نصف الوقت المعتاد.",
+              en: "Advanced blow-dry styling brush with negative ion technology to seal hair cuticles, eliminate frizz and deliver salon-level volume."
+            },
+            usage: {
+              ar: "يقسم الشعر الرطب أو الجاف إلى خصلات ويمرر المصفف من الجذور حتى الأطراف بحركة دائرية للحصول على كثافة ولمعان جذاب.",
+              en: "Section damp or dry hair, glide the brush slowly from roots to ends for instant volume and silkiness."
+            },
+            ingredientsOrSpecs: {
+              ar: "تصميم بيضاوي مريح، سلك دوار 360 درجة بطول 2.5 متر، شعيرات غير متشابكة ناعمة على فروة الرأس.",
+              en: "Ergonomic oval barrel, 360-degree tangle-free swivel cord, scalp-massaging bristles."
+            },
+            reviews: {
+              ar: "تقييم 4.9/5. 'يغنيكِ تماماً عن صالونات التجميل، يخلص الشعر في 10 دقائق بدون تقصف!'",
+              en: "Rated 4.9/5. 'Replaces salon blowouts completely. Dries and styles in just 10 minutes!'"
+            }
+          }
+        },
+        {
+          id: "dev-02",
+          name: { ar: "مكواة تمليس الشعر الكورية بألواح النانو تيتانيوم", en: "Nano Titanium Professional Flat Iron" },
+          category: { ar: "أجهزة الشعر والجمال", en: "Beauty Tech & Devices" },
+          basePriceUSD: 45.0, // ~169 SAR
+          originalPriceUSD: 75.0,
+          discountPercentage: 40,
+          stock: 6,
+          badge: { ar: "ضمان سنتين ✦ نانو تيتانيوم", en: "2-Yr Warranty ✦ Nano Titanium" },
+          rating: 4.88,
+          reviewsCount: 165,
+          isTechSpecs: true,
+          techSpecs: [
+            { label: { ar: "درجة الحرارة القصوى", en: "Max Temp" }, value: { ar: "تصل حتى 480 فهرنهايت (250 مئوية)", en: "Up to 480°F (250°C)" } },
+            { label: { ar: "سرعة التسخين", en: "Heat-up Time" }, value: { ar: "جاهزة خلال 15 ثانية فقط بتقنية MCH", en: "Ready in 15 seconds (MCH system)" } },
+            { label: { ar: "الأمان", en: "Safety" }, value: { ar: "إيقاف تشغيل تلقائي ذكي بعد 60 دقيقة", en: "60-Minute Auto Shut-Off" } },
+            { label: { ar: "الضمان", en: "Warranty" }, value: { ar: "ضمان ذهبي معتمد سنتين", en: "2-Year Certified Warranty" } }
+          ],
+          images: [
+            "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80",
+          ],
+          tabs: {
+            description: {
+              ar: "مكواة التمليس الاحترافية المعتمدة لعلاجات البروتين والكيراتين والتصفيف اليومي السريع، مزودة بألواح نانو تيتانيوم فائقة النعومة تحمي خصلات الشعر من التقصف.",
+              en: "Professional salon-grade flat iron engineered for keratin treatments and daily styling with ultra-smooth nano titanium plates."
+            },
+            usage: {
+              ar: "اختاري درجة الحرارة الملائمة لسماكة شعرك، مرري المكواة بسلاسة من أعلى الخصلة للأسفل بلمسة واحدة.",
+              en: "Select optimal heat setting for your hair texture, glide gently once from roots to tips."
+            },
+            ingredientsOrSpecs: {
+              ar: "شاشة رقمية LED لعرض درجة الحرارة بدقة، ألواح عريضة ومرنة، جهد كهربائي ثنائي عالمي (110-240V).",
+              en: "Digital LED temperature display, floating wide plates, universal dual voltage (110-240V)."
+            },
+            reviews: {
+              ar: "تقييم 4.88/5. 'حرارتها جبارة وتسوي الشعر سيدة بلمسة وحدة، وما تقطع الشعر أبداً.'",
+              en: "Rated 4.88/5. 'Super high heat and glides without snagging a single hair.'"
+            }
+          }
+        },
+        {
+          id: "dev-03",
+          name: { ar: "جهاز تمويج وتجعيد الشعر الذاتي اللاسلكي الذكي", en: "Smart Auto-Rotating Cordless Hair Curler" },
+          category: { ar: "أجهزة الشعر والجمال", en: "Beauty Tech & Devices" },
+          basePriceUSD: 42.0, // ~158 SAR
+          originalPriceUSD: 70.0,
+          discountPercentage: 40,
+          stock: 4,
+          badge: { ar: "ضمان سنتين ✦ كيرلي ذكي", en: "2-Yr Warranty ✦ Smart Curler" },
+          rating: 4.92,
+          reviewsCount: 132,
+          isTechSpecs: true,
+          techSpecs: [
+            { label: { ar: "آلية العمل", en: "Mechanism" }, value: { ar: "دوران أوتوماتيكي ذكي يميناً ويساراً بزر واحد", en: "Bi-directional Auto-Rotating Chamber" } },
+            { label: { ar: "البطارية", en: "Battery" }, value: { ar: "بطارية ليثيوم قابلة لإعادة الشحن عبر USB-C تدوم 60 دقيقة", en: "Rechargeable USB-C (60 min runtime)" } },
+            { label: { ar: "مستويات الحرارة", en: "Heat Levels" }, value: { ar: "6 درجات حرارة من 150 إلى 200 مئوية", en: "6 Heat Settings (150°C - 200°C)" } },
+            { label: { ar: "الضمان", en: "Warranty" }, value: { ar: "ضمان شامل لمدة سنتين", en: "2-Year Comprehensive Warranty" } }
+          ],
+          images: [
+            "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=800&q=80",
+          ],
+          tabs: {
+            description: {
+              ar: "جهاز الكيرلي التلقائي الأكثر أماناً: اسحبي الخصلة لداخل الحجرة السيراميكية العازلة وسيقوم الجهاز بلفها وتدفئتها بنعومة وإطلاقها كتموجات مذهلة تدوم طويلاً.",
+              en: "The safest automatic cordless curler: automatically wraps hair inside the thermal-insulated ceramic chamber to form bouncy, long-lasting curls."
+            },
+            usage: {
+              ar: "ضعي خصلة صغيرة داخل فتحة الجهاز واضغطي زر البدء حتى تسمعي صوت التنبيه، ثم أفلتي للحصول على خصلة كيرلي ساحرة.",
+              en: "Place a small strand into the curl chamber, hold the button until the beep alert signals completion."
+            },
+            ingredientsOrSpecs: {
+              ar: "حجرة عازلة تحمي اليد والوجه تماماً من الحرارة، خفيف الوزن ومثالي للحقيبة والسفر.",
+              en: "Anti-scald insulated housing, compact travel-ready wireless body."
+            },
+            reviews: {
+              ar: "تقييم 4.92/5. 'اختراع خيالي! أسوي شعري كامل في 8 دقائق وأنا بالسيارة أو بالسفر!'",
+              en: "Rated 4.92/5. 'Brilliant invention. Can curl my whole hair anywhere with zero burns!'"
+            }
+          }
+        },
+        {
+          id: "dev-04",
+          name: { ar: "جهاز تنظيف وتقشير البشرة بالموجات فوق الصوتية", en: "Ultrasonic Skin Scrubber & Pore Cleanser" },
+          category: { ar: "أجهزة الشعر والجمال", en: "Beauty Tech & Devices" },
+          basePriceUSD: 29.3, // ~110 SAR
+          originalPriceUSD: 48.0,
+          discountPercentage: 39,
+          stock: 9,
+          badge: { ar: "ضمان سنتين ✦ عناية بالبشرة", en: "2-Yr Warranty ✦ Deep Clean" },
+          rating: 4.85,
+          reviewsCount: 98,
+          isTechSpecs: true,
+          techSpecs: [
+            { label: { ar: "تردد الموجات", en: "Frequency" }, value: { ar: "24,000 هرتز للاهتزازات الدقيقة لتنقية المسام", en: "24kHz High Ultrasonic Vibrations" } },
+            { label: { ar: "أوضاع العمل", en: "Modes" }, value: { ar: "4 أوضاع (تنظيف عميق، تغذية أيونية، شد ورفع EMS)", en: "4 Modes: Cleansing, Ion+, Ion-, EMS Lift" } },
+            { label: { ar: "المادة والشحن", en: "Material" }, value: { ar: "شفرة ستانلس ستيل طبي مضاد للبكتيريا + شحن لاسلكي", en: "Medical Stainless Blade + USB Base" } },
+            { label: { ar: "الضمان", en: "Warranty" }, value: { ar: "ضمان عامين كاملين", en: "2-Year Full Warranty" } }
+          ],
+          images: [
+            "https://images.unsplash.com/photo-1512290900672-1f41b2f6ef8d?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80",
+          ],
+          tabs: {
+            description: {
+              ar: "أداة المسام الاحترافية لإزالة الرؤوس السوداء والدهون العميقة وتغلغل السيرومات إلى أعماق البشرة بتقنية الأيونات السالبة وموجات الرفع EMS.",
+              en: "Professional ultrasonic spatula removing stubborn blackheads, excess sebum and infusing skincare nutrients deeply via micro-current EMS."
+            },
+            usage: {
+              ar: "يرطب الوجه بالماء أو التونر ويمرر رأس الشفرة بلطف بزاوية 45 درجة لتنظيف فوري ونضارة مشعة.",
+              en: "Keep face wet with water or toner, glide the spatula at a 45-degree angle gently across pores."
+            },
+            ingredientsOrSpecs: {
+              ar: "مقاوم للرذاذ، خفيف الوزن، بطارية ليثيوم تدوم لأسابيع بشحنة واحدة.",
+              en: "Splash-resistant IPX5, long battery endurance, compact ergonomic grip."
+            },
+            reviews: {
+              ar: "تقييم 4.85/5. 'الرؤوس السوداء على الأنف اختفت من أول جلسة، وبشرتي صارت تتنفس.'",
+              en: "Rated 4.85/5. 'Pores and blackheads disappeared on the very first session!'"
             }
           }
         }
