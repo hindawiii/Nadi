@@ -76,15 +76,13 @@ export const AboutView: React.FC = () => {
               {lang === 'ar' ? 'من نحن' : 'About Us'}
             </span>
             <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight mt-1">
-              {lang === 'ar' ? 'قصّة So Beauty' : 'The So Beauty Story'}
+              {activeData.aboutStory.title[lang]}
             </h1>
           </div>
 
           {/* Poetic Narrative */}
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed text-start">
-            {lang === 'ar'
-              ? 'سو بيوتي علامة سودانية وُلدت من إيمانٍ عميق بأن جمال البشرة يبدأ من الطبيعة. نختار مكوّناتنا بعناية، ونقدّم لك منتجات عناية راقية تجمع بين النقاء النباتي والفعالية العلمية، لتنعمي ببشرة صحيّة ومشرقة كل يوم.'
-              : 'So Beauty is a homegrown brand born from the deep conviction that genuine radiance begins in nature. We meticulously select every botanical extract, blending pure natural potency with modern scientific care so every woman enjoys glowing, vibrant skin.'}
+            {activeData.aboutStory.body[lang]}
           </p>
 
           {/* Studio Hero Photograph (Matching Photo 1: Skincare in wooden bowl with palm leaves & plumeria flowers) */}
@@ -181,7 +179,7 @@ export const AboutView: React.FC = () => {
           <div className="bg-white rounded-3xl p-8 sm:p-10 border border-purple-100 shadow-xl text-center space-y-6">
             <div className="max-w-lg mx-auto space-y-2">
               <h3 className="text-2xl sm:text-3xl font-black text-slate-900">
-                {lang === 'ar' ? 'ابدئي رحلتكِ مع سو بيوتي' : 'Begin Your Journey with So Beauty'}
+                {lang === 'ar' ? `ابدئي رحلتكِ مع ${activeData.storeName.ar}` : `Begin Your Journey with ${activeData.storeName.en}`}
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                 {lang === 'ar'

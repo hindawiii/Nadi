@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Lock, KeyRound, CheckCircle, Package, DollarSign, 
   TrendingUp, AlertTriangle, ArrowLeft, ArrowRight, 
-  LogOut, Edit, RefreshCw 
+  LogOut, Edit, RefreshCw, Image as ImageIcon, Sparkles, Check 
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 
@@ -117,6 +117,23 @@ export const AdminPanel: React.FC = () => {
     showToast(lang === 'ar' ? 'تم تحديث السعر الأساسي' : 'Base price updated');
   };
 
+  const handleStoreLogoChange = (logoUrl: string) => {
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      clone.presets[activePresetId].storeLogo = logoUrl;
+      return clone;
+    });
+    showToast(lang === 'ar' ? 'تم تحديث شعار المتجر' : 'Store logo updated');
+  };
+
+  const handleStoreNameChange = (key: 'ar' | 'en', val: string) => {
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      clone.presets[activePresetId].storeName[key] = val;
+      return clone;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 py-8 sm:py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
@@ -181,6 +198,132 @@ export const AdminPanel: React.FC = () => {
             </div>
             <p className="text-3xl font-extrabold text-slate-900">99.8%</p>
             <span className="text-xs text-slate-500">{lang === 'ar' ? 'معدل رضا العميلات' : 'Customer satisfaction'}</span>
+          </div>
+        </div>
+
+        {/* Store Branding & Logo Management (نظام إدارة هوية وشعار المتجر الذكي) */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-[#5A3E7A]" />
+                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900">
+                  {lang === 'ar' ? 'إعدادات هوية وشعار المتجر' : 'Store Identity & Brand Logo'}
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {lang === 'ar'
+                  ? 'إذا لم يتم إدخال صورة، سيتم عرض الاسم النصي فقط (الإنجليزية بالأعلى والعربية بالأسفل). وإذا أضفت صورة، سيتم عرضها تلقائياً بدل الاسم الكتابي.'
+                  : 'If no logo image is provided, only the text name is shown (English top, Arabic bottom). If a logo image is added, it is displayed automatically instead of the text name.'}
+              </p>
+            </div>
+
+            {/* Current State Badge */}
+            <div className="shrink-0">
+              {activePreset.storeLogo ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{lang === 'ar' ? 'الشعار الصوري مفعّل' : 'Image Logo Active'}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-[#5A3E7A] text-xs font-bold">
+                  <Sparkles className="w-3.5 h-3.5 text-[#5A3E7A]" />
+                  <span>{lang === 'ar' ? 'الاسم النصي فقط مفعّل (بلا لوجو)' : 'Text Only Mode Active'}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            {/* Live Visual Preview Box */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-center text-center space-y-3">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                {lang === 'ar' ? 'المعاينة الحية لترويسة المتجر' : 'Live Header Preview'}
+              </span>
+
+              <div className="bg-white px-6 py-4 rounded-2xl border border-slate-200/80 shadow-xs w-full flex items-center justify-center min-h-[72px]">
+                {activePreset.storeLogo ? (
+                  <img
+                    src={activePreset.storeLogo}
+                    alt={activePreset.storeName[lang]}
+                    className="h-11 w-auto max-h-11 object-contain"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    <span className="font-brand-geometric font-extrabold text-lg text-slate-950 tracking-[0.24em] uppercase leading-none">
+                      {activePreset.storeName.en}
+                    </span>
+                    <span className="font-brand-ar font-bold text-sm text-slate-800 leading-tight tracking-wide">
+                      {activePreset.storeName.ar.includes('ـ') ? activePreset.storeName.ar : (activePreset.storeName.ar === 'نَدِي' || activePreset.storeName.ar === 'ندي' ? 'نَـــــدِي' : activePreset.storeName.ar)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <span className="text-[11px] text-slate-500">
+                {activePreset.storeLogo
+                  ? (lang === 'ar' ? 'يتم عرض الصورة تلقائياً' : 'Displaying image automatically')
+                  : (lang === 'ar' ? 'الإنجليزية أكبر في الأعلى بنمط هندسي، والعربية في الأسفل' : 'English larger on top in geometric luxury, Arabic on bottom')}
+              </span>
+            </div>
+
+            {/* Logo Image URL & Store Names Inputs */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  {lang === 'ar' ? 'رابط صورة الشعار (Logo Image URL):' : 'Logo Image URL:'}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={activePreset.storeLogo || ''}
+                    onChange={(e) => handleStoreLogoChange(e.target.value)}
+                    placeholder="https://example.com/logo.png"
+                    className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]"
+                  />
+                  {activePreset.storeLogo && (
+                    <button
+                      type="button"
+                      onClick={() => handleStoreLogoChange('')}
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-bold transition-colors whitespace-nowrap"
+                    >
+                      {lang === 'ar' ? 'إزالة الشعار' : 'Clear Logo'}
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  {lang === 'ar'
+                    ? 'اتركه فارغاً ليعرض المتجر نص الاسم فقط بدون أي أيقونة أو مربع لوجو.'
+                    : 'Leave blank to display the pure typography name without any logo icon or box.'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    {lang === 'ar' ? 'اسم المتجر بالإنجليزية (في الأعلى):' : 'English Store Name (Top):'}
+                  </label>
+                  <input
+                    type="text"
+                    value={activePreset.storeName.en}
+                    onChange={(e) => handleStoreNameChange('en', e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    {lang === 'ar' ? 'اسم المتجر بالعربية (في الأسفل):' : 'Arabic Store Name (Bottom):'}
+                  </label>
+                  <input
+                    type="text"
+                    value={activePreset.storeName.ar}
+                    onChange={(e) => handleStoreNameChange('ar', e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

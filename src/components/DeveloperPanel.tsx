@@ -133,6 +133,14 @@ export const DeveloperPanel: React.FC = () => {
     });
   };
 
+  const handleUpdateLogo = (val: string) => {
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      clone.presets[activePresetId].storeLogo = val;
+      return clone;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-8 sm:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
@@ -316,6 +324,36 @@ export const DeveloperPanel: React.FC = () => {
                   onChange={(e) => handleUpdateText('storeName', 'en', e.target.value)}
                   className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                 />
+              </div>
+
+              {/* Store Logo Image URL */}
+              <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-amber-400 block">
+                    {lang === 'ar' ? 'رابط صورة الشعار (Store Logo Image URL):' : 'Store Logo Image URL:'}
+                  </label>
+                  {currentPresetData.storeLogo && (
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateLogo('')}
+                      className="text-[11px] text-rose-400 hover:text-rose-300 font-bold"
+                    >
+                      {lang === 'ar' ? 'مسح الشعار والعودة للاسم النصي' : 'Clear & Revert to Pure Text'}
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="url"
+                  placeholder="https://... (Leave blank for text-only)"
+                  value={currentPresetData.storeLogo || ''}
+                  onChange={(e) => handleUpdateLogo(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                />
+                <p className="text-[11px] text-slate-400">
+                  {lang === 'ar'
+                    ? 'في حال عدم وجود صورة، يظهر اسم المتجر نصياً (الإنجليزية بالأعلى والعربية بالأسفل). عند وضع رابط صورة هنا، تظهر الصورة تلقائياً بدلاً من الاسم الكتابي.'
+                    : 'If blank, displays pure text (English top, Arabic bottom). If a logo URL is entered, image displays automatically.'}
+                </p>
               </div>
 
               {/* Hero Title */}

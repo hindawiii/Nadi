@@ -9,6 +9,7 @@ import { CartPageView } from './components/CartPageView';
 import { AdminPanel } from './components/AdminPanel';
 import { DeveloperPanel } from './components/DeveloperPanel';
 import { OrderTrackerView } from './components/OrderTrackerView';
+import { LoginPageView } from './components/LoginPageView';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
 import { ReviewModal } from './components/ReviewModal';
@@ -69,6 +70,8 @@ const AppContent: React.FC = () => {
         setCurrentRoute('cart');
       } else if (route === 'tracker') {
         setCurrentRoute('tracker');
+      } else if (route === 'login' || route === 'auth') {
+        setCurrentRoute('login');
       } else {
         // Default everything else to store homepage and scroll to top
         setCurrentRoute('store');
@@ -101,6 +104,7 @@ const AppContent: React.FC = () => {
           {currentRoute === 'admin' && <AdminPanel />}
           {currentRoute === 'developer' && (!isDeveloperModeLocked ? <DeveloperPanel /> : <StorefrontView />)}
           {currentRoute === 'tracker' && <OrderTrackerView />}
+          {currentRoute === 'login' && <LoginPageView />}
         </main>
       </div>
 

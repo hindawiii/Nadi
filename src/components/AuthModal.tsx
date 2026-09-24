@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, Sparkles, Check } from 'lucide-react';
+import { X, Mail, Sparkles, Check } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
+import { SmartPasswordInput } from './SmartInputField';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, lang, showToast } = useCommerce();
@@ -114,21 +115,16 @@ export const AuthModal: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-1.5 text-start">
-            <label className="text-xs font-bold text-slate-700">
-              {lang === 'ar' ? 'كلمة السر' : 'Password'}
-            </label>
-            <div className="relative">
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:bg-white transition-all text-slate-800"
-              />
-            </div>
-          </div>
+          <SmartPasswordInput
+            id="modal-password"
+            label={lang === 'ar' ? 'كلمة المرور' : 'Password'}
+            value={password}
+            onChange={setPassword}
+            placeholder="••••••••"
+            required={true}
+            lang={lang}
+            showStrengthMeter={false}
+          />
 
           <button
             type="submit"

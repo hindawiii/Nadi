@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  ShoppingBag, Heart, Search, Globe, ChevronDown, CircleUserRound,
+  ShoppingBag, Heart, Search, Globe, ChevronDown, User,
   Sparkles, Check, Menu, X, ArrowRight, ArrowLeft, Truck, 
   ChevronRight, Star, ExternalLink, ShieldCheck 
 } from 'lucide-react';
@@ -155,17 +155,35 @@ export const Header: React.FC = () => {
             {isMobileMenuOpen ? <X className="w-6 h-6 text-slate-800" /> : <Menu className="w-6 h-6 text-slate-800" />}
           </button>
 
-          {/* DUAL-SCRIPT TYPOGRAPHIC LOGO (Matching Photo 1 & Photo 6) */}
+          {/* INTELLIGENT DUAL-SCRIPT BRAND NAME OR AUTO-IMAGE LOGO */}
           <div 
             onClick={() => navigateTo('store')} 
-            className="cursor-pointer flex flex-col items-start select-none group"
+            className="cursor-pointer flex items-center select-none group py-1"
+            title={`${activeData.storeName.en} | ${activeData.storeName.ar}`}
           >
-            <span className="font-brand-en font-black tracking-widest text-base sm:text-2xl text-slate-900 group-hover:text-[#5A3E7A] transition-colors leading-none">
-              SO BEAUTY
-            </span>
-            <span className="font-brand-ar font-bold text-[10px] sm:text-sm text-[#5A3E7A] tracking-wider mt-0.5 leading-none">
-              سو بيوتي
-            </span>
+            {activeData.storeLogo ? (
+              /* Automatic Brand Logo Image (When image exists) */
+              <img 
+                src={activeData.storeLogo} 
+                alt={`${activeData.storeName.en} - ${activeData.storeName.ar}`} 
+                className="h-10 sm:h-12 w-auto max-h-12 object-contain group-hover:opacity-95 transition-opacity" 
+              />
+            ) : (
+              /* Pure Text Name Lockup (No logo icon, English LARGER Top, Arabic Elongated Bottom, Safe Spacing) */
+              <div className="flex flex-col items-start justify-center gap-1 sm:gap-1.5">
+                {/* English Name: Modern Geometric Luxury Uppercase (Always on Top & LARGER) */}
+                <span className="font-brand-geometric font-black text-lg sm:text-2xl text-slate-950 group-hover:text-[#5A3E7A] transition-colors tracking-[0.24em] sm:tracking-[0.28em] uppercase leading-none">
+                  {activeData.storeName.en}
+                </span>
+                {/* Arabic Name: Professionally Elongated, Clear, Bold & Symmetrical */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <span className="font-brand-ar font-extrabold text-sm sm:text-base text-slate-700 group-hover:text-[#5A3E7A] transition-colors leading-tight tracking-wide">
+                    {activeData.storeName.ar.includes('ـ') ? activeData.storeName.ar : (activeData.storeName.ar === 'نَدِي' || activeData.storeName.ar === 'ندي' ? 'نَـــــدِي' : activeData.storeName.ar)}
+                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#5A3E7A]/50 group-hover:bg-[#5A3E7A] transition-colors" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -216,13 +234,18 @@ export const Header: React.FC = () => {
           </button>
         </nav>
 
-        {/* Action Icons (Search, Wishlist, Cart, Login) - Uniform 44x44 Touch Target & Equalized Safe Gaps */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        {/* Smart Auto-Adaptive Action Dock (Search, Wishlist, Cart, Login) */}
+        {/* Uniform geometry, auto-rebalancing gaps, resilient to deletion/reordering */}
+        <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-slate-100/70 sm:bg-slate-50/80 border border-slate-200/80 rounded-2xl shrink-0 shadow-2xs backdrop-blur-xs">
           
           {/* Search Toggle Button */}
           <button
             onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className={`w-11 h-11 rounded-full transition-all flex items-center justify-center relative shrink-0 ${isSearchOpen ? 'bg-purple-100 text-[#5A3E7A] ring-2 ring-[#5A3E7A]/20' : 'text-slate-700 hover:bg-slate-100'}`}
+            className={`w-10 sm:w-10.5 h-10 sm:h-10.5 rounded-xl transition-all flex items-center justify-center relative shrink-0 min-h-[44px] min-w-[44px] ${
+              isSearchOpen 
+                ? 'bg-purple-100 text-[#5A3E7A] shadow-xs' 
+                : 'text-slate-700 hover:text-[#5A3E7A] hover:bg-white hover:shadow-xs'
+            }`}
             aria-label="Search"
             title={lang === 'ar' ? 'بحث' : 'Search'}
           >
@@ -232,13 +255,17 @@ export const Header: React.FC = () => {
           {/* Wishlist Button -> Navigates to dedicated /wishlist page */}
           <button
             onClick={() => navigateTo('wishlist')}
-            className={`w-11 h-11 rounded-full transition-all flex items-center justify-center relative shrink-0 ${currentRoute === 'wishlist' ? 'bg-purple-100 text-[#5A3E7A] ring-2 ring-[#5A3E7A]/20' : 'text-slate-700 hover:bg-slate-100'}`}
+            className={`w-10 sm:w-10.5 h-10 sm:h-10.5 rounded-xl transition-all flex items-center justify-center relative shrink-0 min-h-[44px] min-w-[44px] ${
+              currentRoute === 'wishlist' 
+                ? 'bg-purple-100 text-[#5A3E7A] shadow-xs' 
+                : 'text-slate-700 hover:text-[#5A3E7A] hover:bg-white hover:shadow-xs'
+            }`}
             aria-label="Wishlist"
             title={lang === 'ar' ? 'المفضلة' : 'Wishlist'}
           >
             <Heart className={`w-5 h-5 ${wishlist.length > 0 ? 'text-rose-500 fill-rose-500' : 'text-slate-700'}`} />
             {wishlist.length > 0 && (
-              <span className="absolute top-1 end-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute top-0.5 end-0.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce shadow-xs">
                 {wishlist.length}
               </span>
             )}
@@ -247,26 +274,42 @@ export const Header: React.FC = () => {
           {/* Cart Bag Button -> Navigates to dedicated /cart page */}
           <button
             onClick={() => navigateTo('cart')}
-            className={`w-11 h-11 rounded-full transition-all flex items-center justify-center relative shrink-0 ${currentRoute === 'cart' ? 'bg-purple-100 text-[#5A3E7A] ring-2 ring-[#5A3E7A]/20' : 'text-slate-700 hover:bg-slate-100'}`}
+            className={`w-10 sm:w-10.5 h-10 sm:h-10.5 rounded-xl transition-all flex items-center justify-center relative shrink-0 min-h-[44px] min-w-[44px] ${
+              currentRoute === 'cart' 
+                ? 'bg-purple-100 text-[#5A3E7A] shadow-xs' 
+                : 'text-slate-700 hover:text-[#5A3E7A] hover:bg-white hover:shadow-xs'
+            }`}
             aria-label="Cart"
             title={lang === 'ar' ? 'سلة المشتريات' : 'Shopping Bag'}
           >
             <ShoppingBag className="w-5 h-5 text-slate-800" />
             {cartCount > 0 && (
-              <span className="absolute top-1 end-1 w-4 h-4 bg-[#5A3E7A] text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce">
+              <span className="absolute top-0.5 end-0.5 w-4 h-4 bg-[#5A3E7A] text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce shadow-xs">
                 {cartCount}
               </span>
             )}
           </button>
 
-          {/* Login Button - Symmetrically Equalized, Royal Luxury CircleUserRound */}
+          {/* User Account / Sign In Button - Smart Responsive Squircle */}
           <button
-            onClick={() => setIsAuthModalOpen(true)}
-            className="w-11 h-11 rounded-full bg-gradient-to-r from-[#5A3E7A] to-[#483162] hover:from-[#483162] hover:to-[#2E1840] text-white flex items-center justify-center transition-all shadow-xs hover:shadow-md border border-purple-400/30 shrink-0 group"
-            title={lang === 'ar' ? 'حساب العميل / تسجيل الدخول' : 'Customer Account / Sign In'}
-            aria-label="Sign In"
+            onClick={() => navigateTo('login')}
+            className={`h-10 sm:h-10.5 w-10 sm:w-auto px-0 sm:px-3 rounded-xl transition-all flex items-center justify-center sm:justify-start gap-0 sm:gap-2 relative shrink-0 min-h-[44px] min-w-[44px] ${
+              currentRoute === 'login'
+                ? 'bg-white text-[#5A3E7A] shadow-xs ring-1 ring-[#5A3E7A]/25'
+                : 'hover:bg-white hover:shadow-xs text-slate-700 hover:text-[#5A3E7A]'
+            } focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]/25 group`}
+            title={lang === 'ar' ? 'تسجيل الدخول / فتح الحساب' : 'Sign In / Customer Account'}
+            aria-label={lang === 'ar' ? 'تسجيل الدخول إلى حسابك' : 'Sign in to your account'}
           >
-            <CircleUserRound className="w-5 h-5 text-purple-100 group-hover:scale-105 transition-transform" />
+            {/* Square with soft edges for the User Icon */}
+            <div className="w-7 h-7 sm:w-6.5 sm:h-6.5 rounded-lg bg-purple-100/90 group-hover:bg-[#5A3E7A] text-[#5A3E7A] group-hover:text-white flex items-center justify-center transition-all shrink-0">
+              <User className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+            </div>
+            <span className="hidden sm:inline text-xs font-bold whitespace-nowrap">
+              {lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
+            </span>
+            {/* Active Indicator on tablet/desktop */}
+            <span className="hidden sm:inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full border border-white shrink-0" />
           </button>
 
         </div>
@@ -363,23 +406,42 @@ export const Header: React.FC = () => {
                 <X className="w-6 h-6" />
               </button>
 
-              <div className="flex flex-col items-center">
-                <span className="font-brand-en font-black tracking-widest text-lg text-slate-900">
-                  SO BEAUTY
-                </span>
-                <span className="font-brand-ar font-bold text-xs text-[#5A3E7A]">
-                  سو بيوتي
-                </span>
+              <div 
+                onClick={() => {
+                  navigateTo('store');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex flex-col items-center cursor-pointer select-none"
+              >
+                {activeData.storeLogo ? (
+                  <img 
+                    src={activeData.storeLogo} 
+                    alt={`${activeData.storeName.en} - ${activeData.storeName.ar}`} 
+                    className="h-10 w-auto max-h-10 object-contain" 
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-1 text-center">
+                    {/* English Name: Noticeably larger on top */}
+                    <span className="font-brand-geometric font-black text-xl text-slate-950 tracking-[0.24em] uppercase leading-none">
+                      {activeData.storeName.en}
+                    </span>
+                    {/* Arabic Name: Elongated, bold, clear underneath */}
+                    <span className="font-brand-ar font-extrabold text-sm sm:text-base text-slate-800 leading-tight tracking-wide">
+                      {activeData.storeName.ar.includes('ـ') ? activeData.storeName.ar : (activeData.storeName.ar === 'نَدِي' || activeData.storeName.ar === 'ندي' ? 'نَـــــدِي' : activeData.storeName.ar)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
-                  setIsAuthModalOpen(true);
+                  navigateTo('login');
                 }}
-                className="p-2 rounded-full text-[#5A3E7A] hover:bg-purple-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="w-10 h-10 rounded-xl bg-purple-50 text-[#5A3E7A] hover:bg-purple-100 min-h-[44px] min-w-[44px] flex items-center justify-center border border-purple-100/80 transition-colors"
+                aria-label="User Account"
               >
-                <CircleUserRound className="w-5 h-5" />
+                <User className="w-5 h-5" />
               </button>
             </div>
 
@@ -470,12 +532,12 @@ export const Header: React.FC = () => {
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
-                  setIsAuthModalOpen(true);
+                  navigateTo('login');
                 }}
-                className="w-full py-3 bg-gradient-to-r from-[#5A3E7A] to-[#483162] text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 min-h-[44px] shadow-sm"
+                className="w-full py-3 bg-gradient-to-r from-[#5A3E7A] to-[#483162] text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 min-h-[44px] shadow-sm hover:opacity-95 transition-opacity"
               >
-                <CircleUserRound className="w-4 h-4 text-purple-200" />
-                <span>{lang === 'ar' ? 'تسجيل الدخول / إنشاء حساب' : 'Sign In / Register'}</span>
+                <User className="w-4 h-4 text-purple-200" />
+                <span>{lang === 'ar' ? 'تسجيل الدخول / فتح صفحة الحساب' : 'Sign In / Account Page'}</span>
               </button>
             </div>
 

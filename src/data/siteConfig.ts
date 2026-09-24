@@ -52,6 +52,7 @@ export interface PresetNiche {
   id: 'cosmetics' | 'fashion' | 'eyewear' | 'electronics';
   nicheLabel: { ar: string; en: string };
   storeName: { ar: string; en: string };
+  storeLogo?: string;
   storeSlogan: { ar: string; en: string };
   topAnnouncement: { ar: string; en: string };
   heroTitle: { ar: string; en: string };
@@ -120,17 +121,18 @@ export const siteConfig: SiteConfig = {
   presets: {
     cosmetics: {
       id: "cosmetics",
-      nicheLabel: { ar: "تجميل وعناية بالبشرة (So Beauty)", en: "Cosmetics & Skincare (So Beauty)" },
-      storeName: { ar: "سو بيوتي", en: "So Beauty" },
-      storeSlogan: { ar: "عناية طبيعية بكل تفاصيل بشرتك", en: "Natural Care for Every Detail" },
+      nicheLabel: { ar: "تجميل وعناية بالبشرة (نَـــــدِي - NADI)", en: "Cosmetics & Skincare (NADI)" },
+      storeName: { ar: "نَـــــدِي", en: "NADI" },
+      storeLogo: "",
+      storeSlogan: { ar: "إشراقة طبيعية، تليق بك.", en: "Natural radiance, made for you." },
       topAnnouncement: {
-        ar: "عناية طبيعية متكاملة بكل تفاصيل بشرتك. من الترطيب إلى النضارة، اكتشفي ما يلائمك بعناية. تسوّقي الآن",
-        en: "Complete natural care for your skin. From hydration to radiance, discover the best for you. Shop Now"
+        ar: "عناية طبيعية متكاملة بكل تفاصيل بشرتك. من الترطيب إلى النضارة، اكتشفي ما يلائمك بعناية مع نَـــــدِي. تسوّقي الآن",
+        en: "Complete natural care for your skin. From hydration to radiance, discover the best for you with NADI. Shop Now"
       },
       heroTitle: { ar: "جمالكِ الطبيعي يبدأ من هنا", en: "Your Natural Beauty Starts Here" },
       heroSubtitle: {
-        ar: "اكتشفي مجموعة So Beauty من منتجات العناية الطبيعية بالبشرة – نقاء نباتي وإشراقة تدوم وطاقة متجددة.",
-        en: "Discover the So Beauty collection of natural botanical skincare – pure radiance, deep nourishment, and lasting glow."
+        ar: "اكتشفي مجموعة نَـــــدِي (NADI) من منتجات العناية الطبيعية بالبشرة – نقاء نباتي وإشراقة تدوم وطاقة متجددة.",
+        en: "Discover the NADI collection of natural botanical skincare – pure radiance, deep nourishment, and lasting glow."
       },
       heroCtaPrimary: { ar: "تسوّق الآن", en: "Shop Now" },
       heroCtaSecondary: { ar: "شاهد العروض", en: "View Offers" },
@@ -168,14 +170,14 @@ export const siteConfig: SiteConfig = {
       contactInfo: {
         address: { ar: "أم درمان – شارع الوادي، السودان", en: "Omdurman - Al Wadi Street, Sudan" },
         phone: "+249900776688",
-        email: "sobeauty.one@gmail.com",
+        email: "nadi.skincare@gmail.com",
         whatsapp: "249900776688",
       },
       aboutStory: {
-        title: { ar: "قصّة So Beauty", en: "The So Beauty Story" },
+        title: { ar: "قصّة نَدِي - NADI", en: "The NADI Story" },
         body: {
-          ar: "سو بيوتي علامة سودانية وُلدت من إيمان عميق بأن جمال البشرة يبدأ من الطبيعة. نختار مكوّناتنا بعناية، ونقدّم لك منتجات عناية راقية تجمع بين النقاء النباتي والفعالية العلمية، لتنعمي ببشرة صحيّة ومشرقة كل يوم.",
-          en: "So Beauty is born from a profound belief that authentic beauty begins in nature. We select our ingredients meticulously, blending pure botanical vitality with scientific efficacy so you enjoy healthy, glowing skin every day."
+          ar: "نَدِي علامة وُلدت من إيمان عميق بأن نضارة البشرة وجمالها ينبعان من نقاء الطبيعة ورطوبة الندى الصافي. نختار مكوّناتنا النباتية بعناية فائقة، ونقدّم لكِ مستحضرات عناية راقية تجمع بين النقاء الطبيعي والفاعلية العلمية، لتنعمي ببشرة صحيّة، نضرة ومشرقة كل يوم.",
+          en: "NADI is born from the profound conviction that authentic beauty stems from botanical purity and dew-drop freshness. We curate our botanical ingredients meticulously, blending organic purity with advanced scientific care so every woman enjoys healthy, supple, and radiant skin."
         },
         image: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=1000&q=80",
       },
@@ -341,6 +343,7 @@ export const siteConfig: SiteConfig = {
       id: "fashion",
       nicheLabel: { ar: "ملابس وأزياء عصرية (Elegance)", en: "Modern Apparel & Fashion (Elegance)" },
       storeName: { ar: "إيليجانس للأزياء", en: "Elegance Fashion" },
+      storeLogo: "",
       storeSlogan: { ar: "أرقى صيحات الموضة والإطلالات الفاخرة", en: "High Fashion Trends & Luxury Aesthetics" },
       topAnnouncement: {
         ar: "تألقي مع تشكيلة خريف وشتاء 2026 – شحن مجاني لكافة الطلبات فوق 200 ر.س!",
@@ -492,6 +495,7 @@ export const siteConfig: SiteConfig = {
       id: "eyewear",
       nicheLabel: { ar: "نظارات وبصريات ذكية (Vision)", en: "Smart & Luxury Eyewear (Vision)" },
       storeName: { ar: "رؤية للبصريات", en: "Vision Eyewear" },
+      storeLogo: "",
       storeSlogan: { ar: "إطلالة فريدة وعدسات فائقة الدقة", en: "Precision Optics & Bespoke Frames" },
       topAnnouncement: {
         ar: "جرّب نظارتك الآن مباشرة عبر الكاميرا والواقع المعزز (AR Try-On)! شحن مجاني وفحص نظر منزلي.",
@@ -639,6 +643,7 @@ export const siteConfig: SiteConfig = {
       id: "electronics",
       nicheLabel: { ar: "أجهزة ذكية وإلكترونيات (TechZone)", en: "Smart Gadgets & Electronics (TechZone)" },
       storeName: { ar: "تيك زون للإلكترونيات", en: "TechZone Gadgets" },
+      storeLogo: "",
       storeSlogan: { ar: "عالم الحلول الذكية والتقنيات المستقبلية", en: "Next-Gen Hardware & Smart Lifestyle" },
       topAnnouncement: {
         ar: "أقوى عروض الأجهزة الذكية لعام 2026 – ضمان معتمد لسنتين واستبدال فوري عند وجود أي عطل مصنعي!",

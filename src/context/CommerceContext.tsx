@@ -20,7 +20,7 @@ export interface OrderRecord {
   trackingCode: string;
 }
 
-export type RouteName = 'store' | 'admin' | 'developer' | 'pdp' | 'tracker' | 'about' | 'wishlist' | 'cart';
+export type RouteName = 'store' | 'admin' | 'developer' | 'pdp' | 'tracker' | 'about' | 'wishlist' | 'cart' | 'login';
 
 interface CommerceContextType {
   lang: 'ar' | 'en';
@@ -97,8 +97,8 @@ interface CommerceContextType {
 
 const CommerceContext = createContext<CommerceContextType | null>(null);
 
-const STORAGE_KEY_CONFIG = 'luxe_commerce_config_v1';
-const STORAGE_KEY_PRESET = 'luxe_commerce_preset_v1';
+const STORAGE_KEY_CONFIG = 'luxe_commerce_config_v2';
+const STORAGE_KEY_PRESET = 'luxe_commerce_preset_v2';
 const STORAGE_KEY_CURRENCY = 'luxe_commerce_currency_v1';
 const STORAGE_KEY_LANG = 'luxe_commerce_lang_v1';
 const STORAGE_KEY_LOCK = 'luxe_commerce_locked_v1';
@@ -127,7 +127,17 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed.presets?.cosmetics?.storeName?.ar === 'نَدِي') {
+          parsed.presets.cosmetics.storeName.ar = 'نَـــــدِي';
+        }
+        if (parsed.presets?.cosmetics) {
+          parsed.presets.cosmetics.storeSlogan = {
+            ar: 'إشراقة طبيعية، تليق بك.',
+            en: 'Natural radiance, made for you.'
+          };
+        }
+        return parsed;
       } catch (e) {
         console.error('Failed to parse config from storage', e);
       }
@@ -174,10 +184,19 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpenState] = useState<boolean>(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState<boolean>(false);
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Intercept setIsAuthModalOpen to open full-page login view
+  const setIsAuthModalOpen = (open: boolean) => {
+    if (open) {
+      navigateTo('login');
+    } else {
+      setIsAuthModalOpenState(false);
+    }
+  };
 
   // Sync cart to storage
   useEffect(() => {
@@ -217,27 +236,6 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       window.location.hash = r;
     }
   };
-
-  // Dynamic document title update based on current page
-  useEffect(() => {
-    if (currentRoute === 'wishlist') {
-      document.title = lang === 'ar' ? 'المفضلة الفاخرة | SO BEAUTY سو بيوتي' : 'Luxury Wishlist | SO BEAUTY';
-    } else if (currentRoute === 'cart') {
-      document.title = lang === 'ar' ? 'سلة المشتريات وإتمام الطلب | SO BEAUTY سو بيوتي' : 'Shopping Bag & Checkout | SO BEAUTY';
-    } else if (currentRoute === 'about') {
-      document.title = lang === 'ar' ? 'من نحن وقصة المتجر | SO BEAUTY سو بيوتي' : 'About Our Story | SO BEAUTY';
-    } else if (currentRoute === 'tracker') {
-      document.title = lang === 'ar' ? 'تتبع الشحنة المباشر | SO BEAUTY سو بيوتي' : 'Live Order Tracking | SO BEAUTY';
-    } else if (currentRoute === 'pdp' && activeProduct) {
-      document.title = `${activeProduct.name[lang]} | SO BEAUTY سو بيوتي`;
-    } else if (currentRoute === 'admin') {
-      document.title = lang === 'ar' ? 'لوحة تحكم المتجر | SO BEAUTY Admin' : 'Store Dashboard | SO BEAUTY Admin';
-    } else if (currentRoute === 'developer') {
-      document.title = 'Developer Sovereign Console | SO BEAUTY';
-    } else {
-      document.title = lang === 'ar' ? 'SO BEAUTY سو بيوتي | متجر العناية والتجميل الفاخر' : 'SO BEAUTY | Luxury Skincare & Multi-Niche Commerce';
-    }
-  }, [currentRoute, activeProduct, lang]);
 
   const addReview = (review: { name: string; city: string; comment: string; rating: number }) => {
     showToast(lang === 'ar' ? 'شكراً لمشاركتك! تم إضافة تقييمك بنجاح.' : 'Thank you! Your verified review has been posted.');
@@ -495,6 +493,30 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const activeData = dynamicConfig.presets[activePresetId];
+
+  // Dynamic document title update based on current page
+  useEffect(() => {
+    const brandName = `${activeData.storeName.en} · ${activeData.storeName.ar}`;
+    if (currentRoute === 'wishlist') {
+      document.title = lang === 'ar' ? `المفضلة الفاخرة | ${brandName}` : `Luxury Wishlist | ${activeData.storeName.en}`;
+    } else if (currentRoute === 'cart') {
+      document.title = lang === 'ar' ? `سلة المشتريات وإتمام الطلب | ${brandName}` : `Shopping Bag & Checkout | ${activeData.storeName.en}`;
+    } else if (currentRoute === 'about') {
+      document.title = lang === 'ar' ? `من نحن وقصة المتجر | ${brandName}` : `About Our Story | ${activeData.storeName.en}`;
+    } else if (currentRoute === 'tracker') {
+      document.title = lang === 'ar' ? `تتبع الشحنة المباشر | ${brandName}` : `Live Order Tracking | ${activeData.storeName.en}`;
+    } else if (currentRoute === 'pdp' && activeProduct) {
+      document.title = `${activeProduct.name[lang]} | ${brandName}`;
+    } else if (currentRoute === 'admin') {
+      document.title = lang === 'ar' ? `لوحة تحكم المتجر | ${brandName} Admin` : `Store Dashboard | ${activeData.storeName.en} Admin`;
+    } else if (currentRoute === 'developer') {
+      document.title = `Developer Sovereign Console | ${activeData.storeName.en}`;
+    } else if (currentRoute === 'login') {
+      document.title = lang === 'ar' ? `تسجيل الدخول والوصول للحساب | ${brandName}` : `Sign In & Account Access | ${activeData.storeName.en}`;
+    } else {
+      document.title = lang === 'ar' ? `${brandName} | متجر العناية والتجميل الفاخر` : `${activeData.storeName.en} | Luxury Skincare & Botanical Care`;
+    }
+  }, [currentRoute, activeProduct, lang, activeData]);
 
   return (
     <CommerceContext.Provider

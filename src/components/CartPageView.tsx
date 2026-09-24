@@ -497,8 +497,8 @@ export const CartPageView: React.FC = () => {
 
                   {paymentMethod === 'bankak' && (
                     <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 space-y-1">
-                      <p className="font-bold">{lang === 'ar' ? 'حساب بنكك المعتمد لـ So Beauty:' : 'Bankak Account Details:'}</p>
-                      <p className="font-mono font-black text-xs text-slate-900">2891044 (سو بيوتي للتجارة)</p>
+                      <p className="font-bold">{lang === 'ar' ? `حساب بنكك المعتمد لـ ${activeData.storeName.ar}:` : `Bankak Account Details (${activeData.storeName.en}):`}</p>
+                      <p className="font-mono font-black text-xs text-slate-900">2891044 ({activeData.storeName.ar} للتجارة)</p>
                       <p>{lang === 'ar' ? 'يرجى إرسال الإشعار لمندوب التوصيل أو عبر الواتساب فور إتمام الطلب.' : 'Please send the transfer receipt to our WhatsApp after placing.'}</p>
                     </div>
                   )}

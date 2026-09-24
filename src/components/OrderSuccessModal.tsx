@@ -28,8 +28,8 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, isO
 
   const handleWhatsAppConfirmation = () => {
     const text = lang === 'ar'
-      ? `مرحباً سو بيوتي، قمت بطلب جديد عبر المتجر.\nرقم الطلب: ${order.id}\nرمز التتبع: ${order.trackingCode}\nالعميل: ${order.customerName}\nالإجمالي: ${order.totalFormatted}\nأرجو تأكيد تجهيز الشحنة!`
-      : `Hello So Beauty, I just placed an order!\nOrder ID: ${order.id}\nTracking: ${order.trackingCode}\nCustomer: ${order.customerName}\nTotal: ${order.totalFormatted}\nPlease confirm shipment!`;
+      ? `مرحباً ${activeData.storeName.ar}، قمت بطلب جديد عبر المتجر.\nرقم الطلب: ${order.id}\nرمز التتبع: ${order.trackingCode}\nالعميل: ${order.customerName}\nالإجمالي: ${order.totalFormatted}\nأرجو تأكيد تجهيز الشحنة!`
+      : `Hello ${activeData.storeName.en}, I just placed an order!\nOrder ID: ${order.id}\nTracking: ${order.trackingCode}\nCustomer: ${order.customerName}\nTotal: ${order.totalFormatted}\nPlease confirm shipment!`;
     window.open(`https://wa.me/${activeData.contactInfo.whatsapp}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -65,7 +65,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, isO
               {lang === 'ar' ? 'تم استلام طلبكِ بنجاح' : 'Order Successfully Placed'}
             </span>
             <h2 className="text-xl sm:text-2xl font-black tracking-tight">
-              {lang === 'ar' ? 'شكراً لثقتكِ في سو بيوتي!' : 'Thank You for Shopping at So Beauty!'}
+              {lang === 'ar' ? `شكراً لثقتكِ في ${activeData.storeName.ar}!` : `Thank You for Shopping at ${activeData.storeName.en}!`}
             </h2>
             <p className="text-xs text-purple-200/90 mt-1">
               {lang === 'ar' 

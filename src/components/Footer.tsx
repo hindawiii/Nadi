@@ -32,18 +32,33 @@ export const Footer: React.FC = () => {
             {/* The Dedicated White Brand Card for Crystal Clarity */}
             <div 
               onClick={() => navigateTo('store')}
-              className="bg-white rounded-3xl p-5 text-center shadow-xl border border-white/20 cursor-pointer group hover:shadow-2xl transition-all duration-300 w-full max-w-sm"
+              className="bg-white rounded-3xl p-5 text-center shadow-xl border border-white/20 cursor-pointer group hover:shadow-2xl transition-all duration-300 w-full max-w-sm flex flex-col items-center justify-center"
             >
-              <h2 className="font-brand-en font-black tracking-widest text-xl sm:text-2xl text-slate-900 group-hover:text-[#5A3E7A] transition-colors leading-tight">
-                SO BEAUTY
-              </h2>
-              <span className="font-brand-ar font-black text-xs sm:text-sm text-[#5A3E7A] tracking-wider block mt-1">
-                سو بيوتي
-              </span>
-              <p className="text-[11px] text-slate-500 font-semibold mt-1.5 leading-relaxed">
-                {lang === 'ar'
-                  ? 'أحدث منتجات العناية بالبشرة والجمال الطبيعي'
-                  : 'Pure Botanical Skincare & Natural Radiance'}
+              {activeData.storeLogo ? (
+                <img 
+                  src={activeData.storeLogo} 
+                  alt={`${activeData.storeName.en} - ${activeData.storeName.ar}`} 
+                  className="h-12 w-auto max-h-12 object-contain mx-auto my-1" 
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 text-center">
+                  {/* English Name: Modern Geometric Luxury Uppercase (Always on Top & LARGER) */}
+                  <h2 className="font-brand-geometric font-black text-2xl sm:text-3xl text-[#5A3E7A] tracking-[0.26em] uppercase block leading-none">
+                    {activeData.storeName.en}
+                  </h2>
+                  {/* Arabic Name: Elongated, prominent & elegant underneath with safe distance */}
+                  <div className="flex items-center gap-2">
+                    <span className="font-brand-ar font-black text-base sm:text-lg text-slate-800 group-hover:text-[#5A3E7A] transition-colors leading-tight tracking-wide">
+                      {activeData.storeName.ar.includes('ـ') ? activeData.storeName.ar : (activeData.storeName.ar === 'نَدِي' || activeData.storeName.ar === 'ندي' ? 'نَـــــدِي' : activeData.storeName.ar)}
+                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#5A3E7A]/60" />
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-[#5A3E7A] font-bold mt-2 leading-relaxed">
+                {activeData.storeSlogan ? activeData.storeSlogan[lang] : (lang === 'ar'
+                  ? 'إشراقة طبيعية، تليق بك.'
+                  : 'Natural radiance, made for you.')}
               </p>
             </div>
 
