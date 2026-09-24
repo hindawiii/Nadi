@@ -1,0 +1,6 @@
+{
+  "name": "So Beauty & Multi-Niche Luxury Commerce Engine",
+  "description": "منصة التجارة الإلكترونية الفاخرة متعددة الأنشطة (So Beauty، أزياء، نظارات، إلكترونيات) مع محرك العملات المزدوج ولوحات التحكم الذكية.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

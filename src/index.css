@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  --font-cairo: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-jakarta: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-cinzel: 'Cinzel', Georgia, serif;
+  --font-messiri: 'El Messiri', 'Cairo', serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  line-height: 1.625;
+  overflow-x: hidden;
+  background-color: #fafafa;
+  color: #0f172a;
+}
+
+[dir="ltr"] body,
+[dir="ltr"] {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+[dir="rtl"] body,
+[dir="rtl"] {
+  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Haute-Couture Luxury Typography Classes */
+.font-brand-en {
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
+  letter-spacing: 0.14em;
+}
+
+.font-brand-ar {
+  font-family: 'El Messiri', 'Cairo', serif;
+  letter-spacing: 0.03em;
+}
+
+.font-heading-ar {
+  font-family: 'El Messiri', 'Cairo', serif;
+}
+
+.font-heading-en {
+  font-family: 'Playfair Display', 'Cinzel', Georgia, serif;
+}
+
+/* Prevent text overflow and clipping on mobile */
+.text-balance {
+  text-wrap: balance;
+}
+
+.break-word-safe {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
