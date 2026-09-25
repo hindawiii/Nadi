@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Phone, PhoneCall, Copy, Check, Clock, Sparkles, ShieldCheck } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 
 export const FloatingWhatsApp: React.FC = () => {
   const { lang, activeData, isCartOpen, isAuthModalOpen, isReviewModalOpen, currentRoute, showToast } = useCommerce();
+  const isRtl = lang === 'ar';
   const phone = activeData.contactInfo.whatsapp;
   const directPhone = activeData.contactInfo.phone || phone;
 
@@ -64,6 +65,97 @@ export const FloatingWhatsApp: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Draggable Floating Position State (Touch & Mouse)
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('so_beauty_wa_pos');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return null;
+  });
+
+  const [isCurrentlyDragging, setIsCurrentlyDragging] = useState(false);
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef<{ startX: number; startY: number; initialPosX: number; initialPosY: number }>({
+    startX: 0,
+    startY: 0,
+    initialPosX: 0,
+    initialPosY: 0,
+  });
+  const hasMovedSignificantlyRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (_) {}
+
+    isDraggingRef.current = true;
+    setIsCurrentlyDragging(true);
+    hasMovedSignificantlyRef.current = false;
+
+    let currentX = position?.x;
+    let currentY = position?.y;
+
+    if (currentX === undefined || currentY === undefined) {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        currentX = rect.left;
+        currentY = rect.top;
+      } else {
+        currentX = isRtl ? 24 : window.innerWidth - 80;
+        currentY = window.innerHeight - 88;
+      }
+    }
+
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialPosX: currentX,
+      initialPosY: currentY,
+    };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isDraggingRef.current) return;
+    const deltaX = e.clientX - dragStartRef.current.startX;
+    const deltaY = e.clientY - dragStartRef.current.startY;
+
+    if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+      hasMovedSignificantlyRef.current = true;
+    }
+
+    const btnWidth = 64;
+    const btnHeight = 64;
+    const maxX = Math.max(10, window.innerWidth - btnWidth - 10);
+    const maxY = Math.max(70, window.innerHeight - btnHeight - 15);
+    const minY = 65;
+    const minX = 10;
+
+    const newX = Math.min(maxX, Math.max(minX, dragStartRef.current.initialPosX + deltaX));
+    const newY = Math.min(maxY, Math.max(minY, dragStartRef.current.initialPosY + deltaY));
+
+    setPosition({ x: newX, y: newY });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isDraggingRef.current) return;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+
+    isDraggingRef.current = false;
+    setIsCurrentlyDragging(false);
+
+    if (position) {
+      try {
+        sessionStorage.setItem('so_beauty_wa_pos', JSON.stringify(position));
+      } catch (err) {}
+    }
+  };
+
   if (isCartOpen || isAuthModalOpen || isReviewModalOpen || currentRoute === 'cart' || currentRoute === 'login') return null;
 
   // WhatsApp Action Handler
@@ -123,6 +215,10 @@ export const FloatingWhatsApp: React.FC = () => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
+    }
+    if (hasMovedSignificantlyRef.current) {
+      hasMovedSignificantlyRef.current = false;
+      return;
     }
     setIsMenuOpen(prev => !prev);
     setIsAutoVisible(false);
@@ -271,9 +367,21 @@ export const FloatingWhatsApp: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 2. FLOATING ACTION CONTAINER (Anchored at bottom corner)                   */}
+      {/* 2. FLOATING ACTION CONTAINER (Anchored at bottom corner or User-Dragged)   */}
       {/* ========================================================================= */}
-      <div className="fixed bottom-6 end-6 z-40 flex flex-col items-end select-none">
+      <div 
+        ref={containerRef}
+        style={position ? {
+          position: 'fixed',
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+          bottom: 'auto',
+          right: 'auto',
+          zIndex: 45,
+          touchAction: 'none',
+        } : undefined}
+        className={!position ? "fixed bottom-6 end-6 z-40 flex flex-col items-end select-none" : "fixed z-45 flex flex-col items-end select-none"}
+      >
         
         {/* Speed-Dial Dual Contact Options (Direct Call + WhatsApp) */}
         <div 
@@ -367,14 +475,29 @@ export const FloatingWhatsApp: React.FC = () => {
             </div>
           </div>
 
-          {/* LUXURY TRIGGER SQUIRCLE BUTTON */}
+          {/* LUXURY TRIGGER SQUIRCLE BUTTON (Draggable via Touch & Mouse) */}
           <button
             type="button"
-            onClick={toggleMenu}
+            style={{ touchAction: 'none' }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onClick={(e) => {
+              if (hasMovedSignificantlyRef.current) {
+                e.preventDefault();
+                e.stopPropagation();
+                hasMovedSignificantlyRef.current = false;
+                return;
+              }
+              toggleMenu(e);
+            }}
             aria-expanded={isMenuOpen}
             aria-label={lang === 'ar' ? 'خيارات التواصل السريع' : 'Instant Contact Options'}
-            className="relative group p-1 cursor-pointer focus:outline-none focus:ring-4 focus:ring-emerald-400/30 rounded-[22px] transition-transform active:scale-95"
-            title={lang === 'ar' ? 'تواصل معنا عبر واتساب أو الهاتف' : 'Contact us via WhatsApp or Phone'}
+            className={`relative group p-1 cursor-grab active:cursor-grabbing focus:outline-none focus:ring-4 focus:ring-emerald-400/30 rounded-[22px] transition-transform select-none ${
+              isCurrentlyDragging ? 'scale-110 shadow-2xl opacity-90' : 'active:scale-95'
+            }`}
+            title={lang === 'ar' ? 'اسحب لتحريك الزر أو انقر للتواصل' : 'Drag to reposition or click to contact'}
           >
             {/* Layer 1: Ambient Glow */}
             <div className={`absolute inset-1 rounded-[22px] bg-emerald-400/35 backdrop-blur-sm pointer-events-none transition-all duration-500 ${

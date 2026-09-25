@@ -4,6 +4,9 @@
   --font-cairo: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-jakarta: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-outfit: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-alexandria: 'Alexandria', 'Cairo', sans-serif;
+  --font-tajawal: 'Tajawal', 'Cairo', sans-serif;
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-cinzel: 'Cinzel', Georgia, serif;
   --font-messiri: 'El Messiri', 'Cairo', serif;
@@ -11,6 +14,64 @@
 
 :root {
   color-scheme: light;
+  --theme-primary: #5A3E7A;
+  --theme-primary-hover: #483162;
+  --theme-accent: #E11D48;
+  --theme-accent-hover: #BE123C;
+  --theme-surface: #FAF5FF;
+  --theme-border: #F3E8FF;
+  --theme-badge: #E11D48;
+  --font-heading-ar-family: 'El Messiri', 'Cairo', serif;
+  --font-heading-en-family: 'Playfair Display', 'Cinzel', Georgia, serif;
+  --font-body-ar-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body-en-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-line-height: 1.625;
+}
+
+/* Dynamic Cohesive Theme Utility Classes */
+.bg-theme-primary {
+  background-color: var(--theme-primary, #5A3E7A) !important;
+}
+.hover\:bg-theme-primary-hover:hover {
+  background-color: var(--theme-primary-hover, #483162) !important;
+}
+.text-theme-primary {
+  color: var(--theme-primary, #5A3E7A) !important;
+}
+.bg-theme-accent {
+  background-color: var(--theme-accent, #E11D48) !important;
+}
+.hover\:bg-theme-accent-hover:hover {
+  background-color: var(--theme-accent-hover, #BE123C) !important;
+}
+.text-theme-accent {
+  color: var(--theme-accent, #E11D48) !important;
+}
+.bg-theme-surface {
+  background-color: var(--theme-surface, #FAF5FF) !important;
+}
+.border-theme-border {
+  border-color: var(--theme-border, #F3E8FF) !important;
+}
+.border-theme-primary {
+  border-color: var(--theme-primary, #5A3E7A) !important;
+}
+.ring-theme-primary:focus {
+  --tw-ring-color: var(--theme-primary, #5A3E7A) !important;
+}
+.font-dynamic-heading {
+  font-family: var(--font-heading-ar-family);
+}
+[dir="ltr"] .font-dynamic-heading {
+  font-family: var(--font-heading-en-family);
+}
+.font-dynamic-body {
+  font-family: var(--font-body-ar-family);
+  line-height: var(--font-line-height, 1.625);
+}
+[dir="ltr"] .font-dynamic-body {
+  font-family: var(--font-body-en-family);
+  line-height: var(--font-line-height, 1.625);
 }
 
 html {

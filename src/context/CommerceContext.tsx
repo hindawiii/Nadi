@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { siteConfig, SiteConfig, Product, PresetNiche } from '../data/siteConfig';
+import { 
+  siteConfig, SiteConfig, Product, PresetNiche, 
+  ColorPalette, TypographyPair, ImportableTemplate, 
+  curatedPalettes, curatedTypographyPairs, curatedImportableTemplates 
+} from '../data/siteConfig';
 
 export interface CartItem {
   product: Product;
@@ -93,6 +97,51 @@ interface CommerceContextType {
 
   // Inline editing helper
   updateActiveDataField: (path: string, value: string) => void;
+
+  // Sections Control (Developer Panel dynamic toggling)
+  sectionsControl: SectionVisibilityMap;
+  toggleSection: (id: keyof SectionVisibilityMap) => void;
+  resetSections: () => void;
+
+  // Harmonious Color Palette System
+  activePaletteId: string;
+  setActivePaletteId: (id: string) => void;
+  customPalette: { primary: string; accent: string; surface: string } | null;
+  setCustomPalette: (colors: { primary: string; accent: string; surface: string } | null) => void;
+
+  // Harmonious Typography Pairing System
+  activeTypographyId: string;
+  setActiveTypographyId: (id: string) => void;
+
+  // External Template Importer & Adapter Engine
+  importTemplate: (templateOrJson: ImportableTemplate | string) => { success: boolean; message: string };
+  exportCurrentTemplate: () => string;
+  savedCustomTemplates: SavedCustomTemplate[];
+  saveCurrentAsTemplate: (nameAr: string, nameEn?: string) => SavedCustomTemplate;
+  deleteSavedTemplate: (id: string) => void;
+  loadSavedTemplate: (id: string) => void;
+}
+
+export interface SavedCustomTemplate {
+  id: string;
+  name: { ar: string; en: string };
+  savedAt: string;
+  paletteId: string;
+  typographyId: string;
+  customPalette: { primary: string; accent: string; surface: string } | null;
+  presetData: PresetNiche;
+}
+
+export interface SectionVisibilityMap {
+  hero: boolean;
+  valueProps: boolean;
+  brandTicker: boolean;
+  routineDiagnosis: boolean;
+  hairDevices: boolean;
+  productsCatalog: boolean;
+  promoBanner: boolean;
+  beforeAfter: boolean;
+  testimonials: boolean;
 }
 
 const CommerceContext = createContext<CommerceContextType | null>(null);
@@ -104,6 +153,9 @@ const STORAGE_KEY_LANG = 'luxe_commerce_lang_v1';
 const STORAGE_KEY_LOCK = 'luxe_commerce_locked_v1';
 const STORAGE_KEY_CART = 'so_beauty_cart_v2';
 const STORAGE_KEY_WISHLIST = 'so_beauty_wishlist_v2';
+const STORAGE_KEY_PALETTE = 'luxe_commerce_palette_v2';
+const STORAGE_KEY_TYPO = 'luxe_commerce_typo_v2';
+const STORAGE_KEY_CUSTOM_COLORS = 'luxe_commerce_custom_colors_v2';
 
 export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLangState] = useState<'ar' | 'en'>(() => {
@@ -215,6 +267,249 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error(e);
     }
   }, [wishlist]);
+
+  // Section Visibility Management (Single Source of Truth for Developer Panel)
+  const defaultSections: SectionVisibilityMap = {
+    hero: true,
+    valueProps: true,
+    brandTicker: true,
+    routineDiagnosis: true,
+    hairDevices: true,
+    productsCatalog: true,
+    promoBanner: true,
+    beforeAfter: true,
+    testimonials: true,
+  };
+
+  const [sectionsControl, setSectionsControl] = useState<SectionVisibilityMap>(() => {
+    try {
+      const saved = localStorage.getItem('so_beauty_sections_v1');
+      if (saved) return { ...defaultSections, ...JSON.parse(saved) };
+    } catch (e) {}
+    return defaultSections;
+  });
+
+  const toggleSection = (id: keyof SectionVisibilityMap) => {
+    setSectionsControl(prev => {
+      const updated = { ...prev, [id]: !prev[id] };
+      try {
+        localStorage.setItem('so_beauty_sections_v1', JSON.stringify(updated));
+      } catch (e) {}
+      showToast(lang === 'ar' ? `تم تحديث حالة القسم: ${id}` : `Section updated: ${id}`);
+      return updated;
+    });
+  };
+
+  const resetSections = () => {
+    setSectionsControl(defaultSections);
+    try {
+      localStorage.setItem('so_beauty_sections_v1', JSON.stringify(defaultSections));
+    } catch (e) {}
+    showToast(lang === 'ar' ? 'تمت إعادة ضبط جميع الأقسام' : 'All sections restored to default');
+  };
+
+  // Harmonious Color Palette State
+  const [activePaletteId, setActivePaletteIdState] = useState<string>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_PALETTE);
+    return saved && curatedPalettes.some(p => p.id === saved) ? saved : 'imperial-orchid';
+  });
+
+  const [customPalette, setCustomPaletteState] = useState<{ primary: string; accent: string; surface: string } | null>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CUSTOM_COLORS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return null;
+  });
+
+  const setActivePaletteId = (id: string) => {
+    setActivePaletteIdState(id);
+    setCustomPaletteState(null);
+    localStorage.setItem(STORAGE_KEY_PALETTE, id);
+    localStorage.removeItem(STORAGE_KEY_CUSTOM_COLORS);
+  };
+
+  const setCustomPalette = (colors: { primary: string; accent: string; surface: string } | null) => {
+    setCustomPaletteState(colors);
+    if (colors) {
+      localStorage.setItem(STORAGE_KEY_CUSTOM_COLORS, JSON.stringify(colors));
+    } else {
+      localStorage.removeItem(STORAGE_KEY_CUSTOM_COLORS);
+    }
+  };
+
+  // Harmonious Typography State
+  const [activeTypographyId, setActiveTypographyIdState] = useState<string>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_TYPO);
+    return saved && curatedTypographyPairs.some(t => t.id === saved) ? saved : 'royal-luxury';
+  });
+
+  const setActiveTypographyId = (id: string) => {
+    setActiveTypographyIdState(id);
+    localStorage.setItem(STORAGE_KEY_TYPO, id);
+  };
+
+  // Synchronize CSS Theme Variables & Font Families to DOM Root
+  useEffect(() => {
+    const root = document.documentElement;
+    const currentPalette = curatedPalettes.find(p => p.id === activePaletteId) || curatedPalettes[0];
+    const primary = customPalette?.primary || currentPalette.primary;
+    const accent = customPalette?.accent || currentPalette.accent;
+    const surface = customPalette?.surface || currentPalette.surface;
+
+    root.style.setProperty('--theme-primary', primary);
+    root.style.setProperty('--theme-primary-hover', primary + 'E6');
+    root.style.setProperty('--theme-accent', accent);
+    root.style.setProperty('--theme-accent-hover', accent + 'E6');
+    root.style.setProperty('--theme-surface', surface);
+    root.style.setProperty('--theme-badge', accent);
+    root.style.setProperty('--theme-border', primary + '22');
+
+    const currentTypo = curatedTypographyPairs.find(t => t.id === activeTypographyId) || curatedTypographyPairs[0];
+    root.style.setProperty('--font-heading-ar-family', `${currentTypo.headingFamilyAr}, Cairo, serif`);
+    root.style.setProperty('--font-heading-en-family', `${currentTypo.headingFamilyEn}, Playfair Display, serif`);
+    root.style.setProperty('--font-body-ar-family', `${currentTypo.bodyFamilyAr}, Cairo, sans-serif`);
+    root.style.setProperty('--font-body-en-family', `${currentTypo.bodyFamilyEn}, Plus Jakarta Sans, sans-serif`);
+    root.style.setProperty('--font-line-height', currentTypo.lineHeight);
+  }, [activePaletteId, activeTypographyId, customPalette]);
+
+  // External Template Importer & Adapter Engine
+  const importTemplate = (templateOrJson: ImportableTemplate | string): { success: boolean; message: string } => {
+    try {
+      let parsed: any;
+      if (typeof templateOrJson === 'string') {
+        parsed = JSON.parse(templateOrJson);
+      } else {
+        parsed = templateOrJson;
+      }
+
+      const presetPayload: PresetNiche = parsed.presetData || parsed;
+      if (!presetPayload.storeName || !presetPayload.products) {
+        return {
+          success: false,
+          message: lang === 'ar' 
+            ? 'كود القالب غير مطابق: يجب أن يحتوي الكود على اسم المتجر (storeName) وقائمة المنتجات (products).'
+            : 'Invalid template structure: Missing storeName or products array.'
+        };
+      }
+
+      setDynamicConfig(prev => {
+        const clone = JSON.parse(JSON.stringify(prev));
+        clone.presets[activePresetId] = {
+          ...clone.presets[activePresetId],
+          ...presetPayload,
+          id: activePresetId // keep preset slot stable
+        };
+        try {
+          localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
+        } catch (e) {}
+        return clone;
+      });
+
+      if (parsed.paletteId && curatedPalettes.some(p => p.id === parsed.paletteId)) {
+        setActivePaletteId(parsed.paletteId);
+      }
+      if (parsed.typographyId && curatedTypographyPairs.some(t => t.id === parsed.typographyId)) {
+        setActiveTypographyId(parsed.typographyId);
+      }
+
+      return {
+        success: true,
+        message: lang === 'ar' 
+          ? `تم دمج وتطويع كود القالب بنجاح مع المتجر ونشاط (${activePresetId})!`
+          : `Template adapted and merged successfully into ${activePresetId}!`
+      };
+    } catch (err: any) {
+      console.error('Error importing template:', err);
+      return {
+        success: false,
+        message: lang === 'ar' ? `خطأ في معالجة الكود: ${err.message}` : `Error parsing code: ${err.message}`
+      };
+    }
+  };
+
+  const STORAGE_KEY_SAVED_TEMPLATES = 'luxe_saved_custom_templates_v1';
+
+  const [savedCustomTemplates, setSavedCustomTemplates] = useState<SavedCustomTemplate[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_SAVED_TEMPLATES);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+
+  const saveCurrentAsTemplate = (nameAr: string, nameEn?: string): SavedCustomTemplate => {
+    const currentPreset = dynamicConfig.presets[activePresetId];
+    const newTemplate: SavedCustomTemplate = {
+      id: `custom-tpl-${Date.now()}`,
+      name: {
+        ar: nameAr.trim() || currentPreset.storeName.ar || 'قالب مخصص',
+        en: nameEn?.trim() || currentPreset.storeName.en || 'Custom Template'
+      },
+      savedAt: new Date().toISOString(),
+      paletteId: activePaletteId,
+      typographyId: activeTypographyId,
+      customPalette,
+      presetData: JSON.parse(JSON.stringify(currentPreset))
+    };
+
+    setSavedCustomTemplates(prev => {
+      const updated = [newTemplate, ...prev];
+      try {
+        localStorage.setItem(STORAGE_KEY_SAVED_TEMPLATES, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    showToast(lang === 'ar' ? `تم حفظ القالب بنجاح باسم: ${newTemplate.name.ar}` : `Template saved as ${newTemplate.name.en}!`);
+    return newTemplate;
+  };
+
+  const deleteSavedTemplate = (id: string) => {
+    setSavedCustomTemplates(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      try {
+        localStorage.setItem(STORAGE_KEY_SAVED_TEMPLATES, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    showToast(lang === 'ar' ? 'تم حذف القالب المحفوظ' : 'Saved template removed');
+  };
+
+  const loadSavedTemplate = (id: string) => {
+    const target = savedCustomTemplates.find(t => t.id === id);
+    if (!target) return;
+    importTemplate({
+      id: target.id,
+      name: target.name,
+      nicheLabel: target.name,
+      badge: { ar: 'قالبك المحفوظ 💾', en: 'Saved Template 💾' },
+      description: { ar: 'قالبك المخصص الذي تم حفظه محلياً', en: 'Your locally saved custom template' },
+      previewImage: target.presetData.heroImage || '',
+      paletteId: target.paletteId,
+      typographyId: target.typographyId,
+      presetData: target.presetData
+    });
+    if (target.customPalette) {
+      setCustomPalette(target.customPalette);
+    }
+    showToast(lang === 'ar' ? `تم استرجاع وتفعيل قالب: ${target.name.ar}` : `Restored ${target.name.en}!`);
+  };
+
+  const exportCurrentTemplate = (): string => {
+    const exportData = {
+      version: '2.0.0',
+      exportedAt: new Date().toISOString(),
+      paletteId: activePaletteId,
+      typographyId: activeTypographyId,
+      customPalette,
+      presetData: dynamicConfig.presets[activePresetId]
+    };
+    return JSON.stringify(exportData, null, 2);
+  };
 
   // Sync route with both URL pathname and hash for universal compatibility
   const setCurrentRoute = (r: RouteName) => {
@@ -568,6 +863,21 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toastMessage,
         showToast,
         updateActiveDataField,
+        sectionsControl,
+        toggleSection,
+        resetSections,
+        activePaletteId,
+        setActivePaletteId,
+        customPalette,
+        setCustomPalette,
+        activeTypographyId,
+        setActiveTypographyId,
+        importTemplate,
+        exportCurrentTemplate,
+        savedCustomTemplates,
+        saveCurrentAsTemplate,
+        deleteSavedTemplate,
+        loadSavedTemplate,
       }}
     >
       {children}

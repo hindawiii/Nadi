@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  ShoppingBag, Heart, Search, Globe, ChevronDown, User,
+  Heart, Search, Globe, ChevronDown, User,
   Sparkles, Check, Menu, X, ArrowRight, ArrowLeft, Truck, 
   ChevronRight, Star, ExternalLink, ShieldCheck 
 } from 'lucide-react';
+import { StoreCartIcon } from './common/StoreCartIcon';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
 
@@ -70,7 +71,7 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-40 w-full shadow-xs bg-white/95 backdrop-blur-md border-b border-slate-100 transition-all duration-300">
       
       {/* 1. TOP ANNOUNCEMENT BAR (Clean, uncrowded, luxurious across mobile & desktop) */}
-      <div className="bg-[#5A3E7A] text-white text-xs py-2 px-3 sm:px-6 transition-colors border-b border-purple-800/30">
+      <div className="bg-theme-primary text-white text-xs py-2 px-3 sm:px-6 transition-colors border-b border-white/10">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Announcement Text with Marquee/Truncate Safeguard */}
@@ -191,7 +192,7 @@ export const Header: React.FC = () => {
         <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-bold text-slate-600">
           <button 
             onClick={() => navigateTo('store')} 
-            className={`transition-colors hover:text-[#5A3E7A] py-1 ${currentRoute === 'store' ? 'text-[#5A3E7A] font-extrabold border-b-2 border-[#5A3E7A]' : ''}`}
+            className={`transition-colors hover:text-theme-primary py-1 ${currentRoute === 'store' ? 'text-theme-primary font-extrabold border-b-2 border-theme-primary' : ''}`}
           >
             {lang === 'ar' ? 'الرئيسية' : 'Home'}
           </button>
@@ -207,28 +208,28 @@ export const Header: React.FC = () => {
                 document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
               }
             }} 
-            className="transition-colors hover:text-[#5A3E7A] py-1"
+            className="transition-colors hover:text-theme-primary py-1"
           >
             {lang === 'ar' ? 'منتجاتنا' : 'Products'}
           </button>
 
           <button 
             onClick={() => navigateTo('about')} 
-            className={`transition-colors hover:text-[#5A3E7A] py-1 ${currentRoute === 'about' ? 'text-[#5A3E7A] font-extrabold border-b-2 border-[#5A3E7A]' : ''}`}
+            className={`transition-colors hover:text-theme-primary py-1 ${currentRoute === 'about' ? 'text-theme-primary font-extrabold border-b-2 border-theme-primary' : ''}`}
           >
             {lang === 'ar' ? 'من نحن' : 'Our Story'}
           </button>
 
           <button 
             onClick={() => navigateTo('wishlist')} 
-            className={`transition-colors hover:text-[#5A3E7A] py-1 ${currentRoute === 'wishlist' ? 'text-[#5A3E7A] font-extrabold border-b-2 border-[#5A3E7A]' : ''}`}
+            className={`transition-colors hover:text-theme-primary py-1 ${currentRoute === 'wishlist' ? 'text-theme-primary font-extrabold border-b-2 border-theme-primary' : ''}`}
           >
             {lang === 'ar' ? 'المفضلة' : 'Wishlist'}
           </button>
 
           <button 
             onClick={() => navigateTo('tracker')} 
-            className={`transition-colors hover:text-[#5A3E7A] py-1 ${currentRoute === 'tracker' ? 'text-[#5A3E7A] font-extrabold border-b-2 border-[#5A3E7A]' : ''}`}
+            className={`transition-colors hover:text-theme-primary py-1 ${currentRoute === 'tracker' ? 'text-theme-primary font-extrabold border-b-2 border-theme-primary' : ''}`}
           >
             {lang === 'ar' ? 'تتبع الشحنة' : 'Track Order'}
           </button>
@@ -271,7 +272,7 @@ export const Header: React.FC = () => {
             )}
           </button>
 
-          {/* Cart Bag Button -> Navigates to dedicated /cart page */}
+          {/* Cart Basket Button -> Navigates to dedicated /cart page */}
           <button
             onClick={() => navigateTo('cart')}
             className={`w-10 sm:w-10.5 h-10 sm:h-10.5 rounded-xl transition-all flex items-center justify-center relative shrink-0 min-h-[44px] min-w-[44px] ${
@@ -280,11 +281,14 @@ export const Header: React.FC = () => {
                 : 'text-slate-700 hover:text-[#5A3E7A] hover:bg-white hover:shadow-xs'
             }`}
             aria-label="Cart"
-            title={lang === 'ar' ? 'سلة المشتريات' : 'Shopping Bag'}
+            title={lang === 'ar' ? 'سلة المشتريات' : 'Shopping Basket'}
           >
-            <ShoppingBag className="w-5 h-5 text-slate-800" />
+            <StoreCartIcon size="md" className="text-slate-800 transition-transform group-hover:scale-105" />
             {cartCount > 0 && (
-              <span className="absolute top-0.5 end-0.5 w-4 h-4 bg-[#5A3E7A] text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce shadow-xs">
+              <span 
+                key={`cart-bounce-${cartCount}`} 
+                className="absolute top-0.5 end-0.5 min-w-[18px] h-4 px-1 bg-[#5A3E7A] text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce shadow-xs ring-1 ring-white"
+              >
                 {cartCount}
               </span>
             )}
@@ -483,8 +487,9 @@ export const Header: React.FC = () => {
                 }}
                 className={`w-full text-start px-4 py-3 rounded-2xl font-extrabold text-sm flex items-center justify-between transition-colors min-h-[48px] ${currentRoute === 'cart' ? 'bg-purple-100 text-[#5A3E7A]' : 'text-slate-800 hover:bg-slate-50'}`}
               >
-                <div className="flex items-center gap-2">
-                  <span>{lang === 'ar' ? 'سلة المشتريات والدفع' : 'Shopping Bag'}</span>
+                <div className="flex items-center gap-2.5">
+                  <StoreCartIcon size="md" className="text-[#5A3E7A]" />
+                  <span>{lang === 'ar' ? 'سلة المشتريات والدفع' : 'Shopping Basket'}</span>
                   {cartCount > 0 && (
                     <span className="px-2 py-0.5 bg-[#5A3E7A] text-white text-[10px] font-bold rounded-full">
                       {cartCount}

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { 
-  ShoppingBag, Trash2, ArrowLeft, ArrowRight, ShieldCheck, 
+  Trash2, ArrowLeft, ArrowRight, ShieldCheck, 
   Truck, Tag, Check, AlertCircle, Sparkles, Plus, Minus, CreditCard, 
   Banknote, PhoneCall 
 } from 'lucide-react';
+import { StoreCartIcon } from './common/StoreCartIcon';
 import { useCommerce, OrderRecord } from '../context/CommerceContext';
 import { OrderSuccessModal } from './OrderSuccessModal';
 
@@ -139,7 +140,7 @@ export const CartPageView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-purple-100 flex items-center justify-center text-[#5A3E7A]">
-              <ShoppingBag className="w-5 h-5" />
+              <StoreCartIcon size="md" className="text-[#5A3E7A]" />
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
@@ -176,7 +177,7 @@ export const CartPageView: React.FC = () => {
         {cart.length === 0 ? (
           <div className="py-20 text-center max-w-lg mx-auto">
             <div className="w-20 h-20 mx-auto rounded-3xl bg-purple-50 border border-purple-100 flex items-center justify-center text-[#5A3E7A] shadow-inner mb-6">
-              <ShoppingBag className="w-10 h-10 stroke-[1.5]" />
+              <StoreCartIcon className="w-12 h-12 text-[#5A3E7A]" />
             </div>
             <h2 className="text-xl font-black text-slate-900 mb-2">
               {lang === 'ar' ? 'سلة التسوق فارغة حالياً' : 'Your Bag is Empty'}

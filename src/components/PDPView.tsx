@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  ArrowLeft, ArrowRight, Star, ShoppingBag, Heart, MessageCircle, 
+  ArrowLeft, ArrowRight, Star, Heart, MessageCircle, 
   Sparkles, ShieldCheck, Truck, RotateCcw, AlertCircle, 
-  Clock, Plus, Check, Share2, Layers 
+  Clock, Plus, Check, Share2, Layers, Maximize2, ZoomIn, ZoomOut, X, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
+import { StoreCartIcon } from './common/StoreCartIcon';
+import { SmartDiscountBadge } from './common/SmartDiscountBadge';
 
 export const PDPView: React.FC = () => {
   const { 
@@ -65,6 +67,26 @@ export const PDPView: React.FC = () => {
   const [initialDistance, setInitialDistance] = useState<number | null>(null);
   const [lastTap, setLastTap] = useState<number>(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxScale, setLightboxScale] = useState(1);
+
+  // Keyboard navigation for fullscreen lightbox
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsLightboxOpen(false);
+        setLightboxScale(1);
+      } else if (e.key === 'ArrowRight') {
+        setSelectedImgIndex(prev => (prev === (product?.images?.length || 1) - 1 ? 0 : prev + 1));
+        setLightboxScale(1);
+      } else if (e.key === 'ArrowLeft') {
+        setSelectedImgIndex(prev => (prev === 0 ? (product?.images?.length || 1) - 1 : prev - 1));
+        setLightboxScale(1);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, product]);
 
   // Mouse move handler for lens magnifier simulation
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -240,7 +262,8 @@ export const PDPView: React.FC = () => {
           {/* LEFT COLUMN: Multi-Image Gallery with Pinch/Hover Lens */}
           <div className="lg:col-span-6 space-y-4">
             <div 
-              className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 cursor-crosshair group touch-pan-y select-none"
+              onClick={() => setIsLightboxOpen(true)}
+              className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 cursor-zoom-in group touch-pan-y select-none"
               onMouseEnter={() => setIsZoomed(true)}
               onMouseLeave={() => {
                 setIsZoomed(false);
@@ -256,30 +279,46 @@ export const PDPView: React.FC = () => {
                 alt={product.name[lang]}
                 className="w-full h-full object-cover transition-transform duration-150 ease-out"
                 style={{
-                  transform: `scale(${isZoomed ? 1.5 : touchScale})`,
+                  transform: `scale(${isZoomed ? 1.4 : touchScale})`,
                   transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
                 }}
               />
             </div>
 
-            {/* Thumbnail Ribbons */}
-            {product.images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-                {product.images.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedImgIndex(idx)}
-                    className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
-                      selectedImgIndex === idx
-                        ? 'border-[#5A3E7A] ring-2 ring-purple-200 scale-105'
-                        : 'border-slate-200 opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={img} alt="thumb" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Controls Below Main Image: Thumbnails & Dedicated White 4-Arrow Expand Button (Matching Reference Image) */}
+            <div className="flex items-center justify-between gap-3 pt-1">
+              {/* Thumbnail Ribbons */}
+              {product.images.length > 1 ? (
+                <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none flex-1">
+                  {product.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedImgIndex(idx)}
+                      className={`relative w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
+                        selectedImgIndex === idx
+                          ? 'border-[#5A3E7A] ring-2 ring-purple-200 scale-105'
+                          : 'border-slate-200 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex-1" />
+              )}
+
+              {/* Pure White Circular 4-Arrow Expand Button (Exactly Matching Reference Screenshot) */}
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(true)}
+                className="w-11 h-11 rounded-full bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-950 border border-slate-200 shadow-xs hover:shadow-md flex items-center justify-center shrink-0 transition-all active:scale-95 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]/25"
+                aria-label={lang === 'ar' ? 'تكبير وعرض بملء الشاشة' : 'Full screen expand'}
+                title={lang === 'ar' ? 'عرض بملء الشاشة' : 'Expand full screen'}
+              >
+                <Maximize2 className="w-5 h-5 stroke-[1.8]" />
+              </button>
+            </div>
           </div>
 
           {/* RIGHT COLUMN: Product Specifications & Actions */}
@@ -313,11 +352,13 @@ export const PDPView: React.FC = () => {
                     {origPrice.text}
                   </span>
                 )}
-                {product.discountPercentage && (
-                  <span className="bg-rose-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                    {lang === 'ar' ? `وفر ${product.discountPercentage}%` : `Save ${product.discountPercentage}%`}
-                  </span>
-                )}
+                <SmartDiscountBadge
+                  basePriceUSD={product.basePriceUSD}
+                  originalPriceUSD={product.originalPriceUSD}
+                  manualPercent={product.discountPercentage}
+                  lang={lang}
+                  size="md"
+                />
               </div>
 
               {/* Urgency & Scarcity Countdown Strip */}
@@ -397,7 +438,7 @@ export const PDPView: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <ShoppingBag className="w-5 h-5" />
+                      <StoreCartIcon className="w-5 h-5 text-white" />
                       <span>{lang === 'ar' ? `إضافة للسلة (${currentPrice.text})` : `Add to Bag (${currentPrice.text})`}</span>
                     </>
                   )}
@@ -450,8 +491,8 @@ export const PDPView: React.FC = () => {
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 max-w-xl">
                   {lang === 'ar'
-                    ? `احصل على هذا المنتج مع المنتجات المكملة في بكج واحد ووفر ${product.bundle.discount}% فورياً عند الطلب الآن!`
-                    : `Get this item along with complementary essentials in one package and save ${product.bundle.discount}% instantly!`}
+                    ? `احصل على هذا المنتج مع المنتجات المكملة في بكج واحد مع خصم ${product.bundle.discount}% فوري عند الطلب الآن!`
+                    : `Get this item along with complementary essentials in one package with ${product.bundle.discount}% instant OFF!`}
                 </p>
               </div>
 
@@ -596,6 +637,143 @@ export const PDPView: React.FC = () => {
         </div>
 
       </div>
+
+      {/* FULL-SCREEN IMMERSIVE LIGHTBOX MODAL */}
+      {isLightboxOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 select-none animate-in fade-in duration-200"
+          onClick={() => {
+            setIsLightboxOpen(false);
+            setLightboxScale(1);
+          }}
+        >
+          {/* Top Controls Bar */}
+          <div 
+            className="flex items-center justify-between w-full max-w-7xl mx-auto z-10 text-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Product Name & Counter */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs sm:text-sm font-extrabold text-white truncate max-w-[200px] sm:max-w-md">
+                {product.name[lang]}
+              </span>
+              <span className="text-[11px] sm:text-xs font-bold text-slate-300 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/15">
+                {selectedImgIndex + 1} / {product.images.length}
+              </span>
+            </div>
+
+            {/* Action Buttons: Zoom In/Out + Close Button */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setLightboxScale(prev => (prev > 1 ? 1 : 2.2))}
+                className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all border border-white/15 flex items-center justify-center min-w-[40px] min-h-[40px]"
+                title={lightboxScale > 1 ? (lang === 'ar' ? 'تصغير الحجم' : 'Zoom Out') : (lang === 'ar' ? 'تكبير 2X' : 'Zoom In 2X')}
+              >
+                {lightboxScale > 1 ? <ZoomOut className="w-5 h-5" /> : <ZoomIn className="w-5 h-5" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLightboxOpen(false);
+                  setLightboxScale(1);
+                }}
+                className="p-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white transition-all border border-white/20 flex items-center justify-center min-w-[44px] min-h-[44px] hover:scale-105 active:scale-95"
+                aria-label={lang === 'ar' ? 'إغلاق العرض الكامل' : 'Close full screen'}
+                title={lang === 'ar' ? 'إغلاق (ESC)' : 'Close (ESC)'}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Center Stage: High-Resolution Photo + Navigation Arrows */}
+          <div 
+            className="relative flex-1 flex items-center justify-center overflow-hidden my-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Previous Arrow */}
+            {product.images.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedImgIndex(prev => (prev === 0 ? product.images.length - 1 : prev - 1));
+                  setLightboxScale(1);
+                }}
+                className="absolute start-2 sm:start-6 z-20 w-12 h-12 rounded-full bg-white/15 hover:bg-white/30 text-white backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-white/20 shadow-lg"
+                aria-label="Previous image"
+              >
+                {isRtl ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
+              </button>
+            )}
+
+            {/* Immersive Image Display */}
+            <div 
+              className="cursor-zoom-in overflow-hidden max-h-[78vh] max-w-[92vw] flex items-center justify-center"
+              onClick={() => setLightboxScale(prev => (prev > 1 ? 1 : 2.2))}
+            >
+              <img
+                src={product.images[selectedImgIndex] || product.images[0]}
+                alt={product.name[lang]}
+                className="max-h-[76vh] sm:max-h-[80vh] max-w-[90vw] object-contain drop-shadow-2xl transition-transform duration-300 ease-out"
+                style={{
+                  transform: `scale(${lightboxScale})`,
+                }}
+              />
+            </div>
+
+            {/* Next Arrow */}
+            {product.images.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedImgIndex(prev => (prev === product.images.length - 1 ? 0 : prev + 1));
+                  setLightboxScale(1);
+                }}
+                className="absolute end-2 sm:end-6 z-20 w-12 h-12 rounded-full bg-white/15 hover:bg-white/30 text-white backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-white/20 shadow-lg"
+                aria-label="Next image"
+              >
+                {isRtl ? <ChevronLeft className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Thumbnail Strip & Navigation Hint */}
+          <div 
+            className="w-full max-w-xl mx-auto flex flex-col items-center gap-2 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {product.images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto p-1.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/15 max-w-full">
+                {product.images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setSelectedImgIndex(idx);
+                      setLightboxScale(1);
+                    }}
+                    className={`w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
+                      selectedImgIndex === idx
+                        ? 'border-white ring-2 ring-white/50 scale-105'
+                        : 'border-transparent opacity-50 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <p className="text-[11px] text-slate-400 font-medium text-center">
+              {lang === 'ar'
+                ? 'انقري على الصورة للتكبير 2X • استخدمي الأسهم للتنقل • اضغطي ESC للإغلاق'
+                : 'Click image to toggle 2X zoom • Use arrows to navigate • Press ESC to close'}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

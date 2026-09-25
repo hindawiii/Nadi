@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
+import { ProductCard } from './ProductCard';
 
 export const WishlistView: React.FC = () => {
   const { 
@@ -139,95 +140,9 @@ export const WishlistView: React.FC = () => {
         ) : (
           /* Products Grid */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-8">
-            {wishlistedProducts.map((product) => {
-              const currentPrice = convertPrice(product.basePriceUSD);
-              const origPrice = product.originalPriceUSD ? convertPrice(product.originalPriceUSD) : null;
-
-              return (
-                <div 
-                  key={product.id}
-                  className="group bg-white rounded-3xl border border-slate-100 hover:border-purple-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                >
-                  <div className="relative">
-                    {/* Product Image */}
-                    <div 
-                      onClick={() => openProductPDP(product)}
-                      className="cursor-pointer overflow-hidden bg-slate-50 aspect-square"
-                    >
-                      <img 
-                        src={product.images[0]} 
-                        alt={product.name[lang]} 
-                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
-                      />
-                    </div>
-
-                    {/* Remove from Wishlist Button */}
-                    <button
-                      onClick={() => toggleWishlist(product.id)}
-                      className="absolute top-3 end-3 w-10 h-10 rounded-full bg-white/90 backdrop-blur-md shadow-md flex items-center justify-center text-rose-500 hover:bg-rose-50 transition-colors"
-                      aria-label="Remove from wishlist"
-                    >
-                      <Heart className="w-5 h-5 fill-current" />
-                    </button>
-
-                    {/* Category Pill */}
-                    <div className="absolute top-3 start-3">
-                      <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#5A3E7A]/90 text-white backdrop-blur-md">
-                        {product.category[lang]}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Card Content */}
-                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1.5 text-xs text-amber-500">
-                        <Star className="w-4 h-4 fill-current" />
-                        <span className="font-bold text-slate-800">{product.rating}</span>
-                        <span className="text-slate-400">({product.reviewsCount})</span>
-                      </div>
-
-                      <h3 
-                        onClick={() => openProductPDP(product)}
-                        className="text-base font-bold text-slate-900 group-hover:text-[#5A3E7A] transition-colors cursor-pointer line-clamp-2"
-                      >
-                        {product.name[lang]}
-                      </h3>
-
-                      <div className="flex items-baseline gap-2 pt-1">
-                        <span className="text-lg font-black text-slate-900">
-                          {currentPrice.text}
-                        </span>
-                        {origPrice && (
-                          <span className="text-xs text-slate-400 line-through">
-                            {origPrice.text}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="space-y-2 pt-2 border-t border-slate-100">
-                      <button
-                        onClick={() => addToCart(product, 1)}
-                        className="w-full py-3 bg-[#5A3E7A] hover:bg-[#483162] text-white text-xs font-bold rounded-2xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 min-h-[44px]"
-                      >
-                        <ShoppingBag className="w-4 h-4" />
-                        <span>{lang === 'ar' ? 'إضافة إلى السلة' : 'Add to Bag'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => openProductPDP(product)}
-                        className="w-full py-2 text-xs font-semibold text-slate-600 hover:text-[#5A3E7A] transition-colors flex items-center justify-center gap-1 min-h-[36px]"
-                      >
-                        <span>{lang === 'ar' ? 'عرض التفاصيل الكاملة' : 'View Details'}</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {wishlistedProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
         )}
       </div>

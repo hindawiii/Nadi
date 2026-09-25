@@ -8,9 +8,14 @@ import {
 import { useCommerce } from '../context/CommerceContext';
 import { ProductCard } from './ProductCard';
 import { InfiniteBrandTicker } from './InfiniteBrandTicker';
+import { HairDevicesSpotlight } from './HairDevicesSpotlight';
 
 export const StorefrontView: React.FC = () => {
-  const { lang, activeData, setCurrentRoute, navigateTo, openProductPDP, setIsReviewModalOpen, showToast } = useCommerce();
+  const { 
+    lang, activeData, setCurrentRoute, navigateTo, 
+    openProductPDP, setIsReviewModalOpen, showToast, 
+    sectionsControl, activePresetId 
+  } = useCommerce();
   const isRtl = lang === 'ar';
 
   // Always ensure page starts at the top when entering or reloading the store
@@ -167,117 +172,124 @@ export const StorefrontView: React.FC = () => {
     <div className="space-y-12 sm:space-y-20 pb-16">
       
       {/* 1. HERO SECTION (Matching So Beauty style in photos 1 & 2) */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-purple-50/60 via-slate-50 to-white pt-6 sm:pt-12 pb-12 sm:pb-16 border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            
-            {/* Hero Copy */}
-            <div className="lg:col-span-6 space-y-6 text-center lg:text-start">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-100/90 text-[#5A3E7A] text-xs sm:text-sm font-extrabold border border-purple-200/90 shadow-xs backdrop-blur-xs">
-                <Sparkles className="w-3.5 h-3.5 text-purple-700 animate-pulse" />
-                <span>{activeData.storeSlogan ? activeData.storeSlogan[lang] : (lang === 'ar' ? 'إشراقة طبيعية، تليق بك.' : 'Natural radiance, made for you.')}</span>
-              </div>
-
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.25] font-brand-ar">
-                {activeData.heroTitle[lang]}
-              </h1>
-
-              <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
-                {activeData.heroSubtitle[lang]}
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="w-full sm:w-auto px-8 py-3.5 bg-[#5A3E7A] hover:bg-[#483162] text-white font-extrabold rounded-full text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 min-h-[48px] cursor-pointer"
-                >
-                  <span>{activeData.heroCtaPrimary[lang]}</span>
-                  {isRtl ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    document.getElementById('campaign-section')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="w-full sm:w-auto px-8 py-3.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 font-bold rounded-full text-sm sm:text-base transition-all duration-300 flex items-center justify-center min-h-[48px] shadow-xs cursor-pointer"
-                >
-                  <span>{activeData.heroCtaSecondary[lang]}</span>
-                </button>
-              </div>
-
-              {/* Social trust badge */}
-              <div className="pt-4 flex items-center justify-center lg:justify-start gap-4 text-xs text-slate-500 font-medium">
-                <div className="flex -space-x-2 rtl:space-x-reverse">
-                  <img className="w-7 h-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80" alt="avatar" />
-                  <img className="w-7 h-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="avatar" />
-                  <img className="w-7 h-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="avatar" />
+      {sectionsControl.hero && (
+        <section className="relative overflow-hidden bg-gradient-to-b from-purple-50/60 via-slate-50 to-white pt-6 sm:pt-12 pb-12 sm:pb-16 border-b border-slate-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+              
+              {/* Hero Copy */}
+              <div className="lg:col-span-6 space-y-6 text-center lg:text-start">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-100/90 text-[#5A3E7A] text-xs sm:text-sm font-extrabold border border-purple-200/90 shadow-xs backdrop-blur-xs">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-700 animate-pulse" />
+                  <span>{activeData.storeSlogan ? activeData.storeSlogan[lang] : (lang === 'ar' ? 'إشراقة طبيعية، تليق بك.' : 'Natural radiance, made for you.')}</span>
                 </div>
-                <span>
-                  {lang === 'ar' ? 'أكثر من 1,200+ عميلة موثقة راضية تماماً' : 'Over 1,200+ happy verified customers'}
-                </span>
-              </div>
-            </div>
 
-            {/* Hero Image Presentation */}
-            <div className="lg:col-span-6 relative">
-              <div className="relative aspect-[4/3] sm:aspect-square max-w-lg mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
-                <img
-                  src={activeData.heroImage}
-                  alt={activeData.heroTitle[lang]}
-                  className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent" />
-                
-                {/* Floating badge inside hero */}
-                <div className="absolute bottom-4 start-4 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl border border-purple-100 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-[#5A3E7A]">
-                    <Sparkles className="w-5 h-5" />
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.25] font-brand-ar">
+                  {activeData.heroTitle[lang]}
+                </h1>
+
+                <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                  {activeData.heroSubtitle[lang]}
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="w-full sm:w-auto px-8 py-3.5 bg-theme-primary hover:bg-theme-primary-hover text-white font-extrabold rounded-full text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 min-h-[48px] cursor-pointer"
+                  >
+                    <span>{activeData.heroCtaPrimary[lang]}</span>
+                    {isRtl ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.getElementById('campaign-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="w-full sm:w-auto px-8 py-3.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 font-bold rounded-full text-sm sm:text-base transition-all duration-300 flex items-center justify-center min-h-[48px] shadow-xs cursor-pointer"
+                  >
+                    <span>{activeData.heroCtaSecondary[lang]}</span>
+                  </button>
+                </div>
+
+                {/* Social trust badge */}
+                <div className="pt-4 flex items-center justify-center lg:justify-start gap-4 text-xs text-slate-500 font-medium">
+                  <div className="flex -space-x-2 rtl:space-x-reverse">
+                    <img className="w-7 h-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80" alt="avatar" />
+                    <img className="w-7 h-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="avatar" />
+                    <img className="w-7 h-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="avatar" />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">{lang === 'ar' ? 'نقاء نباتي معتمد' : 'Pure Botanical Formula'}</h4>
-                    <p className="text-[10px] text-slate-500">{lang === 'ar' ? 'خالٍ من البارابين 100%' : '100% Paraben-Free'}</p>
-                  </div>
+                  <span>
+                    {lang === 'ar' ? 'أكثر من 1,200+ عميلة موثقة راضية تماماً' : 'Over 1,200+ happy verified customers'}
+                  </span>
                 </div>
               </div>
-            </div>
 
+              {/* Hero Image Presentation */}
+              <div className="lg:col-span-6 relative">
+                <div className="relative aspect-[4/3] sm:aspect-square max-w-lg mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
+                  <img
+                    src={activeData.heroImage}
+                    alt={activeData.heroTitle[lang]}
+                    className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent" />
+                  
+                  {/* Floating badge inside hero */}
+                  <div className="absolute bottom-4 start-4 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl border border-purple-100 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-[#5A3E7A]">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">{lang === 'ar' ? 'نقاء نباتي معتمد' : 'Pure Botanical Formula'}</h4>
+                      <p className="text-[10px] text-slate-500">{lang === 'ar' ? 'خالٍ من البارابين 100%' : '100% Paraben-Free'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* LUXURY INFINITE BRAND & SLOGAN TICKER */}
-      <InfiniteBrandTicker className="my-6 sm:my-8" />
+      {sectionsControl.brandTicker && (
+        <InfiniteBrandTicker className="my-6 sm:my-8" />
+      )}
 
       {/* 2. VALUE PROPOSITIONS STRIP (Matching Photo 2: نتائج فعالة، شحن سريع، أصلية 100%، دفع آمن) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-sm">
-          {activeData.valueProps.map((item, idx) => {
-            const Icon = iconMap[item.icon] || Sparkles;
-            return (
-              <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-3 p-2">
-                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5A3E7A] flex items-center justify-center shrink-0 border border-purple-100 shadow-xs">
-                  <Icon className="w-6 h-6" />
+      {sectionsControl.valueProps && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-sm">
+            {activeData.valueProps.map((item, idx) => {
+              const Icon = iconMap[item.icon] || Sparkles;
+              return (
+                <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-3 p-2">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5A3E7A] flex items-center justify-center shrink-0 border border-purple-100 shadow-xs">
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                      {item.title[lang]}
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {item.desc[lang]}
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                    {item.title[lang]}
-                  </h3>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    {item.desc[lang]}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* 3. "اختاري بشرتك" / SKIN TYPE SOLUTIONS (Single-Row Smart Interactive 4-Card System) */}
-      <section id="categories-section" className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
+      {sectionsControl.routineDiagnosis && activePresetId === 'cosmetics' && (
+        <section id="categories-section" className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="space-y-1.5 text-start">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-200/80 text-purple-900 text-xs font-bold">
@@ -402,9 +414,11 @@ export const StorefrontView: React.FC = () => {
           })}
         </div>
       </section>
+      )}
 
       {/* 4. PRODUCTS GRID (With Category Filter & Product Cards) */}
-      <section id="products-section" className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
+      {sectionsControl.productsCatalog && (
+        <section id="products-section" className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="space-y-1">
             <span className="text-xs font-bold text-purple-700 uppercase tracking-widest">
@@ -423,7 +437,7 @@ export const StorefrontView: React.FC = () => {
                 onClick={() => setSelectedCategory('all')}
                 className={`px-4 py-2 rounded-full text-xs font-bold transition-all min-h-[40px] whitespace-nowrap ${
                   selectedCategory === 'all'
-                    ? 'bg-[#5A3E7A] text-white shadow-sm'
+                    ? 'bg-theme-primary text-white shadow-sm'
                     : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                 }`}
               >
@@ -433,7 +447,7 @@ export const StorefrontView: React.FC = () => {
                 onClick={() => setSelectedCategory('skin')}
                 className={`px-4 py-2 rounded-full text-xs font-bold transition-all min-h-[40px] whitespace-nowrap ${
                   selectedCategory === 'skin'
-                    ? 'bg-[#5A3E7A] text-white shadow-sm'
+                    ? 'bg-theme-primary text-white shadow-sm'
                     : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                 }`}
               >
@@ -443,7 +457,7 @@ export const StorefrontView: React.FC = () => {
                 onClick={() => setSelectedCategory('box')}
                 className={`px-4 py-2 rounded-full text-xs font-bold transition-all min-h-[40px] whitespace-nowrap ${
                   selectedCategory === 'box'
-                    ? 'bg-[#5A3E7A] text-white shadow-sm'
+                    ? 'bg-theme-primary text-white shadow-sm'
                     : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                 }`}
               >
@@ -476,9 +490,16 @@ export const StorefrontView: React.FC = () => {
           ))}
         </div>
       </section>
+      )}
+
+      {/* DEDICATED HAIR DEVICES & STYLING SPOTLIGHT (Matching Photo: Siltek, Okema, Clara with Sub-Tabs & Direct Buy) */}
+      {sectionsControl.hairDevices && activePresetId === 'cosmetics' && (
+        <HairDevicesSpotlight />
+      )}
 
       {/* 5. NATURAL BLOOM CAMPAIGN BANNER (With Expressive High-End Imagery) */}
-      <section id="campaign-section" className="max-w-7xl mx-auto px-4 sm:px-6">
+      {sectionsControl.promoBanner && (
+        <section id="campaign-section" className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-purple-950 via-[#5A3E7A] to-pink-950 text-white p-6 sm:p-10 lg:p-12 shadow-2xl border border-purple-800/40">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             
@@ -558,9 +579,11 @@ export const StorefrontView: React.FC = () => {
           </div>
         </div>
       </section>
+      )}
 
       {/* 6. BEFORE & AFTER PROOF (Interactive Slider - Side-by-Side Cards Removed for Space Saving) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
+      {sectionsControl.beforeAfter && activePresetId === 'cosmetics' && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
         <div className="text-start space-y-1.5 max-w-2xl">
           <span className="text-xs font-black text-[#5A3E7A] uppercase tracking-widest">
             {lang === 'ar' ? 'نتائج واقعية ومثبتة' : 'Proven Transformations'}
@@ -589,7 +612,7 @@ export const StorefrontView: React.FC = () => {
             />
             <span className="absolute top-4 end-4 bg-emerald-600/90 backdrop-blur-sm text-white text-xs font-extrabold px-3.5 py-1.5 rounded-full shadow-md z-10 flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>{lang === 'ar' ? 'بعد (14 يوماً نضارة)' : 'After (14 Days)'}</span>
+              <span>{lang === 'ar' ? 'بعد' : 'After'}</span>
             </span>
 
             {/* "Before" Image (Clipped Overlay) */}
@@ -608,7 +631,7 @@ export const StorefrontView: React.FC = () => {
               />
               <span className="absolute top-4 start-4 bg-slate-900/90 backdrop-blur-sm text-white text-xs font-extrabold px-3.5 py-1.5 rounded-full shadow-md z-10 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
-                <span>{lang === 'ar' ? 'قبل الاستخدام' : 'Before Treatment'}</span>
+                <span>{lang === 'ar' ? 'قبل' : 'Before'}</span>
               </span>
             </div>
 
@@ -640,9 +663,11 @@ export const StorefrontView: React.FC = () => {
           </div>
         </div>
       </section>
+      )}
 
       {/* 7. VERIFIED CUSTOMER REVIEWS (Smart Luxury Testimonial Cards) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
+      {sectionsControl.testimonials && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="space-y-1.5 text-start">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold">
@@ -822,6 +847,7 @@ export const StorefrontView: React.FC = () => {
           </div>
         </div>
       </section>
+      )}
 
     </div>
   );

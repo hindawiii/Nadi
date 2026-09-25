@@ -87,6 +87,51 @@ export interface PresetNiche {
   products: Product[];
 }
 
+export interface ColorPalette {
+  id: string;
+  name: { ar: string; en: string };
+  category: { ar: string; en: string };
+  primary: string;       // 60-30-10: 30% Brand identity color
+  primaryHover: string;
+  accent: string;        // 60-30-10: 10% CTA High conversion accent
+  accentHover: string;
+  surface: string;       // 60-30-10: 60% Clean base background/surface
+  textOnPrimary: string;
+  cardBg: string;
+  borderTint: string;
+  badgeBg: string;
+  heroGradient: string;
+  previewColors: string[];
+}
+
+export interface TypographyPair {
+  id: string;
+  name: { ar: string; en: string };
+  category: { ar: string; en: string };
+  headingFamilyAr: string;
+  headingFamilyEn: string;
+  bodyFamilyAr: string;
+  bodyFamilyEn: string;
+  headingClassAr: string;
+  headingClassEn: string;
+  bodyClass: string;
+  lineHeight: string;
+  sampleHeading: { ar: string; en: string };
+  sampleBody: { ar: string; en: string };
+}
+
+export interface ImportableTemplate {
+  id: string;
+  name: { ar: string; en: string };
+  nicheLabel: { ar: string; en: string };
+  badge: { ar: string; en: string };
+  description: { ar: string; en: string };
+  previewImage: string;
+  paletteId: string;
+  typographyId: string;
+  presetData: PresetNiche;
+}
+
 export interface SiteConfig {
   security: {
     adminPin: string;
@@ -304,284 +349,35 @@ export const siteConfig: SiteConfig = {
         },
         {
           id: "sb-04",
-          name: { ar: "مجموعة Natural Bloom الكاملة (بوكس التوفير الملكي)", en: "Natural Bloom Complete Box" },
-          category: { ar: "باقات ومجموعات العناية", en: "Curated Bundles" },
-          basePriceUSD: 25.6, // ~96 SAR
-          originalPriceUSD: 45.0,
-          discountPercentage: 43,
-          stock: 5,
-          badge: { ar: "باقة 6 قطع ✦ وفر 43%", en: "6-Piece Bundle ✦ 43% OFF" },
+          name: { ar: "مجموعة Natural Bloom الكاملة (بوكس التوفير)", en: "Natural Bloom Complete Box" },
+          category: { ar: "البكجات والعروض", en: "Gift Sets" },
+          basePriceUSD: 18.0,
+          originalPriceUSD: 24.0,
+          discountPercentage: 25,
+          stock: 3,
+          badge: { ar: "وفر 25%", en: "SAVE 25%" },
           rating: 5.0,
           reviewsCount: 88,
           images: [
             "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80",
             "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80",
           ],
-          bundle: {
-            title: { ar: "محتويات باقة الإشراقة المتكاملة (6 قطع)", en: "Radiance Essentials (6 Items)" },
-            discount: 43,
-            items: [
-              { id: "sb-01", name: { ar: "مرطب الهيالورونيك 100ml", en: "Hyaluronic Moisturizer 100ml" }, priceUSD: 5.0, image: "https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=400&q=80" },
-              { id: "sb-02", name: { ar: "سيروم فيتامين سي المركز", en: "Pure Vitamin C Serum" }, priceUSD: 5.75, image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=400&q=80" },
-              { id: "sb-03", name: { ar: "كريم لافندر الليلي للترميم", en: "Lavender Night Cream" }, priceUSD: 6.5, image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=400&q=80" }
-            ]
-          },
           tabs: {
             description: {
-              ar: "البوكس الملكي المتكامل: يضم 6 مستحضرات فاخرة (مرطب الهيالورونيك، سيروم فيتامين سي، كريم اللافندر الليلي، غسول رغوي ناعم، تونر الورد، ورولر تدليك روز كوارتز) في صندوق جلدي فاخر.",
-              en: "The royal comprehensive box: includes 6 luxury essentials (hyaluronic moisturizer, vitamin C serum, lavender night cream, gentle cleanser, rose water toner, and rose quartz face roller)."
+              ar: "البوكس الكامل الذي يضم المرطب، السيروم، كريم اللافندر، وغسول الوجه في حقيبة خشبية فاخرة مزينة بزهور الفرانجيباني.",
+              en: "The all-in-one luxury botanical box featuring moisturizer, serum, night cream, and cleanser in a wooden gift tray."
             },
             usage: {
-              ar: "روتين متكامل لمدة 30 يوماً صباحاً ومساءً مرفق معه جدول عناية أسبوعي مرقم.",
-              en: "A complete 30-day morning and evening routine roadmap included inside the box."
+              ar: "برنامج عناية متكامل لمدة 30 يوماً يتضمن دليل الاستخدام الصباحي والمسائي.",
+              en: "Complete 30-day regimen with morning and night routine roadmap included."
             },
             ingredientsOrSpecs: {
-              ar: "6 قطع نباتية 100%، خالية من الكبريتات والبارابين، غنية بخلاصات الورد واللافندر والهيالورونيك.",
-              en: "6 pieces, 100% vegan certified, paraben-free and sulfate-free."
+              ar: "4 منتجات كاملة الحجم خالية تماماً من الكيماويات القاسية والبارابين.",
+              en: "4 full-sized products, 100% paraben-free and vegan certified."
             },
             reviews: {
-              ar: "تقييم 5.0/5. 'أفضل باقة عناية اشتريتها، وفرت علي أكثر من نصف السعر ونتائجها مذهلة!'",
-              en: "Rated 5.0/5. 'The ultimate skincare investment. Saved more than half the regular price!'"
-            }
-          }
-        },
-        {
-          id: "bundle-02",
-          name: { ar: "مجموعة الحمام والعناية الملكية الفائقة", en: "Royal Moroccan & Body Ritual Bundle" },
-          category: { ar: "باقات ومجموعات العناية", en: "Curated Bundles" },
-          basePriceUSD: 32.0, // ~120 SAR
-          originalPriceUSD: 60.0,
-          discountPercentage: 47,
-          stock: 7,
-          badge: { ar: "باقة 5 قطع ✦ وفر 47%", en: "5-Piece Luxury ✦ 47% OFF" },
-          rating: 4.95,
-          reviewsCount: 114,
-          images: [
-            "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80",
-          ],
-          bundle: {
-            title: { ar: "محتويات باقة الحمام الملكي (5 قطع)", en: "Royal Ritual (5 Items)" },
-            discount: 47,
-            items: [
-              { id: "b2-1", name: { ar: "صابون بلدي مغربي بزيت الزيتون", en: "Moroccan Black Soap" }, priceUSD: 8.0, image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80" },
-              { id: "b2-2", name: { ar: "مقشر السكر وزبدة الشيا", en: "Shea Sugar Scrub" }, priceUSD: 9.0, image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=400&q=80" }
-            ]
-          },
-          tabs: {
-            description: {
-              ar: "باقة الدلال المغربي الملكية: صابون بلدي طبيعي معصور على البارد، مقشر السكر البني بزبدة الشيا، ليفة حرير كيس أصلية، زيت أرغان مغذي للجسم، وماسك طين نقي.",
-              en: "The royal pampering ritual: organic Moroccan black soap, raw shea sugar scrub, premium exfoliating glove, nourishing argan body oil, and pure purifying clay mask."
-            },
-            usage: {
-              ar: "تستخدم مرة إلى مرتين أسبوعياً لتقشير لطيف وتوحيد لون الجسم وإزالة الجلد الميت ونعومة حريرية.",
-              en: "Use 1-2 times weekly for gentle full-body exfoliation and silky radiance."
-            },
-            ingredientsOrSpecs: {
-              ar: "زيت زيتون معصور على البارد، زبدة شيا نقية، زيت أرغان عضوي 100%.",
-              en: "Cold-pressed extra virgin olive oil, pure organic shea butter, organic argan oil."
-            },
-            reviews: {
-              ar: "تقييم 4.95/5. 'جسمي صار حرير وريحة البكج فواحة ومنعشة بشكل خيالي.'",
-              en: "Rated 4.95/5. 'Silky smooth skin and an intoxicating spa scent.'"
-            }
-          }
-        },
-        {
-          id: "bundle-03",
-          name: { ar: "مجموعة تجديد ونضارة البشرة ومقاومة الخطوط", en: "Youth Renewal & Anti-Aging Trio" },
-          category: { ar: "باقات ومجموعات العناية", en: "Curated Bundles" },
-          basePriceUSD: 28.0, // ~105 SAR
-          originalPriceUSD: 52.0,
-          discountPercentage: 46,
-          stock: 4,
-          badge: { ar: "باقة 4 قطع ✦ الأكثر طلباً", en: "4-Piece Trio ✦ Best Seller" },
-          rating: 4.9,
-          reviewsCount: 76,
-          images: [
-            "https://images.unsplash.com/photo-1556228722-d0b5b0340fe3?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80",
-          ],
-          tabs: {
-            description: {
-              ar: "مجموعة مكثفة لشد البشرة ومقاومة علامات التقدم بالسن: سيروم كولاجين بحري، أمبولات ببتيدات فورية، كريم شد محيط العينين، ورولر تدليك بيضاوي.",
-              en: "Intensive lifting and firming set: marine collagen serum, peptide firming ampoules, eye contour renewal cream, and sculpting roller."
-            },
-            usage: {
-              ar: "يطبق السيروم صباحاً مع تدليك تصاعدي، والأمبولات قبل النوم لشد وتجديد البشرة أثناء الراحة.",
-              en: "Apply collagen serum in the morning, and the peptide ampoules before sleeping."
-            },
-            ingredientsOrSpecs: {
-              ar: "ببتيدات نباتية نشطة، كولاجين نقي، كافيين مضاد للهالات، ومستخلص الشاي الأخضر.",
-              en: "Active plant peptides, marine collagen, anti-fatigue caffeine, green tea extract."
-            },
-            reviews: {
-              ar: "تقييم 4.9/5. 'التجاعيد التعبيرية خفت بنسبة كبيرة بعد أسبوعين استخدام.'",
-              en: "Rated 4.9/5. 'Fine lines significantly softened within 2 weeks of use.'"
-            }
-          }
-        },
-        {
-          id: "dev-01",
-          name: { ar: "مصفف ومجفف الشعر الحراري الاحترافي 2 في 1", en: "Pro 2-in-1 Ionic Hair Dryer & Volumizer" },
-          category: { ar: "أجهزة الشعر والجمال", en: "Beauty Tech & Devices" },
-          basePriceUSD: 37.3, // ~140 SAR
-          originalPriceUSD: 62.0,
-          discountPercentage: 40,
-          stock: 8,
-          badge: { ar: "ضمان سنتين ✦ الأكثر مبيعاً", en: "2 Years Warranty ✦ Best Seller" },
-          rating: 4.9,
-          reviewsCount: 204,
-          isTechSpecs: true,
-          techSpecs: [
-            { label: { ar: "القوة الكهربائية", en: "Power" }, value: { ar: "1200 واط مع تقنية الأيونات السالبة", en: "1200W Negative Ionic Tech" } },
-            { label: { ar: "الطلاء والسطح", en: "Coating" }, value: { ar: "سيراميك تورمالين لحماية الشعر من الاحتراق", en: "Tourmaline Ceramic Protection" } },
-            { label: { ar: "السرعات والحرارة", en: "Settings" }, value: { ar: "3 مستويات حرارة وسرعتان + زر هواء بارد", en: "3 Heat / 2 Speed + Cool Shot" } },
-            { label: { ar: "الضمان", en: "Warranty" }, value: { ar: "ضمان استبدال فوري لمدة سنتين", en: "2-Year Direct Replacement Warranty" } }
-          ],
-          images: [
-            "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80",
-          ],
-          tabs: {
-            description: {
-              ar: "جهاز التصفيف والتجفيف المتطور بتكنولوجيا الأيونات السالبة التي تمنع تطاير الشعر وتمنحه لمعاناً حريرياً فائقاً في نصف الوقت المعتاد.",
-              en: "Advanced blow-dry styling brush with negative ion technology to seal hair cuticles, eliminate frizz and deliver salon-level volume."
-            },
-            usage: {
-              ar: "يقسم الشعر الرطب أو الجاف إلى خصلات ويمرر المصفف من الجذور حتى الأطراف بحركة دائرية للحصول على كثافة ولمعان جذاب.",
-              en: "Section damp or dry hair, glide the brush slowly from roots to ends for instant volume and silkiness."
-            },
-            ingredientsOrSpecs: {
-              ar: "تصميم بيضاوي مريح، سلك دوار 360 درجة بطول 2.5 متر، شعيرات غير متشابكة ناعمة على فروة الرأس.",
-              en: "Ergonomic oval barrel, 360-degree tangle-free swivel cord, scalp-massaging bristles."
-            },
-            reviews: {
-              ar: "تقييم 4.9/5. 'يغنيكِ تماماً عن صالونات التجميل، يخلص الشعر في 10 دقائق بدون تقصف!'",
-              en: "Rated 4.9/5. 'Replaces salon blowouts completely. Dries and styles in just 10 minutes!'"
-            }
-          }
-        },
-        {
-          id: "dev-02",
-          name: { ar: "مكواة تمليس الشعر الكورية بألواح النانو تيتانيوم", en: "Nano Titanium Professional Flat Iron" },
-          category: { ar: "أجهزة الشعر والجمال", en: "Beauty Tech & Devices" },
-          basePriceUSD: 45.0, // ~169 SAR
-          originalPriceUSD: 75.0,
-          discountPercentage: 40,
-          stock: 6,
-          badge: { ar: "ضمان سنتين ✦ نانو تيتانيوم", en: "2-Yr Warranty ✦ Nano Titanium" },
-          rating: 4.88,
-          reviewsCount: 165,
-          isTechSpecs: true,
-          techSpecs: [
-            { label: { ar: "درجة الحرارة القصوى", en: "Max Temp" }, value: { ar: "تصل حتى 480 فهرنهايت (250 مئوية)", en: "Up to 480°F (250°C)" } },
-            { label: { ar: "سرعة التسخين", en: "Heat-up Time" }, value: { ar: "جاهزة خلال 15 ثانية فقط بتقنية MCH", en: "Ready in 15 seconds (MCH system)" } },
-            { label: { ar: "الأمان", en: "Safety" }, value: { ar: "إيقاف تشغيل تلقائي ذكي بعد 60 دقيقة", en: "60-Minute Auto Shut-Off" } },
-            { label: { ar: "الضمان", en: "Warranty" }, value: { ar: "ضمان ذهبي معتمد سنتين", en: "2-Year Certified Warranty" } }
-          ],
-          images: [
-            "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80",
-          ],
-          tabs: {
-            description: {
-              ar: "مكواة التمليس الاحترافية المعتمدة لعلاجات البروتين والكيراتين والتصفيف اليومي السريع، مزودة بألواح نانو تيتانيوم فائقة النعومة تحمي خصلات الشعر من التقصف.",
-              en: "Professional salon-grade flat iron engineered for keratin treatments and daily styling with ultra-smooth nano titanium plates."
-            },
-            usage: {
-              ar: "اختاري درجة الحرارة الملائمة لسماكة شعرك، مرري المكواة بسلاسة من أعلى الخصلة للأسفل بلمسة واحدة.",
-              en: "Select optimal heat setting for your hair texture, glide gently once from roots to tips."
-            },
-            ingredientsOrSpecs: {
-              ar: "شاشة رقمية LED لعرض درجة الحرارة بدقة، ألواح عريضة ومرنة، جهد كهربائي ثنائي عالمي (110-240V).",
-              en: "Digital LED temperature display, floating wide plates, universal dual voltage (110-240V)."
-            },
-            reviews: {
-              ar: "تقييم 4.88/5. 'حرارتها جبارة وتسوي الشعر سيدة بلمسة وحدة، وما تقطع الشعر أبداً.'",
-              en: "Rated 4.88/5. 'Super high heat and glides without snagging a single hair.'"
-            }
-          }
-        },
-        {
-          id: "dev-03",
-          name: { ar: "جهاز تمويج وتجعيد الشعر الذاتي اللاسلكي الذكي", en: "Smart Auto-Rotating Cordless Hair Curler" },
-          category: { ar: "أجهزة الشعر والجمال", en: "Beauty Tech & Devices" },
-          basePriceUSD: 42.0, // ~158 SAR
-          originalPriceUSD: 70.0,
-          discountPercentage: 40,
-          stock: 4,
-          badge: { ar: "ضمان سنتين ✦ كيرلي ذكي", en: "2-Yr Warranty ✦ Smart Curler" },
-          rating: 4.92,
-          reviewsCount: 132,
-          isTechSpecs: true,
-          techSpecs: [
-            { label: { ar: "آلية العمل", en: "Mechanism" }, value: { ar: "دوران أوتوماتيكي ذكي يميناً ويساراً بزر واحد", en: "Bi-directional Auto-Rotating Chamber" } },
-            { label: { ar: "البطارية", en: "Battery" }, value: { ar: "بطارية ليثيوم قابلة لإعادة الشحن عبر USB-C تدوم 60 دقيقة", en: "Rechargeable USB-C (60 min runtime)" } },
-            { label: { ar: "مستويات الحرارة", en: "Heat Levels" }, value: { ar: "6 درجات حرارة من 150 إلى 200 مئوية", en: "6 Heat Settings (150°C - 200°C)" } },
-            { label: { ar: "الضمان", en: "Warranty" }, value: { ar: "ضمان شامل لمدة سنتين", en: "2-Year Comprehensive Warranty" } }
-          ],
-          images: [
-            "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=800&q=80",
-          ],
-          tabs: {
-            description: {
-              ar: "جهاز الكيرلي التلقائي الأكثر أماناً: اسحبي الخصلة لداخل الحجرة السيراميكية العازلة وسيقوم الجهاز بلفها وتدفئتها بنعومة وإطلاقها كتموجات مذهلة تدوم طويلاً.",
-              en: "The safest automatic cordless curler: automatically wraps hair inside the thermal-insulated ceramic chamber to form bouncy, long-lasting curls."
-            },
-            usage: {
-              ar: "ضعي خصلة صغيرة داخل فتحة الجهاز واضغطي زر البدء حتى تسمعي صوت التنبيه، ثم أفلتي للحصول على خصلة كيرلي ساحرة.",
-              en: "Place a small strand into the curl chamber, hold the button until the beep alert signals completion."
-            },
-            ingredientsOrSpecs: {
-              ar: "حجرة عازلة تحمي اليد والوجه تماماً من الحرارة، خفيف الوزن ومثالي للحقيبة والسفر.",
-              en: "Anti-scald insulated housing, compact travel-ready wireless body."
-            },
-            reviews: {
-              ar: "تقييم 4.92/5. 'اختراع خيالي! أسوي شعري كامل في 8 دقائق وأنا بالسيارة أو بالسفر!'",
-              en: "Rated 4.92/5. 'Brilliant invention. Can curl my whole hair anywhere with zero burns!'"
-            }
-          }
-        },
-        {
-          id: "dev-04",
-          name: { ar: "جهاز تنظيف وتقشير البشرة بالموجات فوق الصوتية", en: "Ultrasonic Skin Scrubber & Pore Cleanser" },
-          category: { ar: "أجهزة الشعر والجمال", en: "Beauty Tech & Devices" },
-          basePriceUSD: 29.3, // ~110 SAR
-          originalPriceUSD: 48.0,
-          discountPercentage: 39,
-          stock: 9,
-          badge: { ar: "ضمان سنتين ✦ عناية بالبشرة", en: "2-Yr Warranty ✦ Deep Clean" },
-          rating: 4.85,
-          reviewsCount: 98,
-          isTechSpecs: true,
-          techSpecs: [
-            { label: { ar: "تردد الموجات", en: "Frequency" }, value: { ar: "24,000 هرتز للاهتزازات الدقيقة لتنقية المسام", en: "24kHz High Ultrasonic Vibrations" } },
-            { label: { ar: "أوضاع العمل", en: "Modes" }, value: { ar: "4 أوضاع (تنظيف عميق، تغذية أيونية، شد ورفع EMS)", en: "4 Modes: Cleansing, Ion+, Ion-, EMS Lift" } },
-            { label: { ar: "المادة والشحن", en: "Material" }, value: { ar: "شفرة ستانلس ستيل طبي مضاد للبكتيريا + شحن لاسلكي", en: "Medical Stainless Blade + USB Base" } },
-            { label: { ar: "الضمان", en: "Warranty" }, value: { ar: "ضمان عامين كاملين", en: "2-Year Full Warranty" } }
-          ],
-          images: [
-            "https://images.unsplash.com/photo-1512290900672-1f41b2f6ef8d?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80",
-          ],
-          tabs: {
-            description: {
-              ar: "أداة المسام الاحترافية لإزالة الرؤوس السوداء والدهون العميقة وتغلغل السيرومات إلى أعماق البشرة بتقنية الأيونات السالبة وموجات الرفع EMS.",
-              en: "Professional ultrasonic spatula removing stubborn blackheads, excess sebum and infusing skincare nutrients deeply via micro-current EMS."
-            },
-            usage: {
-              ar: "يرطب الوجه بالماء أو التونر ويمرر رأس الشفرة بلطف بزاوية 45 درجة لتنظيف فوري ونضارة مشعة.",
-              en: "Keep face wet with water or toner, glide the spatula at a 45-degree angle gently across pores."
-            },
-            ingredientsOrSpecs: {
-              ar: "مقاوم للرذاذ، خفيف الوزن، بطارية ليثيوم تدوم لأسابيع بشحنة واحدة.",
-              en: "Splash-resistant IPX5, long battery endurance, compact ergonomic grip."
-            },
-            reviews: {
-              ar: "تقييم 4.85/5. 'الرؤوس السوداء على الأنف اختفت من أول جلسة، وبشرتي صارت تتنفس.'",
-              en: "Rated 4.85/5. 'Pores and blackheads disappeared on the very first session!'"
+              ar: "تقييم 5.0/5. 'هدية فخمة جداً والنتائج سحرية بشهادة كل من جربها.'",
+              en: "Rated 5.0/5. 'The ultimate self-care gift. Remarkable results!'"
             }
           }
         }
@@ -1049,3 +845,563 @@ export const siteConfig: SiteConfig = {
     }
   }
 };
+
+export const curatedPalettes: ColorPalette[] = [
+  {
+    id: 'imperial-orchid',
+    name: { ar: 'أوركيد إمبراطوري فاخر (Imperial Orchid)', en: 'Imperial Orchid & Rose' },
+    category: { ar: 'تجميل وعناية', en: 'Beauty & Skincare' },
+    primary: '#5A3E7A',
+    primaryHover: '#483162',
+    accent: '#E11D48',
+    accentHover: '#BE123C',
+    surface: '#FAF5FF',
+    textOnPrimary: '#FFFFFF',
+    cardBg: '#FFFFFF',
+    borderTint: '#F3E8FF',
+    badgeBg: '#E11D48',
+    heroGradient: 'from-purple-50 via-slate-50 to-white',
+    previewColors: ['#5A3E7A', '#8B5CF6', '#E11D48', '#FAF5FF']
+  },
+  {
+    id: 'emerald-velvet',
+    name: { ar: 'مخمل زمردي وذهب ملكي (Emerald & Royal Gold)', en: 'Emerald Velvet & Royal Gold' },
+    category: { ar: 'فخامة وطبيعة', en: 'Luxury & Nature' },
+    primary: '#0F4C3A',
+    primaryHover: '#0A3528',
+    accent: '#D97706',
+    accentHover: '#B45309',
+    surface: '#F4FAF6',
+    textOnPrimary: '#FFFFFF',
+    cardBg: '#FFFFFF',
+    borderTint: '#D1FAE5',
+    badgeBg: '#D97706',
+    heroGradient: 'from-emerald-50 via-teal-50/30 to-white',
+    previewColors: ['#0F4C3A', '#059669', '#D97706', '#F4FAF6']
+  },
+  {
+    id: 'midnight-obsidian',
+    name: { ar: 'أوبسيديان منتصف الليل وروز جولد (Midnight Obsidian)', en: 'Midnight Obsidian & Rose Gold' },
+    category: { ar: 'أناقة داكنة ومجوهرات', en: 'Haute Horlogerie & Fashion' },
+    primary: '#18181B',
+    primaryHover: '#09090B',
+    accent: '#E07A5F',
+    accentHover: '#C86247',
+    surface: '#F7F7F8',
+    textOnPrimary: '#FFFFFF',
+    cardBg: '#FFFFFF',
+    borderTint: '#E4E4E7',
+    badgeBg: '#E07A5F',
+    heroGradient: 'from-zinc-100 via-stone-50 to-white',
+    previewColors: ['#18181B', '#3F3F46', '#E07A5F', '#F7F7F8']
+  },
+  {
+    id: 'terracotta-amber',
+    name: { ar: 'تيراكوتا ترابي وعنبر طبيعي (Warm Terracotta)', en: 'Warm Terracotta & Teal' },
+    category: { ar: 'عضوي وأصالة', en: 'Organic & Heritage' },
+    primary: '#9A3412',
+    primaryHover: '#7C2D12',
+    accent: '#0D9488',
+    accentHover: '#0F766E',
+    surface: '#FFFBF7',
+    textOnPrimary: '#FFFFFF',
+    cardBg: '#FFFFFF',
+    borderTint: '#FFEDD5',
+    badgeBg: '#0D9488',
+    heroGradient: 'from-amber-50 via-orange-50/20 to-white',
+    previewColors: ['#9A3412', '#EA580C', '#0D9488', '#FFFBF7']
+  },
+  {
+    id: 'royal-sapphire',
+    name: { ar: 'ياقوت أزرق ملكي وفضة (Royal Sapphire)', en: 'Royal Sapphire & Celestial' },
+    category: { ar: 'إلكترونيات وبصريات', en: 'Optics & High-Tech' },
+    primary: '#1E3A8A',
+    primaryHover: '#172554',
+    accent: '#0284C7',
+    accentHover: '#0369A1',
+    surface: '#F0F7FF',
+    textOnPrimary: '#FFFFFF',
+    cardBg: '#FFFFFF',
+    borderTint: '#DBEAFE',
+    badgeBg: '#0284C7',
+    heroGradient: 'from-blue-50 via-indigo-50/20 to-white',
+    previewColors: ['#1E3A8A', '#2563EB', '#0284C7', '#F0F7FF']
+  },
+  {
+    id: 'blush-cashmere',
+    name: { ar: 'كشمير زهري وذهب بودري (Blush Cashmere)', en: 'Blush Cashmere & Muted Gold' },
+    category: { ar: 'عطور ومكياج', en: 'Fragrance & Fine Cosmetics' },
+    primary: '#831843',
+    primaryHover: '#701A75',
+    accent: '#CA8A04',
+    accentHover: '#A16207',
+    surface: '#FFF5F8',
+    textOnPrimary: '#FFFFFF',
+    cardBg: '#FFFFFF',
+    borderTint: '#FCE7F3',
+    badgeBg: '#CA8A04',
+    heroGradient: 'from-rose-50 via-pink-50/20 to-white',
+    previewColors: ['#831843', '#DB2777', '#CA8A04', '#FFF5F8']
+  }
+];
+
+export const curatedTypographyPairs: TypographyPair[] = [
+  {
+    id: 'royal-luxury',
+    name: { ar: 'التوليفة الملكية الفاخرة (Royal Luxury)', en: 'Royal Luxury (El Messiri + Cairo)' },
+    category: { ar: 'المتاجر الفاخرة ومستحضرات التجميل', en: 'High Luxury & Cosmetics' },
+    headingFamilyAr: 'El Messiri',
+    headingFamilyEn: 'Playfair Display',
+    bodyFamilyAr: 'Cairo',
+    bodyFamilyEn: 'Plus Jakarta Sans',
+    headingClassAr: 'font-heading-ar font-bold',
+    headingClassEn: 'font-heading-en font-bold tracking-wide',
+    bodyClass: 'leading-relaxed font-normal',
+    lineHeight: '1.625',
+    sampleHeading: {
+      ar: 'إشراقة ملكية، ونقاء طبيعي لا يُضاهى',
+      en: 'Timeless Radiance & Botanical Perfection'
+    },
+    sampleBody: {
+      ar: 'تركيبة متوازنة تمنح بشرتك العناية الفائقة مع ضمان كامل للأصالة والنقاء الطبيعي مع تباعد أسطر مريح بدون أي تداخل في التشكيل.',
+      en: 'Carefully engineered botanical formulas designed to restore deep hydration while maintaining effortless legibility.'
+    }
+  },
+  {
+    id: 'modern-clean',
+    name: { ar: 'التوليفة الهندسية الحديثة (Modern Tech & Clean)', en: 'Modern Clean (Cairo Bold + Cairo)' },
+    category: { ar: 'الإلكترونيات والمنتجات التقنية', en: 'Tech, Gadgets & Direct Commerce' },
+    headingFamilyAr: 'Cairo',
+    headingFamilyEn: 'Outfit',
+    bodyFamilyAr: 'Cairo',
+    bodyFamilyEn: 'Plus Jakarta Sans',
+    headingClassAr: 'font-sans font-black',
+    headingClassEn: 'font-brand-geometric font-extrabold tracking-wider',
+    bodyClass: 'leading-relaxed font-normal',
+    lineHeight: '1.625',
+    sampleHeading: {
+      ar: 'دقة هندسية، وأداء استثنائي متطور',
+      en: 'Precision Engineering & Superior Performance'
+    },
+    sampleBody: {
+      ar: 'أحدث التقنيات المبتكرة المصممة لرفع كفاءتك اليومية مع مقروئية رقمية واضحة ومتباعدة الأسطر بدقة فائقة.',
+      en: 'Next-generation industrial aesthetics balanced with razor-sharp geometric typography for modern storefronts.'
+    }
+  },
+  {
+    id: 'neo-editorial',
+    name: { ar: 'التوليفة الصحفية المعاصرة (Neo-Editorial Chic)', en: 'Neo-Editorial Chic (Alexandria + Cairo)' },
+    category: { ar: 'الأزياء الراقية والملابس الحصرية', en: 'Editorial Fashion & Haute Couture' },
+    headingFamilyAr: 'Alexandria',
+    headingFamilyEn: 'Playfair Display',
+    bodyFamilyAr: 'Cairo',
+    bodyFamilyEn: 'Inter',
+    headingClassAr: 'font-bold tracking-tight',
+    headingClassEn: 'italic font-bold',
+    bodyClass: 'leading-relaxed font-normal',
+    lineHeight: '1.65',
+    sampleHeading: {
+      ar: 'أناقة حصرية تُعيد تعريف الإطلالة',
+      en: 'Exquisite Tailoring & Editorial Finesse'
+    },
+    sampleBody: {
+      ar: 'تصاميم إيطالية متميزة تجمع بين الحرفية الكلاسيكية والروح العصرية المفعمة بالحيوية والتفرد.',
+      en: 'Sculpted silhouettes and bespoke craftsmanship brought forward in high-fashion editorial clarity.'
+    }
+  },
+  {
+    id: 'fluid-minimalist',
+    name: { ar: 'التوليفة الانسيابية الهادئة (Fluid Minimalist)', en: 'Fluid Minimalist (Tajawal + Cairo)' },
+    category: { ar: 'النظارات والمجوهرات الدقيقة', en: 'Minimalist Eyewear & Fine Jewelry' },
+    headingFamilyAr: 'Tajawal',
+    headingFamilyEn: 'Plus Jakarta Sans',
+    bodyFamilyAr: 'Cairo',
+    bodyFamilyEn: 'Plus Jakarta Sans',
+    headingClassAr: 'font-bold',
+    headingClassEn: 'font-semibold tracking-wide',
+    bodyClass: 'leading-relaxed font-normal',
+    lineHeight: '1.625',
+    sampleHeading: {
+      ar: 'بساطة مطلقة تُبرز جوهر التفاصيل',
+      en: 'Understated Elegance in Every Contour'
+    },
+    sampleBody: {
+      ar: 'خطوط هادئة وانسيابية خالية من التكلف، تمنح المتصفح تجربة قراءة فائقة الراحة والوضوح.',
+      en: 'Quiet, unhurried typography that lets products speak with authentic purity and zero clutter.'
+    }
+  }
+];
+
+export const curatedImportableTemplates: ImportableTemplate[] = [
+  {
+    id: 'royal-perfumes',
+    name: { ar: 'قالب عطور ومسك ملكي (Misk & Royal Oud)', en: 'Royal Oud & Haute Parfumerie' },
+    nicheLabel: { ar: 'عطور ومسك شرقي', en: 'Haute Perfumery & Oud' },
+    badge: { ar: 'قالب جاهز للاستيراد 💎', en: 'Ready Template 💎' },
+    description: {
+      ar: 'قالب فاخر مخصص لدور العطور الشرقية والفرنسية، مع بنرات دهن العود، والمسك الأبيض، وبكجات الهدايا الملكية.',
+      en: 'Pre-configured bespoke template for Arabian Oud and luxury perfumes with gift set showcases.'
+    },
+    previewImage: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=800&q=80',
+    paletteId: 'blush-cashmere',
+    typographyId: 'royal-luxury',
+    presetData: {
+      id: 'cosmetics',
+      nicheLabel: { ar: 'عطور ومسك ملكي', en: 'Royal Perfumes & Oud' },
+      storeName: { ar: 'مِسك ونَفَحَات', en: 'Misk & Notes' },
+      storeLogo: '',
+      storeSlogan: { ar: 'نَفَحَات ملكية تأسر الحواس.', en: 'Royal olfactory whispers of heritage.' },
+      topAnnouncement: {
+        ar: 'عرض الموسم: احصل على تولة مسك غزال أصلية مجاناً عند طلب بوكس النخبة الملكي. تسوق الآن',
+        en: 'Season Special: Complimentary pure deer musk with every Elite Collection gift box. Shop Now'
+      },
+      heroTitle: { ar: 'أصالة العود وسحر النَفَحَات الملكية', en: 'The Pure Aura of Royal Arabian Oud' },
+      heroSubtitle: {
+        ar: 'مستخلصات نادرة من أجود خشب العود الكمبودي والمسك الأبيض والورد الطائفي الفاخر لثبات يدوم لأيام.',
+        en: 'Rare distillations of Cambodi agarwood, royal white musk, and Taif roses for enduring nobility.'
+      },
+      heroCtaPrimary: { ar: 'اكتشف مجموعة النخبة', en: 'Explore Elite Collection' },
+      heroCtaSecondary: { ar: 'عينات التجربة', en: 'Order Discovery Kit' },
+      heroImage: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=1200&q=80',
+      theme: {
+        primaryBg: 'bg-[#831843]',
+        primaryText: 'text-[#831843]',
+        primaryHover: 'hover:bg-[#701A75]',
+        accentColor: '#CA8A04',
+        badgeBg: 'bg-amber-600',
+        heroGradient: 'from-rose-50 via-pink-50/20 to-white'
+      },
+      valueProps: [
+        {
+          icon: 'Sparkles',
+          title: { ar: 'ثبات يدوم 72 ساعة', en: '72-Hour Longevity' },
+          desc: { ar: 'تركيز زيتي عالي Pure Extrait de Parfum.', en: 'Concentrated pure perfume oil extracts.' }
+        },
+        {
+          icon: 'Truck',
+          title: { ar: 'شحن ملكي مبرد', en: 'Climate-Controlled Delivery' },
+          desc: { ar: 'تغليف مخملي عازل للحرارة والضوء.', en: 'Velvet insulated gift packaging.' }
+        },
+        {
+          icon: 'ShieldCheck',
+          title: { ar: 'أصالة معتمدة 100%', en: 'Certified Authenticity' },
+          desc: { ar: 'شهادة ضمان النقاء والتقطير الطبيعي.', en: 'Guaranteed pure natural distillation certificate.' }
+        },
+        {
+          icon: 'CreditCard',
+          title: { ar: 'دفع مرن عند المعاينة', en: 'Inspect Before Pay' },
+          desc: { ar: 'حق تجربة العينة المرفقة قبل الاستلام.', en: 'Complimentary tester vial included with free returns.' }
+        }
+      ],
+      contactInfo: {
+        address: { ar: 'طريق الملك فهد، برج العطور الملكية، الرياض', en: 'King Fahd Road, Royal Perfume Tower, Riyadh' },
+        phone: '+966 50 123 4567',
+        email: 'concierge@misk-notes.com',
+        whatsapp: '966501234567'
+      },
+      aboutStory: {
+        title: { ar: 'قصة شغف بالتقطير اليدوي العريق', en: 'Our Heritage of Artisanal Distillation' },
+        body: {
+          ar: 'من غابات كمبوديا العتيقة إلى مزارع الورد الطائفي، نختار كل قطرة بعناية فائقة لنقدم لك عطراً يمثل بصمتك الخاصة ويبقى خالداً في الذاكرة.',
+          en: 'From age-old Cambodian forests to blooming rose valleys, we distill every essence with exacting passion.'
+        },
+        image: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=800&q=80'
+      },
+      products: [
+        {
+          id: 'oud-01',
+          name: { ar: 'عطر عود كمبودي معتق ملكي (Royal Aged Cambodi)', en: 'Royal Aged Cambodi Pure Extrait' },
+          category: { ar: 'عطور العود الملكي', en: 'Royal Oud' },
+          basePriceUSD: 145.0,
+          originalPriceUSD: 195.0,
+          discountPercentage: 25,
+          stock: 6,
+          badge: { ar: 'معتق 15 سنة 🪵', en: 'Aged 15 Years' },
+          rating: 4.96,
+          reviewsCount: 142,
+          images: [
+            'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=800&q=80'
+          ],
+          tabs: {
+            description: {
+              ar: 'توليفة ساحرة تجمع بين فخامة العود الكمبودي المعتق ولمسات من دهن العنبر والزعفران الكشميري الأصيل.',
+              en: 'A mesmerizing symphony blending 15-year aged Cambodi oud with warm amber and saffron.'
+            },
+            usage: {
+              ar: 'رشة واحدة على أماكن النبض أو التبخير مع البخور تمنحك حضوراً آسراً يدوم لأيام.',
+              en: 'Spray gently on pulse points or layer with incense for unforgettable presence.'
+            },
+            ingredientsOrSpecs: {
+              ar: 'خشب العود الكمبودي الطبيعي، دهن العنبر الرمادي، زعفران كشميري، فانيليا مدغشقر.',
+              en: 'Natural Cambodi Agarwood, Ambergris, Kashmiri Saffron, Bourbon Vanilla.'
+            },
+            reviews: {
+              ar: 'أفخم عطر اقتنيته في حياتي، الثبات والفوحان لا يُقارن بأي متجر آخر!',
+              en: 'The most regal scent I have ever encountered. Remarkable sillage.'
+            }
+          }
+        },
+        {
+          id: 'oud-02',
+          name: { ar: 'مسك الحرير والورد الأبيض (Silk White Musk)', en: 'Silk White Musk & Snow Lotus' },
+          category: { ar: 'المسك الفاخر', en: 'Pure Musk' },
+          basePriceUSD: 78.0,
+          originalPriceUSD: 98.0,
+          discountPercentage: 20,
+          stock: 12,
+          badge: { ar: 'الأكثر طلباً 🌸', en: 'Best Seller 🌸' },
+          rating: 4.92,
+          reviewsCount: 210,
+          images: [
+            'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=800&q=80'
+          ],
+          tabs: {
+            description: {
+              ar: 'نقاء المسك الأبيض الناعم مع نوتات زنبق الوادي والورد الأبيض البودري لشعور منعش ومخملي بعد الاستحمام.',
+              en: 'Ultra-pure white musk paired with lily of the valley and velvety powdery accords.'
+            },
+            usage: {
+              ar: 'مثالي للاستخدام اليومي المباشر على البشرة الرطبة والشعر.',
+              en: 'Ideal for daily post-shower application on warm skin.'
+            },
+            ingredientsOrSpecs: {
+              ar: 'مسك أبيض مقطر، زنبق الوادي، بتلات الورد الطائفي الأبيض، أخشاب الأرز.',
+              en: 'Distilled White Musk, White Rose Petals, Cedarwood, Lily of the Valley.'
+            },
+            reviews: {
+              ar: 'رائحة نظافة ونعومة تدوم في الملابس حتى بعد الغسيل. خيالي!',
+              en: 'Incredible clean powder scent that lingers gently all day long.'
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    id: 'fine-jewelry',
+    name: { ar: 'قالب مجوهرات وألماس رفيع (Lumière Fine Jewelry)', en: 'Lumière Haute Joaillerie' },
+    nicheLabel: { ar: 'مجوهرات وألماس', en: 'Diamonds & High Jewelry' },
+    badge: { ar: 'قالب جاهز للاستيراد 💍', en: 'Ready Template 💍' },
+    description: {
+      ar: 'قالب صُمم للمجوهرات الراقية، وخواتم السوليتير، وعقود الذهب عيار 18 مع شهادات نقاء الألماس GIA.',
+      en: 'Haute Joaillerie template featuring diamond grading certificates and bespoke gold creations.'
+    },
+    previewImage: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80',
+    paletteId: 'emerald-velvet',
+    typographyId: 'royal-luxury',
+    presetData: {
+      id: 'fashion',
+      nicheLabel: { ar: 'مجوهرات وألماس رفيع', en: 'Fine Jewelry & Diamonds' },
+      storeName: { ar: 'لـُـومـْيـِيـر', en: 'Lumière Joaillerie' },
+      storeLogo: '',
+      storeSlogan: { ar: 'بريق الألماس الخالد، صِيغ بحرفية الأجيال.', en: 'Timeless diamond brilliance, crafted for eternity.' },
+      topAnnouncement: {
+        ar: 'خدمة التصميم الخاص متاحة الآن: فصّلي خاتم أحلامك بحجر الماس معتمد بشهادة GIA الدولية. احجزي موعدك',
+        en: 'Bespoke Atelier Open: Design your custom solitaire with certified GIA diamonds. Book Consultation'
+      },
+      heroTitle: { ar: 'بريق الألماس النقي وذهب عيار 18', en: 'Peerless Solitaires & 18K Solid Gold' },
+      heroSubtitle: {
+        ar: 'مجموعة لوميير الحصرية من خواتم الخطوبة، والأساور الماسية، والتصاميم اليدوية التي تروي قصة حب لا تنتهي.',
+        en: 'Discover handcrafted engagement rings, diamond tennis bracelets, and bespoke heirlooms.'
+      },
+      heroCtaPrimary: { ar: 'تصفح أطقم الألماس', en: 'View High Jewelry' },
+      heroCtaSecondary: { ar: 'شهادات الضمان', en: 'Diamond Guide' },
+      heroImage: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1200&q=80',
+      theme: {
+        primaryBg: 'bg-[#0F4C3A]',
+        primaryText: 'text-[#0F4C3A]',
+        primaryHover: 'hover:bg-[#0A3528]',
+        accentColor: '#D97706',
+        badgeBg: 'bg-amber-600',
+        heroGradient: 'from-emerald-50 via-teal-50/20 to-white'
+      },
+      valueProps: [
+        {
+          icon: 'ShieldCheck',
+          title: { ar: 'شهادة GIA معتمدة', en: 'GIA Certified Gemstones' },
+          desc: { ar: 'رقم ليزري محفور وشهادة نقاء رسمية.', en: 'Laser-inscribed authenticity seal.' }
+        },
+        {
+          icon: 'Sparkles',
+          title: { ar: 'ذهب عيار 18 نقي', en: '18K Solid Gold' },
+          desc: { ar: 'مختوم وموثق بموازين الدمغة الدولية.', en: 'Officially hallmarked fine gold alloys.' }
+        },
+        {
+          icon: 'Truck',
+          title: { ar: 'توصيل مصفح ومؤمّن', en: 'Armored & Insured Transit' },
+          desc: { ar: 'تأمين كامل بنسبة 100% حتى باب دارك.', en: 'Full valuation transit insurance coverage.' }
+        },
+        {
+          icon: 'CreditCard',
+          title: { ar: 'صيانة وتلميع مدى الحياة', en: 'Lifetime Care & Cleaning' },
+          desc: { ar: 'خدمة فحص وتلميع مجانية في كافة فروعنا.', en: 'Complimentary annual inspection & ultrasonic cleaning.' }
+        }
+      ],
+      contactInfo: {
+        address: { ar: 'حي العليا، بوليفارد المجوهرات، الرياض', en: 'Olaya District, Jewelry Boulevard, Riyadh' },
+        phone: '+966 11 998 7766',
+        email: 'atelier@lumiere-jewelry.com',
+        whatsapp: '966119987766'
+      },
+      aboutStory: {
+        title: { ar: 'ثلاثة أجيال من صياغة البريق النادر', en: 'Three Generations of Diamond Mastery' },
+        body: {
+          ar: 'ننتقي أحجار الألماس بدقة مجهرية وفق أعلى معايير النقاء والقطع اللامع، لتتحول كل قطعة إلى إرث عائلي يتوارثه الأحفاد.',
+          en: 'Our master jewelers hand-select each gem for fire, clarity, and symmetry, fashioning enduring heirlooms.'
+        },
+        image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=800&q=80'
+      },
+      products: [
+        {
+          id: 'jewel-01',
+          name: { ar: 'خاتم سوليتير ماسي قطع بريليانت 1.5 قيراط (Eternal Solitaire)', en: 'Eternal Solitaire Diamond Ring 1.5ct' },
+          category: { ar: 'خواتم سوليتير', en: 'Solitaire Rings' },
+          basePriceUSD: 2400.0,
+          originalPriceUSD: 2900.0,
+          discountPercentage: 17,
+          stock: 3,
+          badge: { ar: 'GIA VVS1 💎', en: 'GIA Certified' },
+          rating: 4.98,
+          reviewsCount: 88,
+          images: [
+            'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80'
+          ],
+          tabs: {
+            description: {
+              ar: 'حجر ألماس طبيعي نقي 1.5 قيراط مثبت بـ 6 مخالب من البلاتين النقي على حلقة من الذهب الأبيض عيار 18.',
+              en: 'Pure 1.5ct round brilliant diamond cradled in 6 platinum prongs atop an 18K solid white gold band.'
+            },
+            usage: {
+              ar: 'يأتي داخل علبة خشب الجوز المضيئة مع شهادة GIA الرقمية وبطاقة ضمان الألماس.',
+              en: 'Packaged in illuminated walnut gift presentation box with original GIA certificate.'
+            },
+            ingredientsOrSpecs: {
+              ar: 'نقاء الماس: VVS1، اللون: D (عديم اللون تماماً)، القطع: ممتاز Excellent، وزن الذهب: 4.2 جرام.',
+              en: 'Clarity: VVS1, Color: D (Colorless), Cut: Excellent, Gold: 18K White Gold 4.2g.'
+            },
+            reviews: {
+              ar: 'الخاتم فاق كل التوقعات! لمعان الحجر في الضوء ساحر والشهادة معتمدة ورسمية.',
+              en: 'Spectacular scintillation and fire. The GIA certificate arrived in pristine condition.'
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    id: 'artisan-roastery',
+    name: { ar: 'قالب محمصة وقهوة مختصة (Origin Specialty Coffee)', en: 'Origin Artisanal Roastery' },
+    nicheLabel: { ar: 'قهوة مختصة ومحامص', en: 'Specialty Coffee & Roastery' },
+    badge: { ar: 'قالب جاهز للاستيراد ☕', en: 'Ready Template ☕' },
+    description: {
+      ar: 'قالب للمحامص ومحبي القهوة المختصة، يعرض درجات التحميص، درجات التذوق (Cupping Score)، ومعدات الباريستا الاحترافية.',
+      en: 'Curated specialty coffee roastery template featuring single-origin beans and cupping scores.'
+    },
+    previewImage: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80',
+    paletteId: 'terracotta-amber',
+    typographyId: 'modern-clean',
+    presetData: {
+      id: 'electronics',
+      nicheLabel: { ar: 'قهوة مختصة ومحامص', en: 'Specialty Roastery' },
+      storeName: { ar: 'أُورِيـجـِـن للقهوة', en: 'Origin Coffee Co.' },
+      storeLogo: '',
+      storeSlogan: { ar: 'محاصيل نادرة، تُحمّص بشغف وتُروى بنقاء.', en: 'Rare single-origin harvests roasted to absolute perfection.' },
+      topAnnouncement: {
+        ar: 'محصول إثيوبيا قوجي اللاهوائي الجديد وصل للتو! شحن مجاني لكافة طلبات البوكسات الثلاثية. اطلبه الآن',
+        en: 'New Crop Alert: Ethiopian Guji Anaerobic just arrived. Free shipping on all Tasting Trios. Order Now'
+      },
+      heroTitle: { ar: 'مذاق القهوة المختصة في أنقى صورها', en: 'Artisanal Single-Origin Coffee' },
+      heroSubtitle: {
+        ar: 'حبوب بن مختارة من مزارع البن على ارتفاع 2200 متر، محمصة أسبوعياً لضمان قمة النكهة وعطر التذوق.',
+        en: 'Micro-lots from 2,200m elevations, small-batch roasted weekly for peak aromatic vibrancy.'
+      },
+      heroCtaPrimary: { ar: 'تصفح محاصيل الأسبوع', en: 'Explore Fresh Roasts' },
+      heroCtaSecondary: { ar: 'أدوات التحضير', en: 'Brewing Gear' },
+      heroImage: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=80',
+      theme: {
+        primaryBg: 'bg-[#9A3412]',
+        primaryText: 'text-[#9A3412]',
+        primaryHover: 'hover:bg-[#7C2D12]',
+        accentColor: '#0D9488',
+        badgeBg: 'bg-teal-600',
+        heroGradient: 'from-amber-50 via-orange-50/20 to-white'
+      },
+      valueProps: [
+        {
+          icon: 'Sparkles',
+          title: { ar: 'تحميص طازج أسبوعي', en: 'Weekly Fresh Roast' },
+          desc: { ar: 'يصلك تاريخ التحميص مطبوعاً على كل كيس.', en: 'Exact roast date stamped on every valve pouch.' }
+        },
+        {
+          icon: 'ShieldCheck',
+          title: { ar: 'تقييم كبينج +87', en: 'SCA Cupping Score 87+' },
+          desc: { ar: 'محاصيل مصنفة حسب جمعية القهوة المختصة.', en: 'Officially certified Specialty Coffee Association lots.' }
+        },
+        {
+          icon: 'Truck',
+          title: { ar: 'توصيل سريع خلال 24-48 ساعة', en: 'Fast Express Delivery' },
+          desc: { ar: 'شحن فوري للحفاظ على طزاجة المحصول.', en: 'Rapid dispatch protecting delicate aromatics.' }
+        },
+        {
+          icon: 'CreditCard',
+          title: { ar: 'خيارات طحن مخصصة', en: 'Custom Grind Options' },
+          desc: { ar: 'حبوب كاملة، أو طحن للإسبريسو والفلتر مجاناً.', en: 'Whole bean or precision ground for your brewer.' }
+        }
+      ],
+      contactInfo: {
+        address: { ar: 'حي النخيل، المحمصة الرئيسية، الرياض', en: 'Al-Nakheel, Main Roastery, Riyadh' },
+        phone: '+966 11 445 5667',
+        email: 'hello@origincoffee.sa',
+        whatsapp: '966114455667'
+      },
+      aboutStory: {
+        title: { ar: 'رحلة البحث عن أعظم كرزة بن', en: 'Our Pilgrimage for Extraordinary Beans' },
+        body: {
+          ar: 'نسافر مباشرة للمزارعين في كولومبيا وإثيوبيا وغواتيمالا لندعم التجارة العادلة ونجلب لك تجارب تذوق استثنائية لم تعهدها من قبل.',
+          en: 'Direct-trade partnerships with farmers in Yirgacheffe and Huila ensuring ethical prosperity and unmatched cup profiles.'
+        },
+        image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=800&q=80'
+      },
+      products: [
+        {
+          id: 'coffee-01',
+          name: { ar: 'إثيوبيا قوجي معالجة لاهوائية (Ethiopia Guji Anaerobic)', en: 'Ethiopia Guji Anaerobic Micro-Lot' },
+          category: { ar: 'محاصيل الفلتر المقطرة', en: 'Filter Roast' },
+          basePriceUSD: 22.0,
+          originalPriceUSD: 28.0,
+          discountPercentage: 21,
+          stock: 18,
+          badge: { ar: 'كبينج 89.5 🫐', en: 'Score 89.5' },
+          rating: 4.95,
+          reviewsCount: 165,
+          images: [
+            'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=800&q=80'
+          ],
+          tabs: {
+            description: {
+              ar: 'إيحاءات غنية من التوت الأزرق، الياسمين البري، ولمسة من حلاوة العسل الأسود بقوام مخملي حريري.',
+              en: 'Bursting with wild blueberry, jasmine florals, and black honey with a velvety lingering finish.'
+            },
+            usage: {
+              ar: 'مثالية لأدوات التقطير اليدوي مثل V60 وكيمكس مع حرارة ماء 92 مئوية.',
+              en: 'Best brewed with V60 or Chemex using 92°C filtered water.'
+            },
+            ingredientsOrSpecs: {
+              ar: 'المنطقة: قوجي، الارتفاع: 2150 متر، السلالة: إيرلوم Heirloom، المعالجة: لاهوائية متقدمة 72 ساعة.',
+              en: 'Region: Guji, Altitude: 2,150m, Varietal: Heirloom, Process: 72h Anaerobic Fermentation.'
+            },
+            reviews: {
+              ar: 'نكهة التوت واضحة جداً ونظيفة بدون أي مرارة مزعجة، أفضل محصول جربته هذا الشهر!',
+              en: 'Incredible clarity of flavor with explosive blueberry notes. Absolutely stellar.'
+            }
+          }
+        }
+      ]
+    }
+  }
+];
+
