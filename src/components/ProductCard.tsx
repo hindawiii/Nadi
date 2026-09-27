@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { 
   Heart, Eye, Star, MessageCircle, 
-  Sparkles, AlertCircle, Check, ShieldCheck, Award
+  Sparkles, AlertCircle, Check, ShieldCheck, Award, ArrowLeftRight
 } from 'lucide-react';
 import { Product } from '../data/siteConfig';
 import { useCommerce } from '../context/CommerceContext';
@@ -23,11 +23,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const { 
     lang, convertPrice, addToCart, wishlist, toggleWishlist, 
-    openProductPDP, activeData 
+    openProductPDP, activeData, comparisonList, toggleCompare,
+    setIsCompareModalOpen 
   } = useCommerce();
 
   const isRtl = lang === 'ar';
   const isWishlisted = wishlist.includes(product.id);
+  const isCompared = comparisonList.includes(product.id);
 
   // Self-Healing Defensive Normalization for any incoming or future product
   const safeBasePrice = typeof product.basePriceUSD === 'number' && !isNaN(product.basePriceUSD) && product.basePriceUSD > 0 
@@ -196,7 +198,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         if (justSwipedRef.current) return;
         openProductPDP(product);
       }}
-      className={`group relative bg-white rounded-3xl p-3.5 sm:p-4 border border-slate-200/80 hover:border-purple-300 hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer select-none ${
+      className={`group relative bg-white rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 border border-slate-200/80 hover:border-purple-300 hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer select-none ${
         isCarouselItem 
           ? 'shrink-0 snap-start w-[82%] sm:w-[calc((100%-24px)/2)] lg:w-[calc((100%-48px)/3)]' 
           : 'w-full'
@@ -207,7 +209,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div 
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-100 mb-3 sm:mb-4 touch-pan-y"
+          className="relative aspect-square w-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-4 touch-pan-y"
         >
           {/* Main Product Image - Fills the Frame Professionally */}
           <img
@@ -221,46 +223,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }}
           />
 
-          {/* Top-Start: Wishlist Heart Button with Strict Logical Positioning */}
-          <div className="absolute top-2.5 start-2.5 z-10">
-            <button
-              type="button"
-              onClick={handleWishlistClick}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                isWishlisted
-                  ? 'bg-rose-500 text-white shadow-md scale-105'
-                  : 'bg-white/90 hover:bg-white text-slate-600 hover:text-rose-500 backdrop-blur-md shadow-2xs'
-              }`}
-              aria-label={lang === 'ar' ? 'إضافة إلى المفضلة' : 'Add to Wishlist'}
-              title={lang === 'ar' ? 'إضافة إلى المفضلة' : 'Add to Wishlist'}
-            >
-              <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
-            </button>
-          </div>
-
-          {/* Top-End: Single Clean Discount Badge + Special Marketing Badge (Strict Logical Positioning) */}
-          <div className="absolute top-2.5 end-2.5 flex flex-col items-end gap-1.5 z-10 pointer-events-none">
+          {/* Top-Start: Single Ultra-Clean Micro Discount Badge (Only one clean badge, leaving 95% of image completely clear) */}
+          <div className="absolute top-2 start-2 sm:top-2.5 sm:start-2.5 z-10 pointer-events-none">
             <SmartDiscountBadge
               basePriceUSD={safeBasePrice}
               originalPriceUSD={safeOrigPriceUSD}
               manualPercent={product.discountPercentage}
               lang={lang}
-              size="md"
+              size="xs"
             />
-            {showSpecialBadge && (
-              <span className="px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold tracking-wide shadow-xs bg-[#5A3E7A] text-white backdrop-blur-xs">
-                {product.badge![lang]}
-              </span>
-            )}
           </div>
 
-          {/* Interactive Multi-Image Switcher Dots */}
+          {/* Interactive Multi-Image Switcher Dots (Minimalist line indicators at absolute bottom) */}
           {hasMultipleImages && (
             <div 
-              className="absolute bottom-2.5 inset-x-0 flex items-center justify-center gap-1.5 z-10 px-3"
+              className="absolute bottom-1.5 inset-x-0 flex items-center justify-center gap-1 z-10 px-2"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-slate-950/40 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-white/20 shadow-xs">
+              <div className="bg-slate-950/30 backdrop-blur-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 border border-white/20">
                 {images.map((_, idx) => (
                   <button
                     key={idx}
@@ -268,8 +248,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     onMouseEnter={(e) => handleSelectImage(e, idx)}
                     className={`transition-all rounded-full ${
                       activeImgIndex === idx
-                        ? 'w-5 h-1.5 bg-white shadow-xs'
-                        : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
+                        ? 'w-3 h-1 bg-white shadow-xs'
+                        : 'w-1 h-1 bg-white/60 hover:bg-white'
                     }`}
                     title={lang === 'ar' ? `صورة ${idx + 1}` : `Image ${idx + 1}`}
                     aria-label={`Go to slide ${idx + 1}`}
@@ -279,105 +259,146 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
 
-          {/* Scarcity Alert Tag (Only when stock <= 3 and above 0) */}
-          {isScarcity && (
-            <div className={`absolute start-2 end-2 bg-amber-500/95 text-white text-[10px] sm:text-[11px] font-bold py-1 px-2.5 rounded-xl text-center shadow-xs flex items-center justify-center gap-1.5 backdrop-blur-xs z-10 ${hasMultipleImages ? 'bottom-9' : 'bottom-2'}`}>
-              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                {lang === 'ar' ? `متبقي ${product.stock} فقط في المخزون!` : `Only ${product.stock} left in stock!`}
-              </span>
-            </div>
-          )}
-
           {/* Out of Stock Overlay */}
           {isOutOfStock && (
-            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px] flex items-center justify-center p-3 text-center z-20">
-              <span className="bg-slate-900/95 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg border border-white/10">
-                {lang === 'ar' ? 'نفد مؤقتاً – متاح للحجز المسبق' : 'Out of Stock – Pre-Order'}
+            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-3 text-center z-20">
+              <span className="bg-slate-900/95 text-white text-[9px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-xl shadow-lg border border-white/10">
+                {lang === 'ar' ? 'نفد مؤقتاً – حجز مسبق' : 'Out of Stock – Pre-Order'}
               </span>
             </div>
           )}
         </div>
 
         {/* 2. METADATA & CONTENT AREA */}
-        <div className="space-y-1.5 text-start">
-          {/* Category & 5-Star Golden Rating Row */}
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="truncate max-w-[60%] font-medium">{product.category[lang]}</span>
-            <div className="flex items-center gap-1 text-amber-500 shrink-0">
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <span className="font-bold text-slate-800">{product.rating}</span>
-              <span className="text-slate-400 text-[10px]">({product.reviewsCount})</span>
+        <div className="space-y-1 sm:space-y-1.5 text-start">
+          {/* Category, Rating & Heart Wishlist Row (Perfect harmony below image) */}
+          <div className="flex items-center justify-between text-[10px] sm:text-xs text-slate-400">
+            <span className="truncate max-w-[45%] font-medium">{product.category[lang]}</span>
+            
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Star Rating */}
+              <div className="flex items-center gap-1 text-amber-500">
+                <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
+                <span className="font-bold text-slate-800 text-[11px] sm:text-xs">{product.rating}</span>
+                <span className="text-slate-400 text-[9px] sm:text-[10px]">({product.reviewsCount})</span>
+              </div>
+
+              {/* Seamless Wishlist Heart Button (Clean, accessible, zero image clutter) */}
+              <button
+                type="button"
+                onClick={handleWishlistClick}
+                className={`p-1 rounded-full transition-all hover:scale-110 active:scale-95 ${
+                  isWishlisted
+                    ? 'text-rose-500'
+                    : 'text-slate-300 hover:text-rose-500'
+                }`}
+                aria-label={lang === 'ar' ? 'إضافة إلى المفضلة' : 'Add to Wishlist'}
+                title={lang === 'ar' ? 'إضافة إلى المفضلة' : 'Add to Wishlist'}
+              >
+                <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isWishlisted ? 'fill-current' : ''}`} />
+              </button>
             </div>
           </div>
 
           {/* Product Title */}
-          <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug line-clamp-2 min-h-[40px] group-hover:text-theme-primary transition-colors">
+          <h3 className="font-extrabold text-slate-900 text-xs sm:text-base leading-snug line-clamp-2 min-h-[32px] sm:min-h-[40px] group-hover:text-theme-primary transition-colors">
             {product.name[lang]}
           </h3>
 
           {/* Unified Smart Trust & Guarantee Badge */}
-          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold ${trustBadge.className}`}>
-            <TrustIcon className="w-3.5 h-3.5 shrink-0" />
+          <div className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg border text-[9px] sm:text-[11px] font-bold max-w-full ${trustBadge.className}`}>
+            <TrustIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
             <span className="truncate">{trustBadge.text[lang]}</span>
           </div>
 
-          {/* Dynamic Pricing Row */}
-          <div className="pt-1.5 flex items-baseline gap-2 justify-between flex-wrap">
-            <div className="flex items-baseline gap-2">
-              <span className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+          {/* Dynamic Pricing Row + Elegant Scarcity Indicator */}
+          <div className="pt-1 flex items-baseline gap-1.5 sm:gap-2 justify-between flex-wrap">
+            <div className="flex items-baseline gap-1 sm:gap-2">
+              <span className="text-sm sm:text-lg font-black text-slate-900 tracking-tight">
                 {currentPrice.text}
               </span>
               {origPrice && (
-                <span className="text-xs font-semibold text-slate-400 line-through">
+                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 line-through">
                   {origPrice.text}
                 </span>
               )}
             </div>
+
+            {/* Elegant Micro-Scarcity Indicator (Clean typography instead of blocking banner) */}
+            {isScarcity && (
+              <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                {lang === 'ar' ? `متبقي ${product.stock}` : `${product.stock} left`}
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 3. UNIFIED ACTION ROW (Direct Add to Cart + WhatsApp Quick Order) */}
-      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
-        {/* Main CTA: Add to Bag with Micro-Feedback */}
+      {/* 3. UNIFIED ACTION ROW (Balanced 3-Button Single Row: Cart + Compare + WhatsApp) */}
+      <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100 flex items-center gap-1 sm:gap-2">
+        {/* Main CTA: Add to Bag (Icon-only on mobile to fit 3 buttons, expands with text on tablet/desktop) */}
         <button
           onClick={handleAddToCart}
-          className={`flex-1 py-2.5 px-3 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all min-h-[44px] shadow-sm ${
+          className={`flex-1 min-w-0 py-2 sm:py-2.5 px-2 rounded-xl sm:rounded-2xl font-bold flex items-center justify-center gap-1.5 transition-all min-h-[36px] sm:min-h-[42px] shadow-sm ${
             justAdded
               ? 'bg-emerald-600 text-white shadow-emerald-600/20'
               : isOutOfStock
                 ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs'
                 : 'bg-theme-primary hover:bg-theme-primary-hover text-white shadow-xs hover:shadow-md'
           }`}
+          title={lang === 'ar' ? 'إضافة للسلة' : 'Add to Bag'}
+          aria-label={lang === 'ar' ? 'إضافة للسلة' : 'Add to Bag'}
         >
           {justAdded ? (
             <>
-              <Check className="w-4 h-4 shrink-0 animate-in zoom-in" />
-              <span>{lang === 'ar' ? 'تمت الإضافة ✓' : 'Added to Bag ✓'}</span>
+              <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 animate-in zoom-in" />
+              <span className="hidden sm:inline text-xs sm:text-sm">{lang === 'ar' ? 'تمت الإضافة ✓' : 'Added ✓'}</span>
             </>
           ) : isOutOfStock ? (
             <>
-              <MessageCircle className="w-4 h-4 shrink-0" />
-              <span className="truncate">{lang === 'ar' ? 'حجز مسبق عبر واتساب' : 'Pre-Order via WhatsApp'}</span>
+              <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="hidden sm:inline text-xs sm:text-sm truncate">{lang === 'ar' ? 'حجز بالواتساب' : 'WhatsApp'}</span>
             </>
           ) : (
             <>
-              <StoreCartIcon className="w-4.5 h-4.5 shrink-0 text-white" />
-              <span>{lang === 'ar' ? 'إضافة للسلة' : 'Add to Bag'}</span>
+              <StoreCartIcon className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 shrink-0 text-white" />
+              <span className="hidden sm:inline text-xs sm:text-sm truncate">{lang === 'ar' ? 'إضافة للسلة' : 'Add to Bag'}</span>
             </>
           )}
         </button>
 
+        {/* Quick Compare Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isCompared) {
+              toggleCompare(product.id);
+            }
+            setIsCompareModalOpen(true);
+          }}
+          className={`w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center relative min-h-[36px] min-w-[36px] sm:min-h-[42px] sm:min-w-[42px] shadow-2xs hover:scale-105 active:scale-95 ${
+            isCompared
+              ? 'bg-[#5A3E7A] text-white border-[#5A3E7A] shadow-purple-900/20'
+              : 'bg-purple-50/80 hover:bg-purple-100 text-[#5A3E7A] border-purple-200/80'
+          }`}
+          title={lang === 'ar' ? 'مقارنة هذا المنتج' : 'Compare Specs'}
+          aria-label={lang === 'ar' ? 'مقارنة هذا المنتج' : 'Compare Specs'}
+        >
+          <ArrowLeftRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        </button>
+
         {/* Quick Direct WhatsApp Order Button */}
         <button
+          type="button"
           onClick={handleWhatsAppOrder}
-          className="w-11 h-11 shrink-0 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors flex items-center justify-center relative min-h-[44px] min-w-[44px] shadow-2xs hover:scale-105 active:scale-95"
+          className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl sm:rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors flex items-center justify-center relative min-h-[36px] min-w-[36px] sm:min-h-[42px] sm:min-w-[42px] shadow-2xs hover:scale-105 active:scale-95"
           title={lang === 'ar' ? 'طلب مباشر وسريع عبر واتساب' : 'Direct WhatsApp Order'}
           aria-label="Direct WhatsApp Order"
         >
-          <span className="absolute top-2 end-2 w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <MessageCircle className="w-4 h-4" />
+          <span className="absolute top-1.5 end-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+          <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
       </div>
     </div>

@@ -7,32 +7,24 @@ import {
 import { StoreCartIcon } from './common/StoreCartIcon';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
+import { SearchModal } from './SearchModal';
 
 export const Header: React.FC = () => {
   const { 
     lang, setLang, currency, setCurrency, dynamicConfig, 
-    activeData, cartCount, wishlist, cartTotalUSD, sectionsControl,
-    currentRoute, navigateTo, setIsAuthModalOpen, openCompareModal,
+    activeData, cartCount, wishlist, 
+    currentRoute, navigateTo, setIsAuthModalOpen,
     openProductPDP, convertPrice 
   } = useCommerce();
 
   const [isCurrencyDropdownOpen, setIsCurrencyDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const currencyMenuRef = useRef<HTMLDivElement>(null);
   const isRtl = lang === 'ar';
   const currencyList = Object.entries(dynamicConfig.currencies);
   const currentCurrencyObj = dynamicConfig.currencies[currency] || dynamicConfig.currencies['USD'];
-
-  // Free shipping calculation
-  const freeShippingThresholdUSD = 15;
-  const isFreeShipping = cartTotalUSD >= freeShippingThresholdUSD;
-  const remainingForFreeShippingUSD = Math.max(0, freeShippingThresholdUSD - cartTotalUSD);
-  const remainingText = convertPrice(remainingForFreeShippingUSD).text;
-  const progressPercent = Math.min(100, Math.round((cartTotalUSD / freeShippingThresholdUSD) * 100));
 
   // Close currency dropdown when clicking outside
   useEffect(() => {
@@ -49,44 +41,62 @@ export const Header: React.FC = () => {
     };
   }, [isCurrencyDropdownOpen]);
 
-  // Predictive search results
-  const searchResults: Product[] = searchQuery.trim() === '' 
-    ? [] 
-    : activeData.products.filter(p => {
-        const q = searchQuery.toLowerCase().trim();
-        return (
-          p.name.ar.toLowerCase().includes(q) ||
-          p.name.en.toLowerCase().includes(q) ||
-          p.category.ar.toLowerCase().includes(q) ||
-          p.category.en.toLowerCase().includes(q)
-        );
-      });
+  // Top Announcement Multi-Slide Animated Messages
+  const announcementSlides = [
+    {
+      ar: "تسوقي بذكاء: احفظي في المفضلة ❤️ • قارني المواصفات ⚖️ • اطلبي فـوراً عبر السلة أو واتساب 💬",
+      en: "Smart Shopping: Save to Wishlist ❤️ • Compare Specs ⚖️ • Order via Cart or WhatsApp 💬"
+    },
+    {
+      ar: "شحن سريع وعناية نباتية فائقة 🚚 • دفع آمن عند الاستلام أو أونلاين ✨",
+      en: "Fast Delivery & Pure Botanical Care 🚚 • Cash on Delivery or Secure Online Checkout ✨"
+    },
+    {
+      ar: "مستحضرات نَدِي الأصلية 100% 🌿 • ترطيب يدوم 24 ساعة ونقاء طبيعي",
+      en: "100% Authentic NADI Skincare 🌿 • 24H Lasting Moisture & Natural Purity"
+    }
+  ];
+  const [activeSlideIdx, setActiveSlideIdx] = useState(0);
+  const [isAnnouncementPaused, setIsAnnouncementPaused] = useState(false);
 
   useEffect(() => {
-    if (isSearchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isSearchOpen]);
-
-  const handleSelectSearchResult = (product: Product) => {
-    openProductPDP(product);
-    setIsSearchOpen(false);
-    setSearchQuery('');
-  };
+    if (isAnnouncementPaused) return;
+    const interval = setInterval(() => {
+      setActiveSlideIdx(prev => (prev + 1) % announcementSlides.length);
+    }, 4200);
+    return () => clearInterval(interval);
+  }, [isAnnouncementPaused, announcementSlides.length]);
 
   return (
     <header className="sticky top-0 z-40 w-full shadow-xs bg-white/95 backdrop-blur-md border-b border-slate-100 transition-all duration-300">
       
-      {/* 1. TOP ANNOUNCEMENT BAR (Clean, uncrowded, luxurious across mobile & desktop) */}
-      <div className="bg-theme-primary text-white text-xs py-2 px-3 sm:px-6 transition-colors border-b border-white/10">
+      {/* 1. TOP ANNOUNCEMENT BAR (Intelligent Animated Auto-Rotating Multi-Slide Ticker) */}
+      <div 
+        className="bg-theme-primary text-white text-xs py-2 px-3 sm:px-6 transition-colors border-b border-white/10"
+        onMouseEnter={() => setIsAnnouncementPaused(true)}
+        onMouseLeave={() => setIsAnnouncementPaused(false)}
+        onTouchStart={() => setIsAnnouncementPaused(true)}
+        onTouchEnd={() => setIsAnnouncementPaused(false)}
+      >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           
-          {/* Announcement Text with Marquee/Truncate Safeguard */}
-          <div className="flex-1 min-w-0 flex items-center gap-1.5 sm:gap-2">
+          {/* Animated Announcement Text with Smooth Slide Fade */}
+          <div className="flex-1 min-w-0 flex items-center gap-1.5 sm:gap-2 overflow-hidden">
             <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-300 animate-pulse" />
-            <p className="font-medium tracking-wide truncate text-[10px] sm:text-xs text-purple-50">
-              {activeData.topAnnouncement[lang]}
-            </p>
+            <div className="flex-1 min-w-0 relative h-4.5 sm:h-5 flex items-center">
+              {announcementSlides.map((slide, idx) => (
+                <p 
+                  key={idx}
+                  className={`absolute inset-0 flex items-center font-medium tracking-wide text-[10px] sm:text-xs text-purple-50 transition-all duration-500 transform ${
+                    idx === activeSlideIdx 
+                      ? 'opacity-100 translate-y-0 pointer-events-auto' 
+                      : 'opacity-0 translate-y-2 pointer-events-none'
+                  }`}
+                >
+                  <span className="truncate">{slide[lang]}</span>
+                </p>
+              ))}
+            </div>
           </div>
 
           {/* Currency & Language Controls with Safe Proportional Spacing */}
@@ -148,42 +158,6 @@ export const Header: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* 1.5. FREE SHIPPING DYNAMIC ROYAL PROGRESS BAR (Clickable & Live Calculating) */}
-      {(sectionsControl?.freeShippingBar !== false) && (
-        <div 
-          onClick={() => navigateTo('cart')}
-          className="bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90 border-b border-purple-100/70 py-1.5 px-3 sm:px-6 cursor-pointer hover:bg-purple-100/50 transition-all group select-none shadow-2xs"
-          title={lang === 'ar' ? 'انقري لعرض السلة وتفاصيل الشحن المجاني' : 'Click to view bag and free delivery status'}
-        >
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4 text-[11px] sm:text-xs">
-            <div className="flex items-center gap-1.5 sm:gap-2 text-slate-800 font-bold min-w-0 flex-1 truncate">
-              <Truck className={`w-3.5 h-3.5 shrink-0 ${isFreeShipping ? 'text-emerald-600 animate-bounce' : 'text-[#5A3E7A]'}`} />
-              <span className="truncate">
-                {isFreeShipping 
-                  ? (lang === 'ar' ? '🎉 مبروك! لقد حصلتِ على الشحن المجاني الملكي لطلبكِ بالكامل!' : '🎉 Congratulations! You unlocked Royal Free Delivery!')
-                  : (lang === 'ar' ? `أنتِ على بعد ${remainingText} فقط من الشحن المجاني الملكي!` : `You are only ${remainingText} away from Royal Free Delivery!`)}
-              </span>
-            </div>
-
-            <div className="w-28 sm:w-56 flex items-center gap-2 shrink-0">
-              <div className="flex-1 bg-slate-200/90 h-2 rounded-full overflow-hidden p-0.5 shadow-inner">
-                <div 
-                  className={`h-full rounded-full transition-all duration-700 ease-out ${
-                    isFreeShipping 
-                      ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' 
-                      : 'bg-gradient-to-r from-[#5A3E7A] to-purple-400'
-                  }`}
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-              <span className="font-mono font-black text-[10px] sm:text-[11px] text-[#5A3E7A] shrink-0">
-                {progressPercent}%
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 2. MAIN NAVBAR WITH DUAL-SCRIPT LOGO & GUARANTEED MOBILE TOUCH TARGETS */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4">
@@ -276,18 +250,6 @@ export const Header: React.FC = () => {
           >
             {lang === 'ar' ? 'تتبع الشحنة' : 'Track Order'}
           </button>
-
-          {/* Comparison Matrix Link */}
-          {(sectionsControl?.compare !== false) && (
-            <button
-              onClick={() => openCompareModal()}
-              className="transition-colors hover:text-theme-primary py-1 flex items-center gap-1 text-slate-600 hover:text-[#5A3E7A]"
-              title={lang === 'ar' ? 'مقارنة المنتجات جنباً إلى جنب' : 'Compare Products'}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>{lang === 'ar' ? 'المقارنة' : 'Compare'}</span>
-            </button>
-          )}
         </nav>
 
         {/* Smart Auto-Adaptive Action Dock (Search, Wishlist, Cart, Login) */}
@@ -321,7 +283,7 @@ export const Header: React.FC = () => {
           >
             <Heart className={`w-5 h-5 ${wishlist.length > 0 ? 'text-rose-500 fill-rose-500' : 'text-slate-700'}`} />
             {wishlist.length > 0 && (
-              <span className="absolute -top-1.5 -end-1.5 min-w-[20px] h-[20px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white shadow-md animate-bounce">
+              <span className="absolute top-0.5 end-0.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce shadow-xs">
                 {wishlist.length}
               </span>
             )}
@@ -341,8 +303,8 @@ export const Header: React.FC = () => {
             <StoreCartIcon size="md" className="text-slate-800 transition-transform group-hover:scale-105" />
             {cartCount > 0 && (
               <span 
-                key={`cart-badge-${cartCount}`} 
-                className="absolute -top-1.5 -end-1.5 min-w-[20px] h-[20px] px-1 bg-theme-primary text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white shadow-md animate-bounce"
+                key={`cart-bounce-${cartCount}`} 
+                className="absolute top-0.5 end-0.5 min-w-[18px] h-4 px-1 bg-[#5A3E7A] text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce shadow-xs ring-1 ring-white"
               >
                 {cartCount}
               </span>
@@ -374,82 +336,8 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. LIVE PREDICTIVE SEARCH BAR & INSTANT RESULTS MODAL */}
-      {isSearchOpen && (
-        <div className="border-t border-slate-100 bg-slate-50/95 backdrop-blur-md px-4 py-3 animate-in slide-in-from-top-2 duration-200">
-          <div className="max-w-3xl mx-auto relative">
-            <div className="relative flex items-center">
-              <Search className="w-5 h-5 text-slate-400 absolute start-3.5 pointer-events-none" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={lang === 'ar' ? 'ابحثِ عن منتجك المفضل، سيروم، مرطب، بكج...' : 'Search skincare, serums, moisturizers, bundles...'}
-                className="w-full ps-11 pe-10 py-3 bg-white rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] text-slate-800 shadow-sm"
-              />
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery('')}
-                  className="absolute end-3 p-1.5 text-slate-400 hover:text-slate-600 rounded-full"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
-            {/* Instant Search Results Dropdown */}
-            {searchQuery.trim() !== '' && (
-              <div className="mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden max-h-96 overflow-y-auto">
-                {searchResults.length === 0 ? (
-                  <div className="p-6 text-center text-slate-500 text-sm">
-                    {lang === 'ar' ? `لا توجد نتائج مطابقة لـ "${searchQuery}"` : `No matching products found for "${searchQuery}"`}
-                  </div>
-                ) : (
-                  <div className="p-2 divide-y divide-slate-100">
-                    <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      {lang === 'ar' ? `النتائج (${searchResults.length})` : `Matching Results (${searchResults.length})`}
-                    </div>
-                    {searchResults.map((product) => {
-                      const price = convertPrice(product.basePriceUSD);
-                      return (
-                        <div
-                          key={product.id}
-                          onClick={() => handleSelectSearchResult(product)}
-                          className="flex items-center gap-3 p-2.5 hover:bg-purple-50/60 rounded-xl cursor-pointer transition-colors"
-                        >
-                          <img 
-                            src={product.images[0]} 
-                            alt={product.name[lang]} 
-                            className="w-12 h-12 rounded-xl object-cover bg-slate-50 shrink-0" 
-                          />
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[10px] font-bold text-[#5A3E7A]">
-                              {product.category[lang]}
-                            </span>
-                            <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                              {product.name[lang]}
-                            </h4>
-                            <div className="flex items-center gap-1 text-[11px] text-amber-500">
-                              <Star className="w-3 h-3 fill-current" />
-                              <span className="font-bold text-slate-700">{product.rating}</span>
-                            </div>
-                          </div>
-                          <div className="text-end shrink-0">
-                            <span className="text-xs sm:text-sm font-black text-[#5A3E7A]">
-                              {price.text}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Global Predictive Spotlight Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
       {/* 4. MOBILE DRAWER MENU (Matching Photo 9 with All Main Pages) */}
       {isMobileMenuOpen && (
@@ -604,6 +492,9 @@ export const Header: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Global Predictive Spotlight Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
     </header>
   );

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, ArrowRight, Star, Heart, MessageCircle, 
   Sparkles, ShieldCheck, Truck, RotateCcw, AlertCircle, 
-  Clock, Plus, Check, Share2, Layers, Maximize2, ZoomIn, ZoomOut, X, ChevronLeft, ChevronRight
+  Clock, Plus, Check, Share2, Layers, Maximize2, ZoomIn, ZoomOut, X, ChevronLeft, ChevronRight, ArrowLeftRight
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
@@ -12,7 +12,8 @@ import { SmartDiscountBadge } from './common/SmartDiscountBadge';
 export const PDPView: React.FC = () => {
   const { 
     lang, convertPrice, addToCart, wishlist, toggleWishlist, 
-    activeProduct, setCurrentRoute, activeData, showToast, navigateTo 
+    activeProduct, setCurrentRoute, activeData, showToast, navigateTo,
+    comparisonList, toggleCompare, setIsCompareModalOpen 
   } = useCommerce();
 
   const isRtl = lang === 'ar';
@@ -68,6 +69,11 @@ export const PDPView: React.FC = () => {
   const [lastTap, setLastTap] = useState<number>(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxScale, setLightboxScale] = useState(1);
+  const [lightboxPan, setLightboxPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const lightboxTouchDistRef = useRef<number | null>(null);
+  const initialLightboxScaleRef = useRef<number>(1);
 
   // Keyboard navigation for fullscreen lightbox
   useEffect(() => {
@@ -76,17 +82,76 @@ export const PDPView: React.FC = () => {
       if (e.key === 'Escape') {
         setIsLightboxOpen(false);
         setLightboxScale(1);
+        setLightboxPan({ x: 0, y: 0 });
       } else if (e.key === 'ArrowRight') {
         setSelectedImgIndex(prev => (prev === (product?.images?.length || 1) - 1 ? 0 : prev + 1));
         setLightboxScale(1);
+        setLightboxPan({ x: 0, y: 0 });
       } else if (e.key === 'ArrowLeft') {
         setSelectedImgIndex(prev => (prev === 0 ? (product?.images?.length || 1) - 1 : prev - 1));
         setLightboxScale(1);
+        setLightboxPan({ x: 0, y: 0 });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isLightboxOpen, product]);
+
+  // Smooth mouse wheel zoom for fullscreen lightbox
+  const handleWheelZoom = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setLightboxScale(prev => {
+      const delta = e.deltaY < 0 ? 0.25 : -0.25;
+      const next = Math.min(Math.max(prev + delta, 1), 4);
+      if (next === 1) setLightboxPan({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  // Lightbox touch handlers for smooth multi-touch pinch zoom
+  const handleLightboxTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      lightboxTouchDistRef.current = dist;
+      initialLightboxScaleRef.current = lightboxScale;
+    } else if (e.touches.length === 1 && lightboxScale > 1) {
+      setIsPanning(true);
+      panStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        panX: lightboxPan.x,
+        panY: lightboxPan.y
+      };
+    }
+  };
+
+  const handleLightboxTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2 && lightboxTouchDistRef.current !== null) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const ratio = dist / lightboxTouchDistRef.current;
+      const nextScale = Math.min(Math.max(initialLightboxScaleRef.current * ratio, 1), 4);
+      setLightboxScale(nextScale);
+      if (nextScale <= 1) setLightboxPan({ x: 0, y: 0 });
+    } else if (e.touches.length === 1 && isPanning && lightboxScale > 1) {
+      const dx = e.touches[0].clientX - panStartRef.current.x;
+      const dy = e.touches[0].clientY - panStartRef.current.y;
+      setLightboxPan({
+        x: panStartRef.current.panX + dx,
+        y: panStartRef.current.panY + dy
+      });
+    }
+  };
+
+  const handleLightboxTouchEnd = () => {
+    lightboxTouchDistRef.current = null;
+    setIsPanning(false);
+  };
 
   // Mouse move handler for lens magnifier simulation
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -241,6 +306,17 @@ export const PDPView: React.FC = () => {
               title={lang === 'ar' ? 'مشاركة المنتج' : 'Share Product'}
             >
               <Share2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => toggleCompare(product.id)}
+              className={`p-2.5 rounded-full border shadow-sm transition-all flex items-center justify-center ${
+                comparisonList.includes(product.id)
+                  ? 'bg-[#5A3E7A] border-[#5A3E7A] text-white'
+                  : 'bg-white border-slate-200 text-slate-600 hover:text-[#5A3E7A]'
+              }`}
+              title={lang === 'ar' ? 'مقارنة المواصفات' : 'Compare Specs'}
+            >
+              <ArrowLeftRight className="w-4 h-4" />
             </button>
             <button
               onClick={() => toggleWishlist(product.id)}
@@ -693,8 +769,12 @@ export const PDPView: React.FC = () => {
 
           {/* Center Stage: High-Resolution Photo + Navigation Arrows */}
           <div 
-            className="relative flex-1 flex items-center justify-center overflow-hidden my-3"
+            className="relative flex-1 flex items-center justify-center overflow-hidden my-3 touch-none"
             onClick={(e) => e.stopPropagation()}
+            onWheel={handleWheelZoom}
+            onTouchStart={handleLightboxTouchStart}
+            onTouchMove={handleLightboxTouchMove}
+            onTouchEnd={handleLightboxTouchEnd}
           >
             {/* Previous Arrow */}
             {product.images.length > 1 && (
@@ -703,6 +783,7 @@ export const PDPView: React.FC = () => {
                 onClick={() => {
                   setSelectedImgIndex(prev => (prev === 0 ? product.images.length - 1 : prev - 1));
                   setLightboxScale(1);
+                  setLightboxPan({ x: 0, y: 0 });
                 }}
                 className="absolute start-2 sm:start-6 z-20 w-12 h-12 rounded-full bg-white/15 hover:bg-white/30 text-white backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-white/20 shadow-lg"
                 aria-label="Previous image"
@@ -711,17 +792,26 @@ export const PDPView: React.FC = () => {
               </button>
             )}
 
-            {/* Immersive Image Display */}
+            {/* Immersive Image Display with Smooth Dynamic Scale & Pan */}
             <div 
-              className="cursor-zoom-in overflow-hidden max-h-[78vh] max-w-[92vw] flex items-center justify-center"
-              onClick={() => setLightboxScale(prev => (prev > 1 ? 1 : 2.2))}
+              className={`overflow-hidden max-h-[78vh] max-w-[92vw] flex items-center justify-center select-none ${
+                lightboxScale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'
+              }`}
+              onDoubleClick={() => {
+                setLightboxScale(prev => {
+                  const next = prev > 1 ? 1 : 2.5;
+                  if (next === 1) setLightboxPan({ x: 0, y: 0 });
+                  return next;
+                });
+              }}
             >
               <img
                 src={product.images[selectedImgIndex] || product.images[0]}
                 alt={product.name[lang]}
-                className="max-h-[76vh] sm:max-h-[80vh] max-w-[90vw] object-contain drop-shadow-2xl transition-transform duration-300 ease-out"
+                draggable={false}
+                className="max-h-[76vh] sm:max-h-[80vh] max-w-[90vw] object-contain drop-shadow-2xl transition-transform duration-100 ease-out select-none pointer-events-none"
                 style={{
-                  transform: `scale(${lightboxScale})`,
+                  transform: `scale(${lightboxScale}) translate(${lightboxPan.x / lightboxScale}px, ${lightboxPan.y / lightboxScale}px)`,
                 }}
               />
             </div>
@@ -733,6 +823,7 @@ export const PDPView: React.FC = () => {
                 onClick={() => {
                   setSelectedImgIndex(prev => (prev === product.images.length - 1 ? 0 : prev + 1));
                   setLightboxScale(1);
+                  setLightboxPan({ x: 0, y: 0 });
                 }}
                 className="absolute end-2 sm:end-6 z-20 w-12 h-12 rounded-full bg-white/15 hover:bg-white/30 text-white backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-white/20 shadow-lg"
                 aria-label="Next image"
@@ -742,7 +833,7 @@ export const PDPView: React.FC = () => {
             )}
           </div>
 
-          {/* Bottom Thumbnail Strip & Navigation Hint */}
+          {/* Bottom Thumbnail Strip (Clutter-Free, Unnecessary Note Removed) */}
           <div 
             className="w-full max-w-xl mx-auto flex flex-col items-center gap-2 z-10"
             onClick={(e) => e.stopPropagation()}
@@ -756,6 +847,7 @@ export const PDPView: React.FC = () => {
                     onClick={() => {
                       setSelectedImgIndex(idx);
                       setLightboxScale(1);
+                      setLightboxPan({ x: 0, y: 0 });
                     }}
                     className={`w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
                       selectedImgIndex === idx
@@ -768,12 +860,6 @@ export const PDPView: React.FC = () => {
                 ))}
               </div>
             )}
-
-            <p className="text-[11px] text-slate-400 font-medium text-center">
-              {lang === 'ar'
-                ? 'انقري على الصورة للتكبير 2X • استخدمي الأسهم للتنقل • اضغطي ESC للإغلاق'
-                : 'Click image to toggle 2X zoom • Use arrows to navigate • Press ESC to close'}
-            </p>
           </div>
         </div>
       )}

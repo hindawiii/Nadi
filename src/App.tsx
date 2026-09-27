@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, Suspense, lazy } from 'react';
 import { CommerceProvider, useCommerce } from './context/CommerceContext';
 import { Header } from './components/Header';
 import { StorefrontView } from './components/StorefrontView';
@@ -7,7 +7,6 @@ import { PDPView } from './components/PDPView';
 import { WishlistView } from './components/WishlistView';
 import { CartPageView } from './components/CartPageView';
 import { AdminPanel } from './components/AdminPanel';
-import { DeveloperPanel } from './components/DeveloperPanel';
 import { OrderTrackerView } from './components/OrderTrackerView';
 import { LoginPageView } from './components/LoginPageView';
 import { Footer } from './components/Footer';
@@ -16,10 +15,24 @@ import { ReviewModal } from './components/ReviewModal';
 import { FloatingWhatsApp } from './components/FloatingWhatsApp';
 import { ScrollToTopProgress } from './components/common/ScrollToTopProgress';
 import { Toast } from './components/Toast';
+import { CompareModal } from './components/CompareModal';
 import { hairStylingDevices } from './components/HairDevicesSpotlight';
 
+// Lazy load heavy admin & developer tools to keep initial customer bundle featherlight for Vercel
+const DeveloperPanel = lazy(() => import('./components/DeveloperPanel').then(m => ({ default: m.DeveloperPanel })));
+
 const AppContent: React.FC = () => {
-  const { currentRoute, setCurrentRoute, isDeveloperModeLocked, activeData, openProductPDP, sectionsControl } = useCommerce();
+  const { 
+    currentRoute, 
+    setCurrentRoute, 
+    isDeveloperModeLocked, 
+    activeData, 
+    openProductPDP, 
+    sectionsControl,
+    comparisonList,
+    setIsCompareModalOpen,
+    lang
+  } = useCommerce();
   const prevRouteRef = useRef<string>('');
   const hasInitializedRef = useRef<boolean>(false);
 
@@ -135,7 +148,16 @@ const AppContent: React.FC = () => {
           {currentRoute === 'cart' && <CartPageView />}
           {currentRoute === 'pdp' && <PDPView />}
           {currentRoute === 'admin' && <AdminPanel />}
-          {currentRoute === 'developer' && (!isDeveloperModeLocked ? <DeveloperPanel /> : <StorefrontView />)}
+          {currentRoute === 'developer' && (!isDeveloperModeLocked ? (
+            <Suspense fallback={
+              <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 gap-4">
+                <div className="w-10 h-10 border-3 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-slate-600 font-semibold text-sm">Loading Developer Console...</p>
+              </div>
+            }>
+              <DeveloperPanel />
+            </Suspense>
+          ) : <StorefrontView />)}
           {currentRoute === 'tracker' && <OrderTrackerView />}
           {currentRoute === 'login' && <LoginPageView />}
         </main>
@@ -151,6 +173,26 @@ const AppContent: React.FC = () => {
       {/* Floating Widgets tied dynamically to central sectionsControl */}
       {currentRoute !== 'developer' && sectionsControl.floatingWhatsApp && <FloatingWhatsApp />}
       {currentRoute !== 'developer' && sectionsControl.scrollToTop && <ScrollToTopProgress />}
+
+      {/* Floating Comparison Drawer Trigger Bar (Appears when >= 1 item is compared) */}
+      {comparisonList.length > 0 && currentRoute !== 'developer' && (
+        <div className="fixed bottom-20 start-4 z-40 animate-in slide-in-from-bottom duration-300">
+          <button
+            onClick={() => setIsCompareModalOpen(true)}
+            className="flex items-center gap-2.5 px-4 py-2.5 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-full shadow-xl border border-white/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            <span className="w-5 h-5 rounded-full bg-white text-[#5A3E7A] text-xs font-black flex items-center justify-center">
+              {comparisonList.length}
+            </span>
+            <span className="text-xs font-bold">
+              {lang === 'ar' ? 'مقارنة المنتجات' : 'Compare Products'}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Global Product Comparison Modal */}
+      <CompareModal />
 
       <Toast />
     </div>

@@ -5,7 +5,7 @@ export interface SmartDiscountBadgeProps {
   originalPriceUSD?: number;
   manualPercent?: number;
   lang?: 'ar' | 'en';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
 }
 
@@ -51,7 +51,8 @@ export const SmartDiscountBadge: React.FC<SmartDiscountBadgeProps> = ({
   }
 
   const sizeClasses = {
-    sm: 'text-[10px] sm:text-[11px] px-2 py-0.5 rounded-lg',
+    xs: 'text-[9px] px-1.5 py-0.5 rounded-md',
+    sm: 'text-[9px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg',
     md: 'text-[11px] sm:text-xs px-2.5 py-1 rounded-xl',
     lg: 'text-xs sm:text-sm px-3 py-1 rounded-xl',
   };

@@ -88,6 +88,14 @@ interface CommerceContextType {
   // PDP
   activeProduct: Product | null;
   openProductPDP: (p: Product) => void;
+
+  // Product Comparison System
+  comparisonList: string[]; // List of product IDs
+  toggleCompare: (productId: string) => void;
+  removeFromCompare: (productId: string) => void;
+  clearCompare: () => void;
+  isCompareModalOpen: boolean;
+  setIsCompareModalOpen: (open: boolean) => void;
   
   // Auth PINs
   isAdminAuthenticated: boolean;
@@ -182,26 +190,57 @@ const STORAGE_KEY_PALETTE = 'luxe_commerce_palette_v2';
 const STORAGE_KEY_TYPO = 'luxe_commerce_typo_v2';
 const STORAGE_KEY_CUSTOM_COLORS = 'luxe_commerce_custom_colors_v2';
 
+// Defensive Storage Guard for Production / Vercel Stability
+export const safeStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return null;
+      return window.localStorage.getItem(key);
+    } catch (e) {
+      console.warn(`[SafeStorage] Failed to read ${key}:`, e);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
+    } catch (e) {
+      console.warn(`[SafeStorage] Failed to write ${key}:`, e);
+    }
+  },
+  removeItem: (key: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (e) {
+      console.warn(`[SafeStorage] Failed to remove ${key}:`, e);
+    }
+  },
+};
+
 export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLangState] = useState<'ar' | 'en'>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_LANG);
+    const saved = safeStorage.getItem(STORAGE_KEY_LANG);
     return saved === 'en' ? 'en' : 'ar';
   });
 
   const [currency, setCurrencyState] = useState<string>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_CURRENCY);
+    const saved = safeStorage.getItem(STORAGE_KEY_CURRENCY);
     return saved && siteConfig.currencies[saved] ? saved : 'SDG';
   });
 
   const [activePresetId, setActivePresetIdState] = useState<'cosmetics' | 'fashion' | 'eyewear' | 'electronics'>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_PRESET);
+    const saved = safeStorage.getItem(STORAGE_KEY_PRESET);
     return saved && ['cosmetics', 'fashion', 'eyewear', 'electronics'].includes(saved)
       ? (saved as any)
       : 'cosmetics';
   });
 
   const [dynamicConfig, setDynamicConfig] = useState<SiteConfig>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
+    const saved = safeStorage.getItem(STORAGE_KEY_CONFIG);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -213,6 +252,9 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             ar: 'إشراقة طبيعية، تليق بك.',
             en: 'Natural radiance, made for you.'
           };
+          parsed.presets.cosmetics.topAnnouncement = siteConfig.presets.cosmetics.topAnnouncement;
+          parsed.presets.cosmetics.heroTitle = siteConfig.presets.cosmetics.heroTitle;
+          parsed.presets.cosmetics.heroSubtitle = siteConfig.presets.cosmetics.heroSubtitle;
         }
         return parsed;
       } catch (e) {
@@ -224,7 +266,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [isDeveloperModeLocked, setIsDeveloperModeLocked] = useState<boolean>(() => {
     const envLock = (import.meta as any).env?.VITE_LOCK_DEVELOPER_MODE === 'true';
-    const savedLock = localStorage.getItem(STORAGE_KEY_LOCK) === 'true';
+    const savedLock = safeStorage.getItem(STORAGE_KEY_LOCK) === 'true';
     return envLock || savedLock;
   });
 
@@ -235,7 +277,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Persistent Cart in LocalStorage
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY_CART);
+      const saved = safeStorage.getItem(STORAGE_KEY_CART);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) return parsed;
@@ -249,7 +291,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Persistent Wishlist in LocalStorage
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY_WISHLIST);
+      const saved = safeStorage.getItem(STORAGE_KEY_WISHLIST);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) return parsed;
@@ -259,6 +301,66 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     return ['sb-01'];
   });
+
+  // Product Comparison State
+  const [comparisonList, setComparisonList] = useState<string[]>(() => {
+    try {
+      const saved = safeStorage.getItem('luxe_commerce_compare_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      safeStorage.setItem('luxe_commerce_compare_v1', JSON.stringify(comparisonList));
+    } catch (e) {}
+  }, [comparisonList]);
+
+  const toggleCompare = (productId: string) => {
+    const allProducts = dynamicConfig.presets[activePresetId]?.products || [];
+    const targetProduct = allProducts.find(p => p.id === productId);
+    const prodName = targetProduct ? (targetProduct.name[lang] || targetProduct.name.ar) : '';
+
+    setComparisonList(prev => {
+      const exists = prev.includes(productId);
+      if (exists) {
+        showToast({
+          type: 'info',
+          message: lang === 'ar' ? `تمت إزالة "${prodName}" من قائمة المقارنة` : `Removed "${prodName}" from compare list`
+        });
+        return prev.filter(id => id !== productId);
+      } else {
+        if (prev.length >= 4) {
+          showToast({
+            type: 'info',
+            message: lang === 'ar' ? 'الحد الأقصى للمقارنة هو 4 منتجات' : 'Maximum 4 products can be compared at once'
+          });
+          return prev;
+        }
+        showToast({
+          type: 'info',
+          message: lang === 'ar' ? `تمت إضافة "${prodName}" للمقارنة` : `Added "${prodName}" to compare list`,
+          actionText: lang === 'ar' ? 'عرض المقارنة' : 'View Compare',
+          onAction: () => setIsCompareModalOpen(true)
+        });
+        return [...prev, productId];
+      }
+    });
+  };
+
+  const removeFromCompare = (productId: string) => {
+    setComparisonList(prev => prev.filter(id => id !== productId));
+  };
+
+  const clearCompare = () => {
+    setComparisonList([]);
+    showToast(lang === 'ar' ? 'تم مسح قائمة المقارنة' : 'Compare list cleared');
+  };
 
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpenState] = useState<boolean>(false);
@@ -280,7 +382,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Sync cart to storage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_CART, JSON.stringify(cart));
+      safeStorage.setItem(STORAGE_KEY_CART, JSON.stringify(cart));
     } catch (e) {
       console.error(e);
     }
@@ -289,7 +391,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Sync wishlist to storage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_WISHLIST, JSON.stringify(wishlist));
+      safeStorage.setItem(STORAGE_KEY_WISHLIST, JSON.stringify(wishlist));
     } catch (e) {
       console.error(e);
     }
@@ -312,7 +414,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [sectionsControl, setSectionsControl] = useState<SectionVisibilityMap>(() => {
     try {
-      const saved = localStorage.getItem('so_beauty_sections_v1');
+      const saved = safeStorage.getItem('so_beauty_sections_v1');
       if (saved) return { ...defaultSections, ...JSON.parse(saved) };
     } catch (e) {}
     return defaultSections;
@@ -322,7 +424,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSectionsControl(prev => {
       const updated = { ...prev, [id]: !prev[id] };
       try {
-        localStorage.setItem('so_beauty_sections_v1', JSON.stringify(updated));
+        safeStorage.setItem('so_beauty_sections_v1', JSON.stringify(updated));
       } catch (e) {}
       showToast(lang === 'ar' ? `تم تحديث حالة القسم: ${id}` : `Section updated: ${id}`);
       return updated;
@@ -332,7 +434,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const resetSections = () => {
     setSectionsControl(defaultSections);
     try {
-      localStorage.setItem('so_beauty_sections_v1', JSON.stringify(defaultSections));
+      safeStorage.setItem('so_beauty_sections_v1', JSON.stringify(defaultSections));
     } catch (e) {}
     showToast(lang === 'ar' ? 'تمت إعادة ضبط جميع الأقسام' : 'All sections restored to default');
   };
@@ -985,6 +1087,12 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addAllWishlistToCart,
         activeProduct,
         openProductPDP,
+        comparisonList,
+        toggleCompare,
+        removeFromCompare,
+        clearCompare,
+        isCompareModalOpen,
+        setIsCompareModalOpen,
         isAdminAuthenticated,
         loginAdmin,
         logoutAdmin,

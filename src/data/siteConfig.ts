@@ -171,13 +171,13 @@ export const siteConfig: SiteConfig = {
       storeLogo: "",
       storeSlogan: { ar: "إشراقة طبيعية، تليق بك.", en: "Natural radiance, made for you." },
       topAnnouncement: {
-        ar: "عناية طبيعية متكاملة بكل تفاصيل بشرتك. من الترطيب إلى النضارة، اكتشفي ما يلائمك بعناية مع نَـــــدِي. تسوّقي الآن",
-        en: "Complete natural care for your skin. From hydration to radiance, discover the best for you with NADI. Shop Now"
+        ar: "تسوقي بذكاء: احفظي في المفضلة ❤️ • قارني المواصفات ⚖️ • اطلبي فـوراً عبر السلة أو واتساب 💬",
+        en: "Smart Shopping: Save to Wishlist ❤️ • Compare Specs ⚖️ • Order via Cart or WhatsApp 💬"
       },
-      heroTitle: { ar: "جمالكِ الطبيعي يبدأ من هنا", en: "Your Natural Beauty Starts Here" },
+      heroTitle: { ar: "نضارةٌ تتنفس.. كما أرادتها الطبيعة", en: "Radiance That Breathes.. Crafted By Nature" },
       heroSubtitle: {
-        ar: "اكتشفي مجموعة نَـــــدِي (NADI) من منتجات العناية الطبيعية بالبشرة – نقاء نباتي وإشراقة تدوم وطاقة متجددة.",
-        en: "Discover the NADI collection of natural botanical skincare – pure radiance, deep nourishment, and lasting glow."
+        ar: "مستحضرات عناية نقية تمنح بشرتك حيوية قطرات الندى وإشراقة تدوم طوال اليوم بنقاء نباتي متكامل.",
+        en: "Pure skincare essentials infusing your skin with dew-fresh vitality and a lasting natural glow."
       },
       heroCtaPrimary: { ar: "تسوّق الآن", en: "Shop Now" },
       heroCtaSecondary: { ar: "شاهد العروض", en: "View Offers" },
@@ -239,9 +239,9 @@ export const siteConfig: SiteConfig = {
           rating: 4.9,
           reviewsCount: 128,
           images: [
-            "https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
             "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80",
           ],
           bundle: {
             title: { ar: "مجموعة الترطيب العميق (Shop The Look)", en: "Deep Hydration Bundle" },
@@ -378,176 +378,6 @@ export const siteConfig: SiteConfig = {
             reviews: {
               ar: "تقييم 5.0/5. 'هدية فخمة جداً والنتائج سحرية بشهادة كل من جربها.'",
               en: "Rated 5.0/5. 'The ultimate self-care gift. Remarkable results!'"
-            }
-          }
-        },
-        {
-          id: "sb-05",
-          name: { ar: "سيروم النياسيناميد 10% والزنك المنقي", en: "Niacinamide 10% + Zinc 1% Purifying Serum" },
-          category: { ar: "العناية بالبشرة (Skincare)", en: "Skincare" },
-          basePriceUSD: 6.5,
-          originalPriceUSD: 8.0,
-          discountPercentage: 18,
-          stock: 6,
-          badge: { ar: "الأكثر طلباً ✨", en: "Best Seller ✨" },
-          rating: 4.9,
-          reviewsCount: 112,
-          images: [
-            "https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
-          ],
-          tabs: {
-            description: {
-              ar: "سيروم غني بفيتامين B3 (النياسيناميد) بتركيز 10% مع زنك PCA النقي لتنظيم الإفرازات الدهنية، تقليص المسام الواسعة، ومنح البشرة ملمساً حريرياً متجانساً.",
-              en: "High-strength 10% vitamin B3 formula with 1% zinc PCA to balance sebum activity, minimize pore appearance, and refine skin texture."
-            },
-            usage: {
-              ar: "ضعي 3-4 قطرات على كامل الوجه صباحاً ومساءً قبل الكريمات الثقيلة والزيوت. تجنبي ملامسة العينين.",
-              en: "Apply a few drops to entire face morning and evening before heavier moisturizers and facial oils."
-            },
-            ingredientsOrSpecs: {
-              ar: "نياسيناميد 10%، زنك PCA 1%، حمض الهيالورونيك، خلاصة بذور التمر الهندي العضوية.",
-              en: "Niacinamide 10%, Zinc PCA 1%, Hyaluronic Acid, Tamarindus Indica Seed Extract."
-            },
-            reviews: {
-              ar: "تقييم 4.9/5 من 112 عميلة. 'المسام صغرت وملمس البشرة صار ناعم جداً من أول أسبوعين!'",
-              en: "Rated 4.9/5 by 112 customers. 'Noticeably refined pores and balanced oily zones!'"
-            }
-          }
-        },
-        {
-          id: "sb-06",
-          name: { ar: "واقي الشمس المعدني غير المرئي SPF 50+", en: "Invisible Mineral Sunscreen SPF 50+" },
-          category: { ar: "الحماية من الشمس", en: "Sun Protection" },
-          basePriceUSD: 7.0,
-          originalPriceUSD: 9.0,
-          discountPercentage: 22,
-          stock: 5,
-          badge: { ar: "حماية قصوى ☀️", en: "SPF 50+ ☀️" },
-          rating: 4.95,
-          reviewsCount: 89,
-          images: [
-            "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80",
-          ],
-          tabs: {
-            description: {
-              ar: "واقي شمس فيزيائي معدني واسع الطيف يوفر حماية فائقة من أشعة UVA/UVB دون ترك أي أثر أبيض أو طبقة دهنية. مناسب لجميع درجات ألوان البشرة.",
-              en: "100% mineral broad-spectrum sunscreen offering ultra-shield UVA/UVB protection without white cast or greasy residue."
-            },
-            usage: {
-              ar: "يوزع بسخاء بالتساوي على الوجه والرقبة قبل التعرض للشمس بـ 15 دقيقة، ويعاد تطبيقه كل ساعتين.",
-              en: "Apply generously to face and neck 15 minutes before sun exposure. Reapply every 2 hours."
-            },
-            ingredientsOrSpecs: {
-              ar: "أكسيد الزنك النقي 12%، مستخلص الشاي الأخضر المقاوم للأكسدة، زيت الجوجوبا غير المسد للمسام.",
-              en: "Zinc Oxide 12%, Green Tea Leaf Extract, Non-comedogenic Jojoba Esters, Vitamin E."
-            },
-            reviews: {
-              ar: "تقييم 4.95/5. 'أخيراً واقي شمس معدني يمتص فوراً وبدون أي لمعان مزعج أو طبقة بيضاء!'",
-              en: "Rated 4.95/5. 'Absorbs instantly with zero ghost white cast!'"
-            }
-          }
-        },
-        {
-          id: "sb-07",
-          name: { ar: "محلول مقشر أحماض الفواكه AHA 30% + BHA 2%", en: "AHA 30% + BHA 2% Peeling Solution" },
-          category: { ar: "تقشير وتجديد البشرة", en: "Exfoliation" },
-          basePriceUSD: 7.5,
-          originalPriceUSD: 9.5,
-          discountPercentage: 21,
-          stock: 4,
-          badge: { ar: "نضارة فورية 🌿", en: "Instant Glow 🌿" } ,
-          rating: 4.85,
-          reviewsCount: 67,
-          images: [
-            "https://images.unsplash.com/photo-1508746829417-e6f548d8d6ed?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
-          ],
-          tabs: {
-            description: {
-              ar: "محلول تقشير أسبوعي متطور يجمع بين أحماض ألفا هيدروكسي المقشرة للسطح وأحماض بيتا هيدروكسي المنظفة للمسام بعمق لإزالة خلايا الجلد الميتة وتجديد الإشراقة.",
-              en: "Advanced exfoliating facial treatment combining AHA for surface radiance and BHA for deep pore decongestion."
-            },
-            usage: {
-              ar: "يستخدم مساءً فقط على بشرة جافة ونظيفة تماماً. يترك لمدة 10 دقائق كحد أقصى ثم يشطف بماء فاتر. مرة واحدة أسبوعياً.",
-              en: "Use ideally in the evening on dry skin. Leave on for no more than 10 minutes, rinse thoroughly. Use once weekly."
-            },
-            ingredientsOrSpecs: {
-              ar: "حمض الجليكوليك، حمض اللاكتيك، حمض الساليسيليك، خلاصة التوت البري، البانثينول المهدئ.",
-              en: "Glycolic Acid, Lactic Acid, Salicylic Acid, Tasmanian Pepperberry, Provitamin B5."
-            },
-            reviews: {
-              ar: "تقييم 4.85/5. 'النعومة بعد أول جلسة تقشير لا تصدق، نضارة زي جلسات العيادات!'",
-              en: "Rated 4.85/5. 'Clinic-grade baby soft skin after the very first treatment!'"
-            }
-          }
-        },
-        {
-          id: "sb-08",
-          name: { ar: "كريم محيط العين بالكافيين والشاي الأخضر", en: "Caffeine & Green Tea Eye Contour Cream" },
-          category: { ar: "العناية بمحيط العين", en: "Eye Care" },
-          basePriceUSD: 6.0,
-          originalPriceUSD: 7.5,
-          discountPercentage: 20,
-          stock: 7,
-          badge: { ar: "مضاد للهالات 👁️", en: "Anti-Dark Circles 👁️" },
-          rating: 4.9,
-          reviewsCount: 95,
-          images: [
-            "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1556228722-d0b5b0340fe3?auto=format&fit=crop&w=800&q=80",
-          ],
-          tabs: {
-            description: {
-              ar: "تركيبة غنية بالكافيين النشط ومضادات أكسدة الشاي الأخضر لتخفيف الانتفاخات الصباحية، تفتيح الهالات السوداء، وشد الخطوط الدقيقة حول محيط العين.",
-              en: "Refreshing awakening eye cream powered by green tea caffeine to combat morning puffiness and diminish under-eye dark shadows."
-            },
-            usage: {
-              ar: "توضع نقطة صغيرة بحجم حبة الأرز وتوزع بالتربيت اللطيف بإصبع الخاتم حول عظمة العين صباحاً ومساءً.",
-              en: "Gently pat a pea-sized amount around orbital eye bone morning and night until absorbed."
-            },
-            ingredientsOrSpecs: {
-              ar: "كافيين نباتي مركز 5%، مستخلص الشاي الأخضر EGCG، ببتيدات الكولاجين، خلاصة الخيار.",
-              en: "Caffeine 5%, Green Tea Leaf Extract EGCG, Matrixyl Peptides, Cucumber Hydrosol."
-            },
-            reviews: {
-              ar: "تقييم 4.9/5. 'يخفي إرهاق السهر والانتفاخات بدقائق ويهدئ منطقة العين جداً.'",
-              en: "Rated 4.9/5. 'Erases tired sleepless eyes and depuffs within 10 minutes!'"
-            }
-          }
-        },
-        {
-          id: "sb-09",
-          name: { ar: "زيت الأرغان المغربي النقي 100% المعصور على البارد", en: "100% Pure Cold-Pressed Moroccan Argan Oil" },
-          category: { ar: "الزيوت العلاجية الفاخرة", en: "Luxury Facial Oils" },
-          basePriceUSD: 8.5,
-          originalPriceUSD: 11.0,
-          discountPercentage: 23,
-          stock: 5,
-          badge: { ar: "عضوي معتمد 💧", en: "Certified Organic 💧" },
-          rating: 5.0,
-          reviewsCount: 142,
-          images: [
-            "https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80",
-          ],
-          tabs: {
-            description: {
-              ar: "زيت أرغان نقي 100% مستخرج بالعصر البارد في تعاونيات أغادير المغربية. غني بالأحماض الدهنية الأساسية وفيتامين E لترميم البشرة الجافة وتغذية أطراف الشعر.",
-              en: "100% virgin cold-pressed Moroccan argan oil packed with essential fatty acids and vitamin E for deep cellular nourishment."
-            },
-            usage: {
-              ar: "توضع قطرات قليلة على الوجه المبلل قليلاً كآخر خطوة في الروتين الليلي لحبس الرطوبة ومحاربة الجفاف.",
-              en: "Warm 2-3 drops between palms and gently press onto damp face and neck as the final sealing step in night routine."
-            },
-            ingredientsOrSpecs: {
-              ar: "زيت بذور شجرة الأرغان النقي 100% (Argania Spinosa Kernel Oil)، بدون إضافات أو عطور صناعية.",
-              en: "100% Pure Argania Spinosa (Argan) Kernel Oil. Cold-pressed and unrefined."
-            },
-            reviews: {
-              ar: "تقييم 5.0/5 من 142 عميلة. 'ذهب سائل حقيقي، امتصاص سريع وترطيب عميق بدون أي ملمس دهني ثقيل!'",
-              en: "Rated 5.0/5. 'Liquid gold. Intensely nourishing yet fast-absorbing!'"
             }
           }
         }
