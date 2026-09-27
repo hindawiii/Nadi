@@ -4,6 +4,13 @@ import {
   ColorPalette, TypographyPair, ImportableTemplate, 
   curatedPalettes, curatedTypographyPairs, curatedImportableTemplates 
 } from '../data/siteConfig';
+import {
+  createGoldenSnapshot,
+  getGoldenSnapshot,
+  restoreGoldenState,
+  sanitizeProductDefensively,
+  GoldenSnapshotMeta
+} from '../data/goldenStoreConfig';
 
 export interface CartItem {
   product: Product;
@@ -131,6 +138,11 @@ interface CommerceContextType {
   saveCurrentAsTemplate: (nameAr: string, nameEn?: string) => SavedCustomTemplate;
   deleteSavedTemplate: (id: string) => void;
   loadSavedTemplate: (id: string) => void;
+
+  // Golden Store Stability Shield & Anti-Regression Engine
+  goldenSnapshot: GoldenSnapshotMeta | null;
+  saveGoldenSnapshot: () => void;
+  rollbackToGoldenState: () => void;
 }
 
 export interface SavedCustomTemplate {
@@ -514,6 +526,42 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setCustomPalette(target.customPalette);
     }
     showToast(lang === 'ar' ? `تم استرجاع وتفعيل قالب: ${target.name.ar}` : `Restored ${target.name.en}!`);
+  };
+
+  const [goldenSnapshot, setGoldenSnapshotState] = useState<GoldenSnapshotMeta | null>(() => {
+    return getGoldenSnapshot();
+  });
+
+  const saveGoldenSnapshot = () => {
+    const meta = createGoldenSnapshot(dynamicConfig);
+    setGoldenSnapshotState(meta);
+    showToast({
+      type: 'success',
+      message: lang === 'ar' 
+        ? 'تم حفظ نقطة الاستقرار الذهبية للمتجر وتجميدها بنجاح 🛡️' 
+        : 'Golden Stability Snapshot created and locked successfully 🛡️'
+    });
+  };
+
+  const rollbackToGoldenState = () => {
+    const res = restoreGoldenState();
+    if (res.success && res.config) {
+      setDynamicConfig(res.config);
+      try {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(res.config));
+      } catch (e) {}
+      showToast({
+        type: 'success',
+        message: lang === 'ar' 
+          ? 'تم التراجع واستعادة الحالة الذهبية المستقرة بنجاح 🔄' 
+          : 'Successfully restored store to the Golden Stable state 🔄'
+      });
+    } else {
+      showToast({
+        type: 'info',
+        message: res.message
+      });
+    }
   };
 
   const exportCurrentTemplate = (): string => {
@@ -968,6 +1016,9 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         saveCurrentAsTemplate,
         deleteSavedTemplate,
         loadSavedTemplate,
+        goldenSnapshot,
+        saveGoldenSnapshot,
+        rollbackToGoldenState,
       }}
     >
       {children}

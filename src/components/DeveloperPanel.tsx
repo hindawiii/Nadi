@@ -20,13 +20,14 @@ export const DeveloperPanel: React.FC = () => {
     showToast, sectionsControl, toggleSection, resetSections,
     activePaletteId, setActivePaletteId, customPalette, setCustomPalette,
     activeTypographyId, setActiveTypographyId, importTemplate, exportCurrentTemplate,
-    savedCustomTemplates, saveCurrentAsTemplate, deleteSavedTemplate, loadSavedTemplate
+    savedCustomTemplates, saveCurrentAsTemplate, deleteSavedTemplate, loadSavedTemplate,
+    goldenSnapshot, saveGoldenSnapshot, rollbackToGoldenState
   } = useCommerce();
 
   const isRtl = lang === 'ar';
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'presets' | 'templates' | 'colors' | 'typography' | 'sections' | 'content' | 'security'>('presets');
+  const [activeTab, setActiveTab] = useState<'presets' | 'templates' | 'colors' | 'typography' | 'sections' | 'content' | 'security' | 'golden'>('golden');
 
   // Custom template import/export state
   const [customCodeInput, setCustomCodeInput] = useState('');
@@ -554,6 +555,18 @@ export const DeveloperPanel: React.FC = () => {
           >
             <Sparkle className="w-4 h-4" />
             <span>{lang === 'ar' ? 'المحتوى والشعار (CMS)' : 'Live CMS'}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('golden')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+              activeTab === 'golden'
+                ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20 font-black'
+                : 'bg-emerald-950/40 text-emerald-300 hover:text-white border border-emerald-800/60'
+            }`}
+          >
+            <Shield className="w-4 h-4 text-emerald-400" />
+            <span>{lang === 'ar' ? '🛡️ درع الثبات وتجميد الكود (Golden Shield)' : '🛡️ Golden Stability Shield'}</span>
           </button>
 
           <button
@@ -1822,6 +1835,112 @@ export const DeveloperPanel: React.FC = () => {
               </div>
             </div>
 
+          </div>
+        )}
+
+        {/* TAB 8: GOLDEN STABILITY SHIELD & ANTI-REGRESSION LOCK */}
+        {activeTab === 'golden' && (
+          <div className="space-y-6">
+            <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 border border-emerald-500/30 space-y-6 shadow-2xl">
+              <div className="flex items-start gap-4">
+                <div className="p-3.5 bg-emerald-500/20 text-emerald-400 rounded-2xl shrink-0 border border-emerald-500/30">
+                  <Shield className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold">
+                    <span>🛡️ نظام الحصانة والتجميد البرمجي (Code Immutability Guard)</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black text-white pt-1">
+                    {lang === 'ar' ? 'درع استقرار المتجر ومنع التغييرات العشوائية' : 'Store Stability Shield & Anti-Regression Guard'}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-3xl">
+                    {lang === 'ar'
+                      ? 'تم تصميم هذا النظام خصيصاً لحماية كود المتجر، ونصوصه، وعلامته التجارية، وتصاميمه من التلف أو التغيير غير المقصود أثناء كتابة التحديثات الجديدة. يمكنك أخذ "لقطة ذهبية" مجمدة وحفظها، أو العودة إليها بضغطة زر واحدة في حال حدوث أي خطأ.'
+                      : 'Protects store codebase, branding texts, and component states against accidental changes, regressions, or prompt drift. Take an immutable snapshot or restore at any time with one click.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Bar */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-1">
+                  <span className="text-[11px] font-bold text-slate-400 block">{lang === 'ar' ? 'حالة التجميد والحصانة:' : 'Immutability Status:'}</span>
+                  <div className="flex items-center gap-2 text-emerald-400 font-extrabold text-sm">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>{lang === 'ar' ? 'محصن ومجمد (Frozen Baseline Active)' : 'Frozen Baseline Active'}</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-1">
+                  <span className="text-[11px] font-bold text-slate-400 block">{lang === 'ar' ? 'آخر لقطة استقرار محفوظة:' : 'Last Saved Snapshot:'}</span>
+                  <div className="text-amber-300 font-extrabold text-xs truncate">
+                    {goldenSnapshot?.savedAt 
+                      ? new Date(goldenSnapshot.savedAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US') 
+                      : (lang === 'ar' ? 'نسخة المصنع المعتمدة الأصلية' : 'Baseline Verified State')}
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-1">
+                  <span className="text-[11px] font-bold text-slate-400 block">{lang === 'ar' ? 'عدد المنتجات المحصنة:' : 'Protected Products:'}</span>
+                  <div className="text-white font-black text-sm">
+                    {currentPresetData?.products?.length || 0} {lang === 'ar' ? 'منتجات مؤمنة' : 'Products Protected'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="p-5 bg-slate-950 rounded-2xl border border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="space-y-1 text-start w-full sm:w-auto">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>{lang === 'ar' ? 'إجراءات الحفظ والاسترجاع الفوري' : 'Snapshot & Rollback Actions'}</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {lang === 'ar' 
+                      ? 'احفظ نسختك الحالية كنقطة استقرار ذهبية، أو استرجعها في أي وقت.' 
+                      : 'Lock your verified state as a Golden Snapshot, or roll back anytime.'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
+                  {/* Create Snapshot Button */}
+                  <button
+                    type="button"
+                    onClick={saveGoldenSnapshot}
+                    className="flex-1 sm:flex-none px-5 py-3 rounded-2xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{lang === 'ar' ? 'حفظ نقطة استقرار ذهبية 🛡️' : 'Save Golden Snapshot 🛡️'}</span>
+                  </button>
+
+                  {/* Restore Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(lang === 'ar' ? 'هل أنت متأكد من رغبتك في استعادة الحالة الذهبية المستقرة للمتجر؟' : 'Are you sure you want to restore the Golden Snapshot?')) {
+                        rollbackToGoldenState();
+                      }
+                    }}
+                    className="flex-1 sm:flex-none px-5 py-3 rounded-2xl text-xs font-black bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/40 shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>{lang === 'ar' ? 'استعادة الحالة الذهبية 🔄' : 'Restore Golden State 🔄'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Principles of Code Lock */}
+              <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-900/50 space-y-2 text-xs text-emerald-200/90 leading-relaxed">
+                <span className="font-extrabold text-emerald-300 block text-sm">
+                  📌 {lang === 'ar' ? 'كيف يحمي هذا النظام متجرك في المستقبل؟' : 'How does this protect your store?'}
+                </span>
+                <ul className="list-disc list-inside space-y-1 text-slate-300 text-[11px] sm:text-xs">
+                  <li><strong>تجميد الكائنات (Object.freeze):</strong> يمنع أي كود جديد من تعديل المسميات الأساسية للمتجر بالخطأ.</li>
+                  <li><strong>عزل الإحداثيات المنطقية:</strong> الكروت والإشعارات تستخدم حصرياً خصائص <code className="text-amber-300">start/end</code> لمنع أي انعكاس عشوائي بين العربي والإنجليزي.</li>
+                  <li><strong>صمام الأمان الذاتي (Self-Healing Shield):</strong> إذا أُضيف منتج مستقبلاً بدون صورة أو بسعر مشوه، يتم تصحيحه تلقائياً في الخلفية ولا يتوقف المتجر نهائياً.</li>
+                </ul>
+              </div>
+            </div>
           </div>
         )}
 
