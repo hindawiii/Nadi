@@ -4,7 +4,7 @@ import {
   Eye, EyeOff, Lock, AlertTriangle, Check, RefreshCw, 
   Smartphone, Watch, Shirt, Glasses, RotateCcw, Layers, Droplets, Star, ShoppingBag, Image,
   Copy, Trash2, CheckCircle2, ChevronRight, Plus, ExternalLink, Phone, Mail, MapPin, MessageCircle, ArrowUpRight,
-  Download, Upload, Code2, Type, FileJson, CheckCircle, HelpCircle, Sparkle
+  Download, Upload, Code2, Type, FileJson, CheckCircle, HelpCircle, Sparkle, ArrowUp
 } from 'lucide-react';
 import { useCommerce, SectionVisibilityMap } from '../context/CommerceContext';
 import { 
@@ -216,6 +216,20 @@ export const DeveloperPanel: React.FC = () => {
       desc: { ar: 'شهادات موثقة مع تقييم 5 نجوم وتفاصيل المنتجات المقتناة وزر المشاركة.', en: 'Verified buyer testimonials with product tags, helpful voting & modal submit.' },
       icon: Star,
       tag: { ar: 'تقييمات', en: 'Reviews' }
+    },
+    {
+      key: 'scrollToTop',
+      title: { ar: 'زر الصعود للأعلى بحلقة الامتلاء الذكية', en: 'Circular Progress Scroll-to-Top' },
+      desc: { ar: 'زر عائم ذكي بحلقة دائرية تمتلئ تدريجياً بنسبة نزول الزائر في الصفحة وتصعد به بنعومة.', en: 'Floating smart button with circular progress ring filling proportionally to scroll depth.' },
+      icon: ArrowUp,
+      tag: { ar: 'ملاحة ذكية', en: 'Navigation' }
+    },
+    {
+      key: 'floatingWhatsApp',
+      title: { ar: 'زر الدعم والواتساب العائم المتطور', en: 'Floating WhatsApp & Call Speed-Dial' },
+      desc: { ar: 'زر الاتصال والمحادثة السريعة الفوري مع دعم السحب والنافذة الذكية لمطابقة الهاتف.', en: 'Speed-dial floating actions for instant WhatsApp consultation and direct verified phone calls.' },
+      icon: MessageCircle,
+      tag: { ar: 'دعم العملاء', en: 'Support' }
     },
   ];
 

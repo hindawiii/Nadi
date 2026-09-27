@@ -28,15 +28,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const isRtl = lang === 'ar';
   const isWishlisted = wishlist.includes(product.id);
-  const currentPrice = convertPrice(product.basePriceUSD);
-  const origPrice = product.originalPriceUSD ? convertPrice(product.originalPriceUSD) : null;
-  const isOutOfStock = product.stock === 0;
-  const isScarcity = product.stock > 0 && product.stock <= 3;
 
-  // Multi-image state
-  const images = product.images && product.images.length > 0 ? product.images : [
-    "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80"
-  ];
+  // Self-Healing Defensive Normalization for any incoming or future product
+  const safeBasePrice = typeof product.basePriceUSD === 'number' && !isNaN(product.basePriceUSD) && product.basePriceUSD > 0 
+    ? product.basePriceUSD 
+    : 10;
+  const safeOrigPriceUSD = typeof product.originalPriceUSD === 'number' && product.originalPriceUSD > safeBasePrice 
+    ? product.originalPriceUSD 
+    : undefined;
+
+  const currentPrice = convertPrice(safeBasePrice);
+  const origPrice = safeOrigPriceUSD ? convertPrice(safeOrigPriceUSD) : null;
+  const isOutOfStock = typeof product.stock === 'number' ? product.stock === 0 : false;
+  const isScarcity = typeof product.stock === 'number' && product.stock > 0 && product.stock <= 3;
+
+  // Safe Multi-image state
+  const defaultFallbackImage = "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80";
+  const images = Array.isArray(product.images) && product.images.length > 0 && product.images.some(img => typeof img === 'string' && img.trim().length > 0)
+    ? product.images.filter(img => typeof img === 'string' && img.trim().length > 0)
+    : [defaultFallbackImage];
   const hasMultipleImages = images.length > 1;
   const [activeImgIndex, setActiveImgIndex] = useState(0);
 
@@ -211,8 +221,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }}
           />
 
-          {/* Top-Left: Wishlist Heart Button Only (Eye button completely hidden) */}
-          <div className="absolute top-2.5 left-2.5 z-10">
+          {/* Top-Start: Wishlist Heart Button with Strict Logical Positioning */}
+          <div className="absolute top-2.5 start-2.5 z-10">
             <button
               type="button"
               onClick={handleWishlistClick}
@@ -228,11 +238,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </button>
           </div>
 
-          {/* Top-Right: Single Clean Discount Badge + Special Marketing Badge (Zero Duplication) */}
-          <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5 z-10 pointer-events-none">
+          {/* Top-End: Single Clean Discount Badge + Special Marketing Badge (Strict Logical Positioning) */}
+          <div className="absolute top-2.5 end-2.5 flex flex-col items-end gap-1.5 z-10 pointer-events-none">
             <SmartDiscountBadge
-              basePriceUSD={product.basePriceUSD}
-              originalPriceUSD={product.originalPriceUSD}
+              basePriceUSD={safeBasePrice}
+              originalPriceUSD={safeOrigPriceUSD}
               manualPercent={product.discountPercentage}
               lang={lang}
               size="md"

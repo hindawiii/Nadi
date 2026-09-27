@@ -24,6 +24,15 @@ export interface OrderRecord {
   trackingCode: string;
 }
 
+export interface ToastData {
+  id?: string;
+  message: string;
+  type?: 'cart_add' | 'cart_remove' | 'wishlist_add' | 'wishlist_remove' | 'info' | 'success';
+  productName?: string;
+  actionText?: string;
+  onAction?: () => void;
+}
+
 export type RouteName = 'store' | 'admin' | 'developer' | 'pdp' | 'tracker' | 'about' | 'wishlist' | 'cart' | 'login';
 
 interface CommerceContextType {
@@ -91,9 +100,11 @@ interface CommerceContextType {
   placeOrder: (customer: { name: string; phone: string; address: string }) => OrderRecord;
   updateOrderStatus: (orderId: string, status: OrderRecord['status']) => void;
   
-  // Toast
+  // Smart Toast System
   toastMessage: string | null;
-  showToast: (msg: string) => void;
+  toastData: ToastData | null;
+  showToast: (msgOrData: string | ToastData) => void;
+  dismissToast: () => void;
 
   // Inline editing helper
   updateActiveDataField: (path: string, value: string) => void;
@@ -142,6 +153,8 @@ export interface SectionVisibilityMap {
   promoBanner: boolean;
   beforeAfter: boolean;
   testimonials: boolean;
+  scrollToTop: boolean;
+  floatingWhatsApp: boolean;
 }
 
 const CommerceContext = createContext<CommerceContextType | null>(null);
@@ -240,6 +253,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isReviewModalOpen, setIsReviewModalOpen] = useState<boolean>(false);
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastData, setToastData] = useState<ToastData | null>(null);
+  const toastTimeoutRef = React.useRef<any>(null);
 
   // Intercept setIsAuthModalOpen to open full-page login view
   const setIsAuthModalOpen = (open: boolean) => {
@@ -279,6 +294,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     promoBanner: true,
     beforeAfter: true,
     testimonials: true,
+    scrollToTop: true,
+    floatingWhatsApp: true,
   };
 
   const [sectionsControl, setSectionsControl] = useState<SectionVisibilityMap>(() => {
@@ -614,11 +631,30 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return { value, symbol: curConfig.symbol, text, isCrypto };
   };
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
+  const dismissToast = () => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToastMessage(null);
+    setToastData(null);
+  };
+
+  const showToast = (msgOrData: string | ToastData) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    if (typeof msgOrData === 'string') {
+      setToastMessage(msgOrData);
+      setToastData({ message: msgOrData, type: 'info' });
+    } else {
+      setToastMessage(msgOrData.message);
+      setToastData(msgOrData);
+    }
+
+    toastTimeoutRef.current = setTimeout(() => {
       setToastMessage(null);
-    }, 3200);
+      setToastData(null);
+    }, 3800);
   };
 
   const addToCart = (product: Product, quantity = 1) => {
@@ -633,11 +669,34 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       return [...prev, { product, quantity }];
     });
-    showToast(lang === 'ar' ? `تمت إضافة "${product.name[lang]}" إلى السلة` : `Added "${product.name[lang]}" to bag`);
+
+    const pName = product.name[lang] || product.name.ar;
+    showToast({
+      type: 'cart_add',
+      productName: pName,
+      message: lang === 'ar' ? `تمت إضافة "${pName}" إلى السلة` : `Added "${pName}" to bag`,
+      actionText: lang === 'ar' ? 'عرض السلة' : 'View Bag',
+      onAction: () => navigateTo('cart')
+    });
   };
 
   const removeFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+    let removedProductName = '';
+    setCart((prev) => {
+      const target = prev.find(item => item.product.id === productId);
+      if (target) {
+        removedProductName = target.product.name[lang] || target.product.name.ar;
+      }
+      return prev.filter((item) => item.product.id !== productId);
+    });
+
+    if (removedProductName) {
+      showToast({
+        type: 'cart_remove',
+        productName: removedProductName,
+        message: lang === 'ar' ? `تم حذف "${removedProductName}" من السلة` : `Removed "${removedProductName}" from bag`
+      });
+    }
   };
 
   const updateCartQty = (productId: string, delta: number) => {
@@ -654,7 +713,13 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    showToast({
+      type: 'cart_remove',
+      message: lang === 'ar' ? 'تم إفراغ سلة المشتريات بالكامل' : 'Cart has been emptied'
+    });
+  };
 
   const cartTotalUSD = cart.reduce(
     (sum, item) => sum + item.product.basePriceUSD * item.quantity,
@@ -664,21 +729,44 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const toggleWishlist = (productId: string) => {
+    // Find product name from all available products
+    const allProducts = dynamicConfig.presets[activePresetId]?.products || [];
+    const targetProduct = allProducts.find(p => p.id === productId);
+    const prodName = targetProduct ? (targetProduct.name[lang] || targetProduct.name.ar) : '';
+
     setWishlist((prev) => {
       const exists = prev.includes(productId);
       const next = exists ? prev.filter((id) => id !== productId) : [...prev, productId];
-      showToast(
-        exists
-          ? (lang === 'ar' ? 'تمت إزالة المنتج من المفضلة' : 'Removed from wishlist')
-          : (lang === 'ar' ? 'تمت إضافة المنتج إلى المفضلة ❤️' : 'Added to wishlist ❤️')
-      );
+      
+      if (exists) {
+        showToast({
+          type: 'wishlist_remove',
+          productName: prodName,
+          message: prodName 
+            ? (lang === 'ar' ? `تمت إزالة "${prodName}" من المفضلة` : `Removed "${prodName}" from wishlist`)
+            : (lang === 'ar' ? 'تمت إزالة المنتج من المفضلة' : 'Removed from wishlist')
+        });
+      } else {
+        showToast({
+          type: 'wishlist_add',
+          productName: prodName,
+          message: prodName
+            ? (lang === 'ar' ? `تم حفظ "${prodName}" في المفضلة ❤️` : `Saved "${prodName}" to wishlist ❤️`)
+            : (lang === 'ar' ? 'تمت إضافة المنتج إلى المفضلة ❤️' : 'Added to wishlist ❤️'),
+          actionText: lang === 'ar' ? 'عرض المفضلة' : 'View Wishlist',
+          onAction: () => navigateTo('wishlist')
+        });
+      }
       return next;
     });
   };
 
   const clearWishlist = () => {
     setWishlist([]);
-    showToast(lang === 'ar' ? 'تم تفريغ قائمة المفضلة' : 'Wishlist cleared');
+    showToast({
+      type: 'wishlist_remove',
+      message: lang === 'ar' ? 'تم تفريغ قائمة المفضلة بالكامل' : 'Wishlist cleared completely'
+    });
   };
 
   const addAllWishlistToCart = () => {
@@ -861,7 +949,9 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         placeOrder,
         updateOrderStatus,
         toastMessage,
+        toastData,
         showToast,
+        dismissToast,
         updateActiveDataField,
         sectionsControl,
         toggleSection,

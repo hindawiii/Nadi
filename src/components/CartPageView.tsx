@@ -199,24 +199,46 @@ export const CartPageView: React.FC = () => {
           <div className="mt-8 space-y-8">
             
             {/* Free Shipping Progress Bar */}
-            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-sm">
-              <div className="flex items-center justify-between text-xs sm:text-sm font-bold text-slate-800 mb-2">
-                <div className="flex items-center gap-2">
-                  <Truck className={`w-4 h-4 ${isFreeShipping ? 'text-emerald-500' : 'text-[#5A3E7A]'}`} />
-                  <span>
+            <div className="bg-gradient-to-r from-purple-50/80 via-white to-purple-50/80 p-4 sm:p-5 rounded-3xl border border-purple-200/80 shadow-sm space-y-3">
+              <div className="flex items-center justify-between text-xs sm:text-sm font-black text-slate-900">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <Truck className={`w-4 h-4 shrink-0 ${isFreeShipping ? 'text-emerald-600 animate-bounce' : 'text-[#5A3E7A]'}`} />
+                  <span className="truncate">
                     {isFreeShipping 
-                      ? (lang === 'ar' ? '🎉 مبروك! حصلتِ على توصيل مجاني سريع لكامل طلبيتك' : '🎉 Congratulations! You unlocked Free Delivery!')
-                      : (lang === 'ar' ? `أضيفي منتجات بقيمة ${remainingText} إضافية للحصول على شحن مجاني!` : `Add ${remainingText} more to unlock Free Delivery!`)}
+                      ? (lang === 'ar' ? '🎉 مبروك! لقد حصلتِ على الشحن المجاني الملكي لطلبكِ بالكامل!' : '🎉 Congratulations! You unlocked Royal Free Delivery!')
+                      : (lang === 'ar' ? `أنتِ على بعد ${remainingText} فقط من الشحن المجاني الملكي!` : `You are only ${remainingText} away from Royal Free Delivery!`)}
                   </span>
                 </div>
-                <span className="text-xs text-slate-500 font-semibold">{progressPercent}%</span>
+                <span className="font-mono font-black text-xs text-[#5A3E7A] bg-purple-100 px-2.5 py-0.5 rounded-full shrink-0 ms-2">{progressPercent}%</span>
               </div>
-              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-200/80 h-2.5 rounded-full overflow-hidden p-0.5 shadow-inner">
                 <div 
-                  className={`h-full transition-all duration-500 rounded-full ${isFreeShipping ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#5A3E7A] to-purple-400'}`}
+                  className={`h-full transition-all duration-700 rounded-full ${
+                    isFreeShipping 
+                      ? 'bg-gradient-to-r from-emerald-400 to-emerald-600 shadow-sm shadow-emerald-400/50' 
+                      : 'bg-gradient-to-r from-[#5A3E7A] to-purple-400'
+                  }`}
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
+
+              {/* Smart Autonomous Upsell Suggestion to Unlock Free Shipping */}
+              {!isFreeShipping && (
+                <div className="pt-1 flex items-center justify-between text-xs text-slate-600 border-t border-purple-100/60">
+                  <span className="text-[11px] sm:text-xs text-slate-600">
+                    {lang === 'ar' 
+                      ? '💡 نصيحة ذكية: أضيفي منتجاً إضافياً لتوفير رسوم الشحن والاستفادة من التوصيل الملكي المجاني!' 
+                      : '💡 Smart Tip: Add one more skincare item to unlock 100% Free Delivery!'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => navigateTo('store')}
+                    className="text-[#5A3E7A] font-extrabold hover:underline text-[11px] whitespace-nowrap ms-2 shrink-0 cursor-pointer"
+                  >
+                    {lang === 'ar' ? 'تصفح المقترحات ←' : 'Browse items →'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Layout: Main Items Column + Summary Sidebar */}

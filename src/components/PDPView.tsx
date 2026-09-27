@@ -641,49 +641,52 @@ export const PDPView: React.FC = () => {
       {/* FULL-SCREEN IMMERSIVE LIGHTBOX MODAL */}
       {isLightboxOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 select-none animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-3 sm:p-6 select-none animate-in fade-in duration-200"
           onClick={() => {
             setIsLightboxOpen(false);
             setLightboxScale(1);
           }}
         >
-          {/* Top Controls Bar */}
+          {/* Top Controls Bar - Mobile-Optimized Safe Area with Isolated Close Button */}
           <div 
-            className="flex items-center justify-between w-full max-w-7xl mx-auto z-10 text-white"
+            className="relative w-full max-w-7xl mx-auto z-20 flex items-center justify-between gap-3 pt-1 sm:pt-0"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Product Name & Counter */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs sm:text-sm font-extrabold text-white truncate max-w-[200px] sm:max-w-md">
-                {product.name[lang]}
-              </span>
-              <span className="text-[11px] sm:text-xs font-bold text-slate-300 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/15">
-                {selectedImgIndex + 1} / {product.images.length}
-              </span>
+            {/* Product Meta Pill: Independent with Safe Truncation */}
+            <div className="flex-1 min-w-0 me-3">
+              <div className="inline-flex items-center gap-2 max-w-full bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15">
+                <span className="text-xs sm:text-sm font-bold text-white truncate block max-w-[140px] xs:max-w-[200px] sm:max-w-md">
+                  {product.name[lang]}
+                </span>
+                <span className="text-[10px] sm:text-xs font-mono font-extrabold text-amber-300 bg-black/40 px-2 py-0.5 rounded-full border border-white/10 shrink-0">
+                  {selectedImgIndex + 1} / {product.images.length}
+                </span>
+              </div>
             </div>
 
-            {/* Action Buttons: Zoom In/Out + Close Button */}
-            <div className="flex items-center gap-2">
+            {/* Action Group: Zoom Controls + Fully Isolated Safe Close Button */}
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setLightboxScale(prev => (prev > 1 ? 1 : 2.2))}
-                className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all border border-white/15 flex items-center justify-center min-w-[40px] min-h-[40px]"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all border border-white/15 flex items-center justify-center shrink-0 cursor-pointer active:scale-95"
                 title={lightboxScale > 1 ? (lang === 'ar' ? 'تصغير الحجم' : 'Zoom Out') : (lang === 'ar' ? 'تكبير 2X' : 'Zoom In 2X')}
               >
-                {lightboxScale > 1 ? <ZoomOut className="w-5 h-5" /> : <ZoomIn className="w-5 h-5" />}
+                {lightboxScale > 1 ? <ZoomOut className="w-4 h-4 sm:w-5 sm:h-5" /> : <ZoomIn className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
 
+              {/* Isolated Close Button X with Safe 48px Touch Target */}
               <button
                 type="button"
                 onClick={() => {
                   setIsLightboxOpen(false);
                   setLightboxScale(1);
                 }}
-                className="p-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white transition-all border border-white/20 flex items-center justify-center min-w-[44px] min-h-[44px] hover:scale-105 active:scale-95"
-                aria-label={lang === 'ar' ? 'إغلاق العرض الكامل' : 'Close full screen'}
+                className="min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] rounded-full bg-red-500/20 hover:bg-red-500/35 border border-red-400/40 text-white flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-90 cursor-pointer shadow-lg shadow-black/40"
+                aria-label={lang === 'ar' ? 'إغلاق نافذة تكبير الصور' : 'Close full screen preview'}
                 title={lang === 'ar' ? 'إغلاق (ESC)' : 'Close (ESC)'}
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
               </button>
             </div>
           </div>

@@ -14,23 +14,50 @@ import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
 import { ReviewModal } from './components/ReviewModal';
 import { FloatingWhatsApp } from './components/FloatingWhatsApp';
+import { ScrollToTopProgress } from './components/common/ScrollToTopProgress';
 import { Toast } from './components/Toast';
 import { hairStylingDevices } from './components/HairDevicesSpotlight';
 
 const AppContent: React.FC = () => {
-  const { currentRoute, setCurrentRoute, isDeveloperModeLocked, activeData, openProductPDP } = useCommerce();
+  const { currentRoute, setCurrentRoute, isDeveloperModeLocked, activeData, openProductPDP, sectionsControl } = useCommerce();
   const prevRouteRef = useRef<string>('');
+  const hasInitializedRef = useRef<boolean>(false);
 
   // Enforce manual scroll restoration so reloading starts at the top of the store
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
+
+    // Always reset to homepage ('store') on initial browser reload / refresh
+    const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    const isReload = navEntries.length > 0 && navEntries[0].type === 'reload';
+    const isLegacyReload = (window.performance as any)?.navigation?.type === 1;
+
+    if (isReload || isLegacyReload || !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      try {
+        // Clean URL pathname and hash back to root homepage
+        window.history.replaceState(null, '', '/');
+      } catch (_) {}
+      setCurrentRoute('store');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      return;
+    }
   }, []);
 
   // Listen to both URL pathname and hash changes for universal deep linking (/admin, /developer, /about, /wishlist, /cart, /product/id)
   useEffect(() => {
     const handleLocationChange = () => {
+      // Check if page was just reloaded; if so, maintain homepage
+      const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+      const isReload = navEntries.length > 0 && navEntries[0].type === 'reload';
+      if (isReload && !hasInitializedRef.current) {
+        hasInitializedRef.current = true;
+        setCurrentRoute('store');
+        return;
+      }
+
       const hash = window.location.hash.replace('#', '');
       const pathname = window.location.pathname.replace(/^\//, '');
       const route = pathname || hash;
@@ -117,10 +144,14 @@ const AppContent: React.FC = () => {
       {/* Central Footer for all public-facing pages */}
       {currentRoute !== 'developer' && <Footer />}
 
-      {/* Global Interactive Overlays */}
+      {/* Global Interactive Overlays & Controls */}
       <AuthModal />
       <ReviewModal />
-      {currentRoute !== 'developer' && <FloatingWhatsApp />}
+      
+      {/* Floating Widgets tied dynamically to central sectionsControl */}
+      {currentRoute !== 'developer' && sectionsControl.floatingWhatsApp && <FloatingWhatsApp />}
+      {currentRoute !== 'developer' && sectionsControl.scrollToTop && <ScrollToTopProgress />}
+
       <Toast />
     </div>
   );

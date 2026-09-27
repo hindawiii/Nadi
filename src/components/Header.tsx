@@ -11,8 +11,8 @@ import { Product } from '../data/siteConfig';
 export const Header: React.FC = () => {
   const { 
     lang, setLang, currency, setCurrency, dynamicConfig, 
-    activeData, cartCount, wishlist, 
-    currentRoute, navigateTo, setIsAuthModalOpen,
+    activeData, cartCount, wishlist, cartTotalUSD, sectionsControl,
+    currentRoute, navigateTo, setIsAuthModalOpen, openCompareModal,
     openProductPDP, convertPrice 
   } = useCommerce();
 
@@ -26,6 +26,13 @@ export const Header: React.FC = () => {
   const isRtl = lang === 'ar';
   const currencyList = Object.entries(dynamicConfig.currencies);
   const currentCurrencyObj = dynamicConfig.currencies[currency] || dynamicConfig.currencies['USD'];
+
+  // Free shipping calculation
+  const freeShippingThresholdUSD = 15;
+  const isFreeShipping = cartTotalUSD >= freeShippingThresholdUSD;
+  const remainingForFreeShippingUSD = Math.max(0, freeShippingThresholdUSD - cartTotalUSD);
+  const remainingText = convertPrice(remainingForFreeShippingUSD).text;
+  const progressPercent = Math.min(100, Math.round((cartTotalUSD / freeShippingThresholdUSD) * 100));
 
   // Close currency dropdown when clicking outside
   useEffect(() => {
@@ -142,6 +149,42 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
+      {/* 1.5. FREE SHIPPING DYNAMIC ROYAL PROGRESS BAR (Clickable & Live Calculating) */}
+      {(sectionsControl?.freeShippingBar !== false) && (
+        <div 
+          onClick={() => navigateTo('cart')}
+          className="bg-gradient-to-r from-purple-50/90 via-white to-purple-50/90 border-b border-purple-100/70 py-1.5 px-3 sm:px-6 cursor-pointer hover:bg-purple-100/50 transition-all group select-none shadow-2xs"
+          title={lang === 'ar' ? 'انقري لعرض السلة وتفاصيل الشحن المجاني' : 'Click to view bag and free delivery status'}
+        >
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4 text-[11px] sm:text-xs">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-slate-800 font-bold min-w-0 flex-1 truncate">
+              <Truck className={`w-3.5 h-3.5 shrink-0 ${isFreeShipping ? 'text-emerald-600 animate-bounce' : 'text-[#5A3E7A]'}`} />
+              <span className="truncate">
+                {isFreeShipping 
+                  ? (lang === 'ar' ? '🎉 مبروك! لقد حصلتِ على الشحن المجاني الملكي لطلبكِ بالكامل!' : '🎉 Congratulations! You unlocked Royal Free Delivery!')
+                  : (lang === 'ar' ? `أنتِ على بعد ${remainingText} فقط من الشحن المجاني الملكي!` : `You are only ${remainingText} away from Royal Free Delivery!`)}
+              </span>
+            </div>
+
+            <div className="w-28 sm:w-56 flex items-center gap-2 shrink-0">
+              <div className="flex-1 bg-slate-200/90 h-2 rounded-full overflow-hidden p-0.5 shadow-inner">
+                <div 
+                  className={`h-full rounded-full transition-all duration-700 ease-out ${
+                    isFreeShipping 
+                      ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' 
+                      : 'bg-gradient-to-r from-[#5A3E7A] to-purple-400'
+                  }`}
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <span className="font-mono font-black text-[10px] sm:text-[11px] text-[#5A3E7A] shrink-0">
+                {progressPercent}%
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 2. MAIN NAVBAR WITH DUAL-SCRIPT LOGO & GUARANTEED MOBILE TOUCH TARGETS */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4">
         
@@ -233,6 +276,18 @@ export const Header: React.FC = () => {
           >
             {lang === 'ar' ? 'تتبع الشحنة' : 'Track Order'}
           </button>
+
+          {/* Comparison Matrix Link */}
+          {(sectionsControl?.compare !== false) && (
+            <button
+              onClick={() => openCompareModal()}
+              className="transition-colors hover:text-theme-primary py-1 flex items-center gap-1 text-slate-600 hover:text-[#5A3E7A]"
+              title={lang === 'ar' ? 'مقارنة المنتجات جنباً إلى جنب' : 'Compare Products'}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>{lang === 'ar' ? 'المقارنة' : 'Compare'}</span>
+            </button>
+          )}
         </nav>
 
         {/* Smart Auto-Adaptive Action Dock (Search, Wishlist, Cart, Login) */}
@@ -266,7 +321,7 @@ export const Header: React.FC = () => {
           >
             <Heart className={`w-5 h-5 ${wishlist.length > 0 ? 'text-rose-500 fill-rose-500' : 'text-slate-700'}`} />
             {wishlist.length > 0 && (
-              <span className="absolute top-0.5 end-0.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce shadow-xs">
+              <span className="absolute -top-1.5 -end-1.5 min-w-[20px] h-[20px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white shadow-md animate-bounce">
                 {wishlist.length}
               </span>
             )}
@@ -286,8 +341,8 @@ export const Header: React.FC = () => {
             <StoreCartIcon size="md" className="text-slate-800 transition-transform group-hover:scale-105" />
             {cartCount > 0 && (
               <span 
-                key={`cart-bounce-${cartCount}`} 
-                className="absolute top-0.5 end-0.5 min-w-[18px] h-4 px-1 bg-[#5A3E7A] text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce shadow-xs ring-1 ring-white"
+                key={`cart-badge-${cartCount}`} 
+                className="absolute -top-1.5 -end-1.5 min-w-[20px] h-[20px] px-1 bg-theme-primary text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white shadow-md animate-bounce"
               >
                 {cartCount}
               </span>
