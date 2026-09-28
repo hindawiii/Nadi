@@ -42,49 +42,26 @@ const AppContent: React.FC = () => {
       window.history.scrollRestoration = 'manual';
     }
 
-    // Respect deep link routes on reload, only reset internal section jumps
-    const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-    const isReload = navEntries.length > 0 && navEntries[0].type === 'reload';
-    const isLegacyReload = (window.performance as any)?.navigation?.type === 1;
-
-    const hash = window.location.hash.replace('#', '');
-    const pathname = window.location.pathname.replace(/^\//, '');
-    const currentPath = pathname || hash;
-
-    // Only clean section anchor scrolls so browser doesn't jerk mid-page
-    if (hash === 'products-section' || hash === 'categories-section' || hash === 'campaign-section') {
+    // Always clean hash on initial boot if it happens to be login or auth or section anchor
+    const rawHash = (window.location.hash || '').replace('#', '').trim();
+    if (rawHash === 'login' || rawHash === 'auth' || rawHash === 'products-section' || rawHash === 'categories-section' || rawHash === 'campaign-section') {
       try {
         window.history.replaceState(null, '', window.location.pathname || '/');
+        window.location.hash = '';
       } catch (_) {}
-      setCurrentRoute('store');
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      hasInitializedRef.current = true;
-      return;
     }
 
-    if ((isReload || isLegacyReload) && !currentPath) {
-      hasInitializedRef.current = true;
-      setCurrentRoute('store');
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      return;
-    }
+    // Always start at store home on load/reload/refresh so customer is never stuck on login
+    setCurrentRoute('store');
+    window.scrollTo({ top: 0, behavior: 'instant' });
     hasInitializedRef.current = true;
   }, []);
 
-  // Listen to both URL pathname and hash changes for universal deep linking (/admin, /developer, /about, /wishlist, /cart, /product/id)
+  // Listen to user URL hash/popstate changes for explicit navigation
   useEffect(() => {
     const handleLocationChange = () => {
-      // Check if page was just reloaded; if so, maintain homepage
-      const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-      const isReload = navEntries.length > 0 && navEntries[0].type === 'reload';
-      if (isReload && !hasInitializedRef.current) {
-        hasInitializedRef.current = true;
-        setCurrentRoute('store');
-        return;
-      }
-
-      const hash = window.location.hash.replace('#', '');
-      const pathname = window.location.pathname.replace(/^\//, '');
+      const hash = (window.location.hash || '').replace('#', '').trim();
+      const pathname = (window.location.pathname || '').replace(/^\//, '').trim();
       const route = pathname || hash;
 
       // Clean internal section anchors so refresh never jumps down to products
@@ -128,9 +105,14 @@ const AppContent: React.FC = () => {
       } else if (route === 'tracker') {
         setCurrentRoute('tracker');
       } else if (route === 'login' || route === 'auth') {
-        setCurrentRoute('login');
+        // Only set login if explicitly triggered and app has already completed initial mount
+        if (hasInitializedRef.current) {
+          setCurrentRoute('login');
+        } else {
+          setCurrentRoute('store');
+        }
       } else {
-        // Default everything else to store homepage without resetting scroll during active browsing
+        // Default everything else to store homepage
         if (prevRouteRef.current && prevRouteRef.current !== 'store' && !window.location.hash.startsWith('#product')) {
           window.scrollTo({ top: 0, behavior: 'instant' });
         }
@@ -139,14 +121,13 @@ const AppContent: React.FC = () => {
       prevRouteRef.current = route || 'store';
     };
 
-    handleLocationChange();
     window.addEventListener('hashchange', handleLocationChange);
     window.addEventListener('popstate', handleLocationChange);
     return () => {
       window.removeEventListener('hashchange', handleLocationChange);
       window.removeEventListener('popstate', handleLocationChange);
     };
-  }, []);
+  }, [activeData.products, hairStylingDevices, isDeveloperModeLocked, openProductPDP, setCurrentRoute]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-purple-600 selection:text-white flex flex-col justify-between overflow-x-hidden">
