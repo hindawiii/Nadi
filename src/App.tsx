@@ -42,21 +42,33 @@ const AppContent: React.FC = () => {
       window.history.scrollRestoration = 'manual';
     }
 
-    // Always reset to homepage ('store') on initial browser reload / refresh
+    // Respect deep link routes on reload, only reset internal section jumps
     const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
     const isReload = navEntries.length > 0 && navEntries[0].type === 'reload';
     const isLegacyReload = (window.performance as any)?.navigation?.type === 1;
 
-    if (isReload || isLegacyReload || !hasInitializedRef.current) {
-      hasInitializedRef.current = true;
+    const hash = window.location.hash.replace('#', '');
+    const pathname = window.location.pathname.replace(/^\//, '');
+    const currentPath = pathname || hash;
+
+    // Only clean section anchor scrolls so browser doesn't jerk mid-page
+    if (hash === 'products-section' || hash === 'categories-section' || hash === 'campaign-section') {
       try {
-        // Clean URL pathname and hash back to root homepage
-        window.history.replaceState(null, '', '/');
+        window.history.replaceState(null, '', window.location.pathname || '/');
       } catch (_) {}
+      setCurrentRoute('store');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      hasInitializedRef.current = true;
+      return;
+    }
+
+    if ((isReload || isLegacyReload) && !currentPath) {
+      hasInitializedRef.current = true;
       setCurrentRoute('store');
       window.scrollTo({ top: 0, behavior: 'instant' });
       return;
     }
+    hasInitializedRef.current = true;
   }, []);
 
   // Listen to both URL pathname and hash changes for universal deep linking (/admin, /developer, /about, /wishlist, /cart, /product/id)

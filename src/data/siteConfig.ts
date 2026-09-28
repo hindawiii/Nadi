@@ -214,9 +214,9 @@ export const siteConfig: SiteConfig = {
       ],
       contactInfo: {
         address: { ar: "أم درمان – شارع الوادي، السودان", en: "Omdurman - Al Wadi Street, Sudan" },
-        phone: "+249900776688",
+        phone: "+249900713251",
         email: "nadi.skincare@gmail.com",
-        whatsapp: "249900776688",
+        whatsapp: "249900713251",
       },
       aboutStory: {
         title: { ar: "قصّة نَدِي - NADI", en: "The NADI Story" },

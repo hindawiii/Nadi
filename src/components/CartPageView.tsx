@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Trash2, ArrowLeft, ArrowRight, ShieldCheck, 
   Truck, Tag, Check, AlertCircle, Sparkles, Plus, Minus, CreditCard, 
-  Banknote, PhoneCall 
+  Banknote, PhoneCall, Copy 
 } from 'lucide-react';
 import { StoreCartIcon } from './common/StoreCartIcon';
 import { useCommerce, OrderRecord } from '../context/CommerceContext';
@@ -33,8 +33,17 @@ export const CartPageView: React.FC = () => {
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bankak' | 'card'>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<'binance' | 'redotpay' | 'paypal' | 'bankak' | 'cashi' | 'bravo' | 'cod'>('binance');
   const [formErrors, setFormErrors] = useState<{ name?: string; phone?: string; address?: string }>({});
+
+  const handleCopyPaymentInfo = (textToCopy: string, label: string) => {
+    try {
+      navigator.clipboard.writeText(textToCopy);
+      showToast(lang === 'ar' ? `تم نسخ ${label} بنجاح!` : `${label} copied!`);
+    } catch {
+      showToast(`${label}: ${textToCopy}`);
+    }
+  };
 
   // Free shipping threshold: $15 USD
   const freeShippingThresholdUSD = 15;
@@ -118,7 +127,7 @@ export const CartPageView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/70 pb-20 pt-6">
+    <div className="min-h-screen bg-slate-50/70 pb-28 sm:pb-20 pt-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Breadcrumb */}
@@ -492,37 +501,233 @@ export const CartPageView: React.FC = () => {
                     {formErrors.address && <p className="text-[11px] text-rose-500">{formErrors.address}</p>}
                   </div>
 
-                  {/* Payment Method Selector */}
-                  <div className="space-y-2 pt-2">
-                    <label className="text-xs font-bold text-slate-700">
-                      {lang === 'ar' ? 'طريقة الدفع المفضلة:' : 'Payment Method:'}
+                  {/* Payment Method Selector - Clean, Direct, Global First then Sudan Wallets */}
+                  <div className="space-y-3 pt-2">
+                    <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                      <span>{lang === 'ar' ? 'طريقة الدفع:' : 'Payment Method:'}</span>
+                      <span className="text-[10px] text-slate-400 font-normal">
+                        {lang === 'ar' ? 'اختاري وسيلة الدفع المناسبة' : 'Choose your payment method'}
+                      </span>
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+
+                    {/* Direct Wallet Grid - Global Wallets First, followed by Sudan Wallets */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {/* 1. Binance Pay */}
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('binance')}
+                        className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all min-h-[58px] ${
+                          paymentMethod === 'binance' 
+                            ? 'border-[#F3BA2F] bg-amber-50/70 text-slate-900 shadow-xs ring-1 ring-[#F3BA2F]' 
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="w-5 h-5 rounded-full bg-[#F3BA2F] flex items-center justify-center text-slate-950 font-black text-[10px]">
+                          B
+                        </div>
+                        <span>Binance Pay</span>
+                      </button>
+
+                      {/* 2. RedotPay */}
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('redotpay')}
+                        className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all min-h-[58px] ${
+                          paymentMethod === 'redotpay' 
+                            ? 'border-rose-500 bg-rose-50/70 text-rose-950 shadow-xs ring-1 ring-rose-400' 
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="w-5 h-5 rounded-full bg-rose-600 flex items-center justify-center text-white font-black text-[10px]">
+                          R
+                        </div>
+                        <span>RedotPay</span>
+                      </button>
+
+                      {/* 3. PayPal */}
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('paypal')}
+                        className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all min-h-[58px] ${
+                          paymentMethod === 'paypal' 
+                            ? 'border-[#003087] bg-blue-50/70 text-blue-950 shadow-xs ring-1 ring-[#003087]' 
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="w-5 h-5 rounded-full bg-[#003087] flex items-center justify-center text-white font-black text-[10px]">
+                          P
+                        </div>
+                        <span>PayPal</span>
+                      </button>
+
+                      {/* 4. Bankak (بنكك) */}
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('bankak')}
+                        className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all min-h-[58px] ${
+                          paymentMethod === 'bankak' 
+                            ? 'border-[#006A4E] bg-emerald-50/70 text-emerald-950 shadow-xs ring-1 ring-[#006A4E]' 
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <CreditCard className="w-5 h-5 text-[#006A4E]" />
+                        <span>{lang === 'ar' ? 'بنكك' : 'Bankak'}</span>
+                      </button>
+
+                      {/* 5. My Cashi (ماي كاشي) */}
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('cashi')}
+                        className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all min-h-[58px] ${
+                          paymentMethod === 'cashi' 
+                            ? 'border-[#5A3E7A] bg-purple-50 text-[#5A3E7A] shadow-xs ring-1 ring-[#5A3E7A]' 
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="w-5 h-5 rounded-full bg-[#5A3E7A] flex items-center justify-center text-white font-black text-[10px]">
+                          C
+                        </div>
+                        <span>{lang === 'ar' ? 'ماي كاشي' : 'My Cashi'}</span>
+                      </button>
+
+                      {/* 6. Bravo (برافو) */}
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('bravo')}
+                        className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all min-h-[58px] ${
+                          paymentMethod === 'bravo' 
+                            ? 'border-indigo-600 bg-indigo-50/70 text-indigo-950 shadow-xs ring-1 ring-indigo-500' 
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-white font-black text-[10px]">
+                          ★
+                        </div>
+                        <span>{lang === 'ar' ? 'برافو' : 'Bravo'}</span>
+                      </button>
+
+                      {/* 7. Cash On Delivery */}
                       <button
                         type="button"
                         onClick={() => setPaymentMethod('cod')}
-                        className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all min-h-[56px] ${paymentMethod === 'cod' ? 'border-[#5A3E7A] bg-purple-50 text-[#5A3E7A] shadow-xs' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                        className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all min-h-[58px] col-span-2 sm:col-span-3 ${
+                          paymentMethod === 'cod' 
+                            ? 'border-slate-800 bg-slate-900 text-white shadow-xs' 
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
                       >
                         <Banknote className="w-5 h-5" />
                         <span>{lang === 'ar' ? 'دفع عند الاستلام' : 'Cash on Delivery'}</span>
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('bankak')}
-                        className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all min-h-[56px] ${paymentMethod === 'bankak' ? 'border-[#5A3E7A] bg-purple-50 text-[#5A3E7A] shadow-xs' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
-                      >
-                        <CreditCard className="w-5 h-5" />
-                        <span>{lang === 'ar' ? 'بنكك / تحويل فوري' : 'Bankak Transfer'}</span>
-                      </button>
                     </div>
                   </div>
 
+                  {/* Payment Details Drawer with One-Click Copy */}
+                  {paymentMethod === 'binance' && (
+                    <div className="p-3.5 bg-amber-50/90 rounded-2xl border border-amber-200 text-[11px] text-amber-950 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold">Binance Pay ID:</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPaymentInfo('829104432', 'Binance Pay ID')}
+                          className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                        </button>
+                      </div>
+                      <p className="font-mono font-black text-sm text-slate-900 tracking-wider">829104432 (USDT / Pay)</p>
+                      <p className="text-amber-800/90">{lang === 'ar' ? 'يرجى إرسال إشعار العملية عبر الواتساب لتأكيد الشحن فوراً.' : 'Please send the transaction screenshot to WhatsApp to confirm.'}</p>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'redotpay' && (
+                    <div className="p-3.5 bg-rose-50/90 rounded-2xl border border-rose-200 text-[11px] text-rose-950 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold">RedotPay ID:</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPaymentInfo('19482015', 'RedotPay ID')}
+                          className="px-2.5 py-1 bg-rose-200 hover:bg-rose-300 text-rose-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                        </button>
+                      </div>
+                      <p className="font-mono font-black text-sm text-slate-900 tracking-wider">19482015</p>
+                      <p className="text-rose-800/90">{lang === 'ar' ? 'تحويل فوري بدون رسوم بين حسابات RedotPay.' : 'Instant zero-fee transfer between RedotPay accounts.'}</p>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'paypal' && (
+                    <div className="p-3.5 bg-blue-50/90 rounded-2xl border border-blue-200 text-[11px] text-blue-950 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold">PayPal Account:</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPaymentInfo('nadi.skincare@gmail.com', 'PayPal Email')}
+                          className="px-2.5 py-1 bg-blue-200 hover:bg-blue-300 text-blue-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                        </button>
+                      </div>
+                      <p className="font-mono font-black text-xs text-slate-900">nadi.skincare@gmail.com</p>
+                      <p className="text-blue-800/90">{lang === 'ar' ? 'دفع عالمي آمن ومحمي مع تأكيد عبر الواتساب.' : 'Secure global payment with WhatsApp confirmation.'}</p>
+                    </div>
+                  )}
+
                   {paymentMethod === 'bankak' && (
-                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 space-y-1">
-                      <p className="font-bold">{lang === 'ar' ? `حساب بنكك المعتمد لـ ${activeData.storeName.ar}:` : `Bankak Account Details (${activeData.storeName.en}):`}</p>
-                      <p className="font-mono font-black text-xs text-slate-900">2891044 ({activeData.storeName.ar} للتجارة)</p>
-                      <p>{lang === 'ar' ? 'يرجى إرسال الإشعار لمندوب التوصيل أو عبر الواتساب فور إتمام الطلب.' : 'Please send the transfer receipt to our WhatsApp after placing.'}</p>
+                    <div className="p-3.5 bg-emerald-50/90 rounded-2xl border border-emerald-200 text-[11px] text-emerald-950 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold">{lang === 'ar' ? 'رقم حساب بنكك المعتمد:' : 'Bankak Account Number:'}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPaymentInfo('2891044', 'رقم حساب بنكك')}
+                          className="px-2.5 py-1 bg-emerald-200 hover:bg-emerald-300 text-emerald-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                        </button>
+                      </div>
+                      <p className="font-mono font-black text-sm text-slate-900 tracking-wider">2891044 ({activeData.storeName.ar})</p>
+                      <p className="text-emerald-800/90">{lang === 'ar' ? 'يرجى إرسال إشعار التحويل عبر الواتساب لتأكيد الطلب فوراً.' : 'Please send the transfer receipt to our WhatsApp after placing.'}</p>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'cashi' && (
+                    <div className="p-3.5 bg-purple-50/90 rounded-2xl border border-purple-200 text-[11px] text-purple-950 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold">{lang === 'ar' ? 'رقم محفظة ماي كاشي:' : 'My Cashi Wallet Number:'}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPaymentInfo('07040 2787 05198', 'رقم محفظة ماي كاشي')}
+                          className="px-2.5 py-1 bg-purple-200 hover:bg-purple-300 text-[#5A3E7A] font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                        </button>
+                      </div>
+                      <p className="font-mono font-black text-sm text-slate-900 tracking-wider">07040 2787 05198</p>
+                      <p className="text-purple-800/90">{lang === 'ar' ? 'تحويل فوري عبر تطبيق ماي كاشي مع إرفاق الإشعار عبر الواتساب.' : 'Instant transfer via My Cashi with receipt via WhatsApp.'}</p>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'bravo' && (
+                    <div className="p-3.5 bg-indigo-50/90 rounded-2xl border border-indigo-200 text-[11px] text-indigo-950 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold">{lang === 'ar' ? 'رقم محفظة برافو:' : 'Bravo Wallet ID:'}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPaymentInfo('249900713251', 'رقم محفظة برافو')}
+                          className="px-2.5 py-1 bg-indigo-200 hover:bg-indigo-300 text-indigo-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                        </button>
+                      </div>
+                      <p className="font-mono font-black text-sm text-slate-900 tracking-wider">0900713251</p>
+                      <p className="text-indigo-800/90">{lang === 'ar' ? 'دفع سريع ومباشر عبر تطبيق برافو السودان.' : 'Quick transfer via Bravo Sudan.'}</p>
                     </div>
                   )}
 

@@ -240,47 +240,63 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ======================================================== */}
-        {/* SMART MERGE: Global & Local Certified Payment Gateways    */}
+        {/* PAYMENT BADGES: Global First, then Sudan Wallets          */}
         {/* ======================================================== */}
         <div className="py-6 border-y border-white/10 space-y-3 text-center">
           <p className="text-xs font-bold text-purple-200 tracking-wider">
-            {lang === 'ar' ? 'طرق الدفع والتسوق الآمن المعتمدة عالمياً ومحلياً' : 'Certified Secure Payment Methods'}
+            {lang === 'ar' ? 'طرق الدفع والتسوق الآمن المعتمدة' : 'Certified Secure Payment Methods'}
           </p>
           
           <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
-            {/* Visa */}
-            <div className="h-9 px-3.5 rounded-xl bg-white text-[#1A1F71] font-black text-xs flex items-center justify-center shadow-xs border border-slate-200">
-              <span className="italic tracking-tighter text-sm">VISA</span>
+            {/* Binance Pay */}
+            <div className="h-9 px-3 rounded-xl bg-white text-slate-900 font-extrabold text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
+              <span className="w-3.5 h-3.5 rounded-full bg-[#F3BA2F] text-slate-950 font-black text-[9px] flex items-center justify-center">B</span>
+              <span className="text-[11px] font-black">Binance Pay</span>
             </div>
 
-            {/* MasterCard */}
-            <div className="h-9 px-3.5 rounded-xl bg-white text-slate-800 font-bold text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
-              <div className="flex -space-x-2">
-                <span className="w-4 h-4 rounded-full bg-[#EB001B] inline-block opacity-90" />
-                <span className="w-4 h-4 rounded-full bg-[#F79E1B] inline-block opacity-90" />
-              </div>
-              <span className="text-[11px] font-extrabold tracking-tight">Mastercard</span>
+            {/* RedotPay */}
+            <div className="h-9 px-3 rounded-xl bg-white text-rose-600 font-extrabold text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
+              <span className="w-3.5 h-3.5 rounded-full bg-rose-600 text-white font-black text-[9px] flex items-center justify-center">R</span>
+              <span className="text-[11px] font-black">RedotPay</span>
+            </div>
+
+            {/* PayPal */}
+            <div className="h-9 px-3 rounded-xl bg-white text-[#003087] font-black text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
+              <span className="w-3.5 h-3.5 rounded-full bg-[#003087] text-white font-black text-[9px] flex items-center justify-center">P</span>
+              <span className="text-[11px] font-black italic">PayPal</span>
+            </div>
+
+            {/* Visa */}
+            <div className="h-9 px-3 rounded-xl bg-white text-[#1A1F71] font-black text-xs flex items-center justify-center shadow-xs border border-slate-200">
+              <span className="italic tracking-tighter text-sm font-black">VISA</span>
             </div>
 
             {/* Apple Pay */}
-            <div className="h-9 px-3.5 rounded-xl bg-white text-slate-900 font-bold text-xs flex items-center gap-1 shadow-xs border border-slate-200">
+            <div className="h-9 px-3 rounded-xl bg-white text-slate-900 font-bold text-xs flex items-center gap-1 shadow-xs border border-slate-200">
               <span className="text-xs"></span>
               <span className="text-[11px] font-extrabold">Pay</span>
             </div>
 
-            {/* Mada */}
-            <div className="h-9 px-3.5 rounded-xl bg-white text-[#007A3D] font-black text-xs flex items-center justify-center shadow-xs border border-slate-200">
-              <span className="text-[11px] font-extrabold tracking-wider">mada | مدى</span>
+            {/* Bankak (بنكك) */}
+            <div className="h-9 px-3 rounded-xl bg-white text-[#006A4E] font-black text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
+              <Wallet className="w-3.5 h-3.5 text-[#006A4E]" />
+              <span className="text-[11px] font-extrabold">بنكك</span>
             </div>
 
-            {/* Bankak (بنكك - بنك الخرطوم) */}
-            <div className="h-9 px-3.5 rounded-xl bg-white text-[#006A4E] font-black text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
-              <Wallet className="w-3.5 h-3.5 text-[#006A4E]" />
-              <span className="text-[11px] font-extrabold">بنكك (Bankak)</span>
+            {/* My Cashi (ماي كاشي) */}
+            <div className="h-9 px-3 rounded-xl bg-white text-[#5A3E7A] font-black text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
+              <span className="w-3.5 h-3.5 rounded-full bg-[#5A3E7A] text-white font-black text-[9px] flex items-center justify-center">C</span>
+              <span className="text-[11px] font-extrabold">ماي كاشي</span>
+            </div>
+
+            {/* Bravo (برافو) */}
+            <div className="h-9 px-3 rounded-xl bg-white text-indigo-700 font-black text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
+              <span className="w-3.5 h-3.5 rounded-full bg-indigo-600 text-white font-black text-[9px] flex items-center justify-center">★</span>
+              <span className="text-[11px] font-extrabold">برافو</span>
             </div>
 
             {/* Cash on Delivery (COD) */}
-            <div className="h-9 px-3.5 rounded-xl bg-white text-slate-800 font-black text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
+            <div className="h-9 px-3 rounded-xl bg-white text-slate-800 font-black text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
               <Truck className="w-3.5 h-3.5 text-amber-600" />
               <span className="text-[11px] font-extrabold">
                 {lang === 'ar' ? 'الدفع عند الاستلام' : 'Cash On Delivery'}

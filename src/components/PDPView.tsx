@@ -262,7 +262,7 @@ export const PDPView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-6 sm:py-10">
+    <div className="min-h-screen bg-slate-50 py-6 sm:py-10 pb-28 sm:pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         
         {/* Breadcrumb & Navigation */}
