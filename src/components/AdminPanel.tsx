@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Lock, KeyRound, CheckCircle, Package, DollarSign, 
   TrendingUp, AlertTriangle, ArrowLeft, ArrowRight, 
   LogOut, Edit, RefreshCw, Image as ImageIcon, Sparkles, Check,
   Sliders, FileText, ShoppingBag, Plus, Trash2, Layers,
-  Phone, Mail, MapPin, Eye, ExternalLink, MessageCircle
+  Phone, Mail, MapPin, Eye, ExternalLink, MessageCircle,
+  Upload, Wand2, X
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
@@ -33,6 +34,14 @@ export const AdminPanel: React.FC = () => {
   const [newProdStock, setNewProdStock] = useState(15);
   const [newProdImage, setNewProdImage] = useState('');
   const [newProdBadge, setNewProdBadge] = useState('جديد 🌟');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // Hidden file inputs for direct device upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const heroFileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTargetProductIdForGallery, setActiveTargetProductIdForGallery] = useState<string | null>(null);
 
   // If not authenticated, display PIN security gate (Default PIN: 2026)
   if (!isAdminAuthenticated) {
@@ -157,6 +166,164 @@ export const AdminPanel: React.FC = () => {
       return clone;
     });
     showToast(lang === 'ar' ? 'تم تحديث السعر الأساسي' : 'Base price updated');
+  };
+
+  // Image File Reader helper to convert uploaded File to Data URL
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      // Check file size (limit to 4MB for high resolution and fast browser persistence)
+      if (file.size > 4 * 1024 * 1024) {
+        reject(new Error(lang === 'ar' ? 'حجم الصورة كبير جداً، يرجى اختيار صورة أقل من 4 ميجابايت' : 'Image is too large. Please select a file under 4MB.'));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Handle direct file upload for new product primary image
+  const handlePrimaryFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+      const dataUrl = await readFileAsDataURL(file);
+      setNewProdImage(dataUrl);
+      showToast(lang === 'ar' ? 'تم رفع ومعاينة صورة المنتج بنجاح!' : 'Product image uploaded successfully!');
+    } catch (err: any) {
+      alert(err.message || 'Error reading image file');
+    } finally {
+      setIsUploadingImage(false);
+      // Reset input value so same file can be re-selected if desired
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Handle direct file upload for gallery of an existing product
+  const handleGalleryFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeTargetProductIdForGallery) return;
+
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      setDynamicConfig(prev => {
+        const clone = JSON.parse(JSON.stringify(prev));
+        const target = clone.presets[activePresetId].products.find((p: any) => p.id === activeTargetProductIdForGallery);
+        if (target) {
+          if (!target.images) target.images = [];
+          target.images.push(dataUrl);
+        }
+        try {
+          localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+        } catch (err) {}
+        return clone;
+      });
+      showToast(lang === 'ar' ? 'تم رفع الصورة وإضافتها لمعرض المنتج!' : 'Image uploaded to product gallery!');
+    } catch (err: any) {
+      alert(err.message || 'Error reading image file');
+    } finally {
+      setActiveTargetProductIdForGallery(null);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Handle direct file upload for Logo
+  const handleLogoFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      updateField('storeLogo', dataUrl);
+      showToast(lang === 'ar' ? 'تم رفع وتطبيق شعار المتجر بنجاح!' : 'Store logo uploaded successfully!');
+    } catch (err: any) {
+      alert(err.message || 'Error reading image file');
+    } finally {
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Handle direct file upload for Hero Main Image
+  const handleHeroFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      updateField('heroImage', dataUrl);
+      showToast(lang === 'ar' ? 'تم رفع وتطبيق صورة الهيرو الرئيسية بنجاح!' : 'Hero image uploaded successfully!');
+    } catch (err: any) {
+      alert(err.message || 'Error reading image file');
+    } finally {
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Smart Product Auto-Complete AI Generator
+  const handleSmartAutoFill = () => {
+    if (!newProdNameAr.trim() && !newProdNameEn.trim()) {
+      showToast(lang === 'ar' ? 'اكتب اسم المنتج أو كلمتين عنه أولاً لتوليد البيانات الذكية!' : 'Enter a product name first to generate smart details!');
+      return;
+    }
+
+    const inputName = newProdNameAr.trim() || newProdNameEn.trim();
+    const lower = inputName.toLowerCase();
+
+    let suggestedCatAr = 'العناية بالبشرة';
+    let suggestedCatEn = 'Skincare';
+    let suggestedNameEn = 'Botanical Luxury Formulation';
+    let suggestedPrice = 24.5;
+    let suggestedBadge = 'الأكثر طلباً 🔥';
+    let sampleImage = 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80';
+
+    if (lower.includes('سيروم') || lower.includes('serum') || lower.includes('فيتامين') || lower.includes('نضارة')) {
+      suggestedCatAr = 'سيرومات النضارة';
+      suggestedCatEn = 'Radiance Serums';
+      suggestedNameEn = 'Intensive Glow Vitamin Serum';
+      suggestedPrice = 28.0;
+      suggestedBadge = 'طبيعي 100% 🌿';
+      sampleImage = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80';
+    } else if (lower.includes('كريم') || lower.includes('cream') || lower.includes('ترطيب') || lower.includes('مرطب')) {
+      suggestedCatAr = 'كريمات الترطيب الفاخرة';
+      suggestedCatEn = 'Hydration Creams';
+      suggestedNameEn = '24H Deep Velvet Moisture Cream';
+      suggestedPrice = 22.0;
+      suggestedBadge = 'ترطيب عميق 💧';
+      sampleImage = 'https://images.unsplash.com/photo-1608248597359-25b82877fb18?auto=format&fit=crop&w=800&q=80';
+    } else if (lower.includes('شعر') || lower.includes('hair') || lower.includes('زيت') || lower.includes('استشوار') || lower.includes('كلارا') || lower.includes('أوكيما')) {
+      suggestedCatAr = 'أجهزة وعناية الشعر';
+      suggestedCatEn = 'Hair Styling & Care';
+      suggestedNameEn = 'Salon Pro Thermal Styler';
+      suggestedPrice = 45.0;
+      suggestedBadge = 'ضمان سنتين ⚡';
+      sampleImage = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80';
+    } else if (lower.includes('غسول') || lower.includes('منظف') || lower.includes('cleanser')) {
+      suggestedCatAr = 'غسول ومنظفات البشرة';
+      suggestedCatEn = 'Gentle Cleansers';
+      suggestedNameEn = 'Purifying Botanical Gel Cleanser';
+      suggestedPrice = 16.5;
+      suggestedBadge = 'رغوة ناعمة ✨';
+      sampleImage = 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80';
+    } else if (lower.includes('عطر') || lower.includes('perfume') || lower.includes('مسك') || lower.includes('عود')) {
+      suggestedCatAr = 'العطور والروائح الملكية';
+      suggestedCatEn = 'Royal Perfumes & Mists';
+      suggestedNameEn = 'Royal Amber & Floral Mist';
+      suggestedPrice = 39.0;
+      suggestedBadge = 'ثبات عالي 🌸';
+      sampleImage = 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=800&q=80';
+    }
+
+    if (!newProdCatAr) setNewProdCatAr(suggestedCatAr);
+    if (!newProdCatEn) setNewProdCatEn(suggestedCatEn);
+    if (!newProdNameEn) setNewProdNameEn(suggestedNameEn);
+    if (newProdPrice === 10) setNewProdPrice(suggestedPrice);
+    if (newProdBadge === 'جديد 🌟') setNewProdBadge(suggestedBadge);
+    if (!newProdImage) setNewProdImage(sampleImage);
+
+    showToast(lang === 'ar' ? '✨ تم ملء بيانات المنتج وتنسيقها واقتراح الصورة والأسعار بذكاء!' : '✨ Smart AI auto-completed product details & imagery!');
   };
 
   // Add Product to Store
@@ -721,18 +888,37 @@ export const AdminPanel: React.FC = () => {
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">
-                    {lang === 'ar' ? 'رابط صورة واجهة الهيرو الكبيرة (Hero Image URL):' : 'Hero Main Image URL:'}
-                  </label>
-                  <div className="flex gap-2">
+                <div className="md:col-span-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-700 block">
+                      {lang === 'ar' ? 'صورة واجهة الهيرو الكبيرة (رفع مباشر أو رابط):' : 'Hero Main Image (Upload or URL):'}
+                    </label>
+                    <span className="text-[10px] text-slate-400">
+                      {lang === 'ar' ? 'JPG, PNG, WEBP حتى 4MB' : 'JPG, PNG, WEBP up to 4MB'}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => heroFileInputRef.current?.click()}
+                      className="w-full sm:w-auto px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shrink-0 transition-colors"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{lang === 'ar' ? 'رفع صورة من جهازك' : 'Upload File'}</span>
+                    </button>
+
                     <input
                       type="url"
                       value={activePreset.heroImage || ''}
                       onChange={(e) => updateField('heroImage', e.target.value)}
-                      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 font-mono"
+                      placeholder="https://... or data:image/..."
+                      className="flex-1 w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 font-mono"
                     />
-                    <img src={activePreset.heroImage} alt="Hero" className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0" />
+
+                    {activePreset.heroImage && (
+                      <img src={activePreset.heroImage} alt="Hero Preview" className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0 shadow-sm" />
+                    )}
                   </div>
                 </div>
               </div>
@@ -825,23 +1011,45 @@ export const AdminPanel: React.FC = () => {
 
               {/* Add Product Modal Drawer */}
               {isAddingProduct && (
-                <div className="p-6 bg-slate-50 rounded-2xl border-2 border-emerald-500/30 space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                    <h3 className="font-extrabold text-sm text-slate-900">
-                      {lang === 'ar' ? 'بيانات المنتج الجديد' : 'New Product Details'}
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingProduct(false)}
-                      className="text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
-                    >
-                      {lang === 'ar' ? 'إلغاء' : 'Cancel'}
-                    </button>
+                <div className="p-6 bg-slate-50 rounded-2xl border-2 border-emerald-500/40 shadow-lg space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                    <div>
+                      <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                        <ShoppingBag className="w-5 h-5 text-emerald-600" />
+                        <span>{lang === 'ar' ? 'إضافة منتج جديد للمتجر' : 'Add New Storefront Product'}</span>
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {lang === 'ar' 
+                          ? 'يمكنك كتابة اسم المنتج واستخدام التوليد الذكي لملء البيانات، ورفع الصورة مباشرة من هاتفك أو جهازك.' 
+                          : 'Enter product name, use Smart Auto-Fill for instant details, and upload image directly from your device.'}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSmartAutoFill}
+                        className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-all active:scale-95"
+                        title={lang === 'ar' ? 'توليد تلقائي للوصف، التصنيف، السعر، واقتراح صورة احترافية' : 'Auto-generate category, price, description and photo'}
+                      >
+                        <Wand2 className="w-3.5 h-3.5" />
+                        <span>{lang === 'ar' ? 'توليد البيانات بذكاء (AI Auto-Fill)' : 'Smart Auto-Fill'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingProduct(false)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
+                        title={lang === 'ar' ? 'إغلاق' : 'Close'}
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
 
                   <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
                         {lang === 'ar' ? 'اسم المنتج بالعربية *' : 'Product Name (Arabic) *'}
                       </label>
                       <input
@@ -849,66 +1057,66 @@ export const AdminPanel: React.FC = () => {
                         required
                         value={newProdNameAr}
                         onChange={(e) => setNewProdNameAr(e.target.value)}
-                        placeholder="مثال: سيروم الورد المركز"
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                        placeholder={lang === 'ar' ? 'مثال: سيروم فيتامين سي فائق النضارة' : 'e.g. Pure Vitamin C Radiant Serum'}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
                         {lang === 'ar' ? 'اسم المنتج بالإنجليزية:' : 'Product Name (English):'}
                       </label>
                       <input
                         type="text"
                         value={newProdNameEn}
                         onChange={(e) => setNewProdNameEn(e.target.value)}
-                        placeholder="e.g. Concentrated Rose Serum"
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                        placeholder="e.g. Ultra Radiant Vitamin C Serum"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
                         {lang === 'ar' ? 'التصنيف (عربي):' : 'Category (Arabic):'}
                       </label>
                       <input
                         type="text"
                         value={newProdCatAr}
                         onChange={(e) => setNewProdCatAr(e.target.value)}
-                        placeholder="العناية بالبشرة"
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                        placeholder={lang === 'ar' ? 'سيرومات النضارة / العناية بالبشرة' : 'Skincare'}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                        {lang === 'ar' ? 'شارة الخصم أو التميز:' : 'Badge Text:'}
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                        {lang === 'ar' ? 'التصنيف (إنجليزي):' : 'Category (English):'}
                       </label>
                       <input
                         type="text"
-                        value={newProdBadge}
-                        onChange={(e) => setNewProdBadge(e.target.value)}
-                        placeholder="جديد 🌟"
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
+                        value={newProdCatEn}
+                        onChange={(e) => setNewProdCatEn(e.target.value)}
+                        placeholder="Radiance Serums / Skincare"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                        {lang === 'ar' ? 'السعر بالدولار ($ USD):' : 'Price ($ USD):'}
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                        {lang === 'ar' ? 'السعر الأساسي بالدولار ($ USD):' : 'Base Price ($ USD):'}
                       </label>
                       <input
                         type="number"
                         step="0.5"
-                        min="1"
+                        min="0.5"
                         value={newProdPrice}
                         onChange={(e) => setNewProdPrice(parseFloat(e.target.value) || 1)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
                         {lang === 'ar' ? 'كمية المخزون الأولي:' : 'Initial Stock:'}
                       </label>
                       <input
@@ -916,29 +1124,104 @@ export const AdminPanel: React.FC = () => {
                         min="0"
                         value={newProdStock}
                         onChange={(e) => setNewProdStock(parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
-                    <div className="md:col-span-2">
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                        {lang === 'ar' ? 'رابط الصورة الأساسية للمنتج (Image URL):' : 'Primary Image URL:'}
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                        {lang === 'ar' ? 'شارة الخصم أو التميز:' : 'Badge Text:'}
                       </label>
                       <input
-                        type="url"
-                        value={newProdImage}
-                        onChange={(e) => setNewProdImage(e.target.value)}
-                        placeholder="https://images.unsplash.com/..."
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 font-mono"
+                        type="text"
+                        value={newProdBadge}
+                        onChange={(e) => setNewProdBadge(e.target.value)}
+                        placeholder="جديد 🌟 / الأكثر طلباً 🔥"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
-                    <div className="md:col-span-2 flex justify-end gap-2 pt-2">
+                    {/* Dual Image Input: Direct File Upload or Image URL */}
+                    <div className="md:col-span-2 p-4 bg-white rounded-2xl border border-slate-200 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                          <ImageIcon className="w-4 h-4 text-emerald-600" />
+                          <span>{lang === 'ar' ? 'صورة المنتج الأساسية (رفع مباشر أو رابط):' : 'Primary Product Image (Upload or URL):'}</span>
+                        </label>
+                        <span className="text-[11px] text-slate-400">
+                          {lang === 'ar' ? 'تدعم: JPG, PNG, WEBP حتى 4MB' : 'Supports JPG, PNG, WEBP up to 4MB'}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-center gap-3">
+                        {/* Direct Upload Button */}
+                        <input 
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handlePrimaryFileSelect}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full sm:w-auto px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shrink-0"
+                        >
+                          <Upload className="w-4 h-4" />
+                          <span>{lang === 'ar' ? 'رفع صورة من جهازك / هاتفك' : 'Upload from Device'}</span>
+                        </button>
+
+                        <span className="text-xs text-slate-400 font-bold">{lang === 'ar' ? 'أو ضع رابط:' : 'or paste URL:'}</span>
+
+                        {/* URL Input */}
+                        <input
+                          type="url"
+                          value={newProdImage}
+                          onChange={(e) => setNewProdImage(e.target.value)}
+                          placeholder="https://images.unsplash.com/... or data:image/..."
+                          className="flex-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+
+                      {/* Live Image Preview */}
+                      {newProdImage && (
+                        <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+                          <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
+                            <img src={newProdImage} alt="Preview" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-800 flex items-center gap-1 text-emerald-600">
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              <span>{lang === 'ar' ? 'تم تجهيز الصورة بنجاح وتعمل في المعاينة الحية' : 'Image ready and active in preview'}</span>
+                            </p>
+                            <p className="text-[10px] text-slate-400 truncate font-mono mt-0.5">
+                              {newProdImage.startsWith('data:') ? 'Image uploaded from your local file system' : newProdImage}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setNewProdImage('')}
+                            className="text-xs text-rose-500 hover:text-rose-700 font-bold cursor-pointer"
+                          >
+                            {lang === 'ar' ? 'إزالة' : 'Remove'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2 flex justify-end gap-2.5 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingProduct(false)}
+                        className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer transition-colors"
+                      >
+                        {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+                      </button>
                       <button
                         type="submit"
-                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-md"
+                        className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-md transition-all active:scale-95"
                       >
-                        {lang === 'ar' ? 'حفظ وإضافة المنتج للمتجر' : 'Save & Publish Product'}
+                        {lang === 'ar' ? 'حفظ وإضافة المنتج للمتجر فوراً ✨' : 'Publish Product to Store ✨'}
                       </button>
                     </div>
                   </form>
@@ -986,14 +1269,29 @@ export const AdminPanel: React.FC = () => {
                               )}
                             </div>
                           ))}
+                          {/* Direct Gallery Upload Trigger */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTargetProductIdForGallery(p.id);
+                              galleryFileInputRef.current?.click();
+                            }}
+                            className="w-14 h-14 rounded-xl border border-dashed border-emerald-400 hover:border-emerald-600 bg-emerald-50 text-emerald-800 flex flex-col items-center justify-center text-[10px] font-bold cursor-pointer transition-colors"
+                            title={lang === 'ar' ? 'رفع صورة من جهازك لهذا المنتج' : 'Upload photo from device'}
+                          >
+                            <Upload className="w-3.5 h-3.5 mb-0.5" />
+                            <span>{lang === 'ar' ? 'رفع' : 'Upload'}</span>
+                          </button>
+
+                          {/* URL Gallery Add Trigger */}
                           <button
                             type="button"
                             onClick={() => handleAddProductImage(p.id)}
                             className="w-14 h-14 rounded-xl border border-dashed border-purple-300 hover:border-[#5A3E7A] bg-purple-50 text-purple-700 flex flex-col items-center justify-center text-[10px] font-bold cursor-pointer transition-colors"
-                            title={lang === 'ar' ? 'إضافة صورة للمنتج' : 'Add photo'}
+                            title={lang === 'ar' ? 'إضافة صورة للمنتج عبر رابط URL' : 'Add photo via URL'}
                           >
-                            <Plus className="w-4 h-4 mb-0.5" />
-                            <span>{lang === 'ar' ? 'إضافة' : 'Add'}</span>
+                            <Plus className="w-3.5 h-3.5 mb-0.5" />
+                            <span>{lang === 'ar' ? 'رابط' : 'URL'}</span>
                           </button>
                         </div>
                       </div>
@@ -1109,11 +1407,11 @@ export const AdminPanel: React.FC = () => {
               </div>
             </div>
 
-            {/* Logo Image URL */}
+            {/* Logo Image URL & Direct Upload */}
             <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-700 block">
-                  {lang === 'ar' ? 'رابط صورة الشعار (Logo Image URL):' : 'Store Logo Image URL:'}
+                  {lang === 'ar' ? 'شعار المتجر (رفع مباشر أو رابط URL):' : 'Store Logo (Upload or URL):'}
                 </label>
                 {activePreset.storeLogo && (
                   <button
@@ -1128,17 +1426,36 @@ export const AdminPanel: React.FC = () => {
                   </button>
                 )}
               </div>
-              <input
-                type="url"
-                placeholder="https://... (Leave blank for text-only luxury mode)"
-                value={activePreset.storeLogo || ''}
-                onChange={(e) => updateField('storeLogo', e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 font-mono"
-              />
+
+              <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => logoFileInputRef.current?.click()}
+                  className="w-full sm:w-auto px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shrink-0 transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'رفع الشعار من جهازك' : 'Upload Logo File'}</span>
+                </button>
+
+                <input
+                  type="url"
+                  placeholder="https://... (Leave blank for text-only luxury mode)"
+                  value={activePreset.storeLogo || ''}
+                  onChange={(e) => updateField('storeLogo', e.target.value)}
+                  className="flex-1 w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 font-mono"
+                />
+
+                {activePreset.storeLogo && (
+                  <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-1 shrink-0 shadow-sm">
+                    <img src={activePreset.storeLogo} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
+                  </div>
+                )}
+              </div>
+
               <p className="text-[11px] text-slate-500">
                 {lang === 'ar'
-                  ? 'إذا تركت الحقل فارغاً، يظهر الاسم النصي المتناسق. وإذا وضعت رابط صورة، سيتم عرضها كشعار فوري.'
-                  : 'Leaving this blank shows high-contrast geometric text. Adding an image URL displays it automatically.'}
+                  ? 'إذا تركت الحقل فارغاً، يظهر الاسم النصي المتناسق. وإذا قمت برفع أو لصق صورة، ستعرض كشعار المتجر الرسمي فوراً.'
+                  : 'Leaving blank shows clean geometric text typography. Uploading an image displays it as official brand logo.'}
               </p>
             </div>
 
@@ -1214,6 +1531,33 @@ export const AdminPanel: React.FC = () => {
         )}
 
       </div>
+
+      {/* Hidden Global Gallery File Input for Direct Product Upload */}
+      <input 
+        type="file"
+        ref={galleryFileInputRef}
+        onChange={handleGalleryFileSelect}
+        accept="image/*"
+        className="hidden"
+      />
+
+      {/* Hidden File Input for Store Logo Upload */}
+      <input 
+        type="file"
+        ref={logoFileInputRef}
+        onChange={handleLogoFileSelect}
+        accept="image/*"
+        className="hidden"
+      />
+
+      {/* Hidden File Input for Hero Main Image Upload */}
+      <input 
+        type="file"
+        ref={heroFileInputRef}
+        onChange={handleHeroFileSelect}
+        accept="image/*"
+        className="hidden"
+      />
     </div>
   );
 };
