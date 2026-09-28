@@ -41,7 +41,7 @@ export interface Product {
 }
 
 export interface CurrencyConfig {
-  symbol: string;
+  symbol: string | { ar: string; en: string };
   name: string;
   rate: number;
   country: string;
@@ -55,11 +55,44 @@ export interface PresetNiche {
   storeLogo?: string;
   storeSlogan: { ar: string; en: string };
   topAnnouncement: { ar: string; en: string };
+  announcementSlides?: { ar: string; en: string }[];
+  brandTickerItems?: {
+    brandAr: string;
+    brandEn: string;
+    sloganAr: string;
+    sloganEn: string;
+    tagAr: string;
+    tagEn: string;
+  }[];
   heroTitle: { ar: string; en: string };
   heroSubtitle: { ar: string; en: string };
   heroCtaPrimary: { ar: string; en: string };
   heroCtaSecondary: { ar: string; en: string };
   heroImage: string;
+  promoBanner?: {
+    badge: { ar: string; en: string };
+    title: { ar: string; en: string };
+    subtitle: { ar: string; en: string };
+    image1: string;
+    image1Badge: { ar: string; en: string };
+    image2: string;
+    image2Badge: { ar: string; en: string };
+    ctaText: { ar: string; en: string };
+  };
+  beforeAfterMedia?: {
+    title: { ar: string; en: string };
+    subtitle: { ar: string; en: string };
+    badge: { ar: string; en: string };
+    beforeImage: string;
+    afterImage: string;
+    beforeLabel: { ar: string; en: string };
+    afterLabel: { ar: string; en: string };
+  };
+  footerAbout?: {
+    title: { ar: string; en: string };
+    description: { ar: string; en: string };
+    badge: { ar: string; en: string };
+  };
   theme: {
     primaryBg: string;
     primaryText: string;
@@ -150,17 +183,17 @@ export const siteConfig: SiteConfig = {
   },
   
   currencies: {
-    SAR: { symbol: "ر.س", name: "SAR", rate: 3.75, country: "🇸🇦" },
-    SDG: { symbol: "ج.س", name: "SDG", rate: 600.0, country: "🇸🇩" },
-    USD: { symbol: "$", name: "USD", rate: 1.0, country: "🇺🇸" },
-    EUR: { symbol: "€", name: "EUR", rate: 0.92, country: "🇪🇺" },
-    GBP: { symbol: "£", name: "GBP", rate: 0.79, country: "🇬🇧" },
-    AED: { symbol: "د.إ", name: "AED", rate: 3.67, country: "🇦🇪" },
-    EGP: { symbol: "ج.م", name: "EGP", rate: 48.20, country: "🇪🇬" },
-    KWD: { symbol: "د.ك", name: "KWD", rate: 0.31, country: "🇰🇼" },
-    USDT: { symbol: "₮", name: "USDT", rate: 1.0, country: "🌐", isCrypto: true },
-    BTC: { symbol: "₿", name: "BTC", rate: 0.000015, country: "🌐", isCrypto: true },
-    ETH: { symbol: "Ξ", name: "ETH", rate: 0.00029, country: "🌐", isCrypto: true },
+    SAR: { symbol: { ar: "ر.س", en: "SAR" }, name: "SAR", rate: 3.75, country: "🇸🇦" },
+    SDG: { symbol: { ar: "ج.س", en: "SDG" }, name: "SDG", rate: 600.0, country: "🇸🇩" },
+    USD: { symbol: { ar: "$", en: "$" }, name: "USD", rate: 1.0, country: "🇺🇸" },
+    EUR: { symbol: { ar: "€", en: "€" }, name: "EUR", rate: 0.92, country: "🇪🇺" },
+    GBP: { symbol: { ar: "£", en: "£" }, name: "GBP", rate: 0.79, country: "🇬🇧" },
+    AED: { symbol: { ar: "د.إ", en: "AED" }, name: "AED", rate: 3.67, country: "🇦🇪" },
+    EGP: { symbol: { ar: "ج.م", en: "EGP" }, name: "EGP", rate: 48.20, country: "🇪🇬" },
+    KWD: { symbol: { ar: "د.ك", en: "KWD" }, name: "KWD", rate: 0.31, country: "🇰🇼" },
+    USDT: { symbol: { ar: "₮", en: "USDT" }, name: "USDT", rate: 1.0, country: "🌐", isCrypto: true },
+    BTC: { symbol: { ar: "₿", en: "BTC" }, name: "BTC", rate: 0.000015, country: "🌐", isCrypto: true },
+    ETH: { symbol: { ar: "Ξ", en: "ETH" }, name: "ETH", rate: 0.00029, country: "🌐", isCrypto: true },
   },
 
   presets: {
@@ -174,6 +207,38 @@ export const siteConfig: SiteConfig = {
         ar: "تسوقي بذكاء: احفظي في المفضلة ❤️ • قارني المواصفات ⚖️ • اطلبي فـوراً عبر السلة أو واتساب 💬",
         en: "Smart Shopping: Save to Wishlist ❤️ • Compare Specs ⚖️ • Order via Cart or WhatsApp 💬"
       },
+      announcementSlides: [
+        {
+          ar: "تسوقي بذكاء: احفظي في المفضلة ❤️ • قارني المواصفات ⚖️ • اطلبي فـوراً عبر السلة أو واتساب 💬",
+          en: "Smart Shopping: Save to Wishlist ❤️ • Compare Specs ⚖️ • Order via Cart or WhatsApp 💬"
+        },
+        {
+          ar: "شحن سريع وعناية نباتية فائقة 🚚 • دفع آمن عند الاستلام أو أونلاين ✨",
+          en: "Fast Delivery & Pure Botanical Care 🚚 • Cash on Delivery or Secure Online Checkout ✨"
+        },
+        {
+          ar: "مستحضرات نَدِي الأصلية 100% 🌿 • ترطيب يدوم 24 ساعة ونقاء طبيعي",
+          en: "100% Authentic NADI Skincare 🌿 • 24H Lasting Moisture & Natural Purity"
+        }
+      ],
+      brandTickerItems: [
+        {
+          brandAr: "نَـــــدِي",
+          brandEn: "NADI",
+          sloganAr: "إشراقة طبيعية، تليق بك.",
+          sloganEn: "Natural radiance, made for you.",
+          tagAr: "جمال ونقاء نباتي",
+          tagEn: "Pure Botanical Radiance"
+        },
+        {
+          brandAr: "نَـــــدِي",
+          brandEn: "NADI",
+          sloganAr: "عناية فائقة تلائم رقة بشرتك",
+          sloganEn: "Natural radiance, made for you.",
+          tagAr: "خلاصات طبيعية 100%",
+          tagEn: "Dermatologically Tested"
+        }
+      ],
       heroTitle: { ar: "نضارةٌ تتنفس.. كما أرادتها الطبيعة", en: "Radiance That Breathes.. Crafted By Nature" },
       heroSubtitle: {
         ar: "مستحضرات عناية نقية تمنح بشرتك حيوية قطرات الندى وإشراقة تدوم طوال اليوم بنقاء نباتي متكامل.",
@@ -182,6 +247,30 @@ export const siteConfig: SiteConfig = {
       heroCtaPrimary: { ar: "تسوّق الآن", en: "Shop Now" },
       heroCtaSecondary: { ar: "شاهد العروض", en: "View Offers" },
       heroImage: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=1200&q=80",
+      promoBanner: {
+        badge: { ar: "عرض نَــــدِي الماسي الخاص 💎", en: "Exclusive NADI Diamond Offer 💎" },
+        title: { ar: "وفّري 25% مع بوكس العناية بالنضارة الكاملة", en: "Save 25% On Complete Botanical Glow Routine" },
+        subtitle: { ar: "احصلي على حقيبة التجميل المخملية + عينات تجريبية مجانية + شحن سريع لكافة الطلبات فوق 20,000 ج.س", en: "Get a luxury velvet pouch + free botanical trial samples + fast delivery on all qualifying orders." },
+        image1: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=700&q=80",
+        image1Badge: { ar: "مكوّنات نباتية 100% 🌿", en: "100% Botanicals 🌿" },
+        image2: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=700&q=80",
+        image2Badge: { ar: "خصم 25% على البوكس 🎁", en: "25% OFF Boxes 🎁" },
+        ctaText: { ar: "اطلبي البوكس الآن", en: "Order Routine Bundle" }
+      },
+      beforeAfterMedia: {
+        title: { ar: "قبل وبعد (14 يوماً من النضارة)", en: "Before & After (14 Days)" },
+        subtitle: { ar: "مقارنة حقيقية لنضارة وترطيب البشرة قبل وبعد 14 يوماً من الاستخدام المنتظم لمنتجات نَدِي الطبيعية. اسحبي المؤشر لمعاينة الفرق.", en: "Real photographic comparison of skin radiance and hydration before and after 14 days of NADI care. Drag to compare." },
+        badge: { ar: "نتائج واقعية ومثبتة", en: "Proven Transformations" },
+        beforeImage: "https://images.unsplash.com/photo-1512290900672-1f551b945199?auto=format&fit=crop&w=1000&q=80",
+        afterImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1000&q=80",
+        beforeLabel: { ar: "قبل", en: "Before" },
+        afterLabel: { ar: "بعد", en: "After" }
+      },
+      footerAbout: {
+        title: { ar: "عالم الجمال والعناية", en: "World of Botanical Care" },
+        description: { ar: "وجهتكم الأولى لمنتجات العناية الطبيعية بالبشرة والمستخلصات النباتية الأصلية مع ضمان شامل وخدمة استشارات ما بعد الشراء.", en: "Your premier destination for authentic natural skincare and pure botanicals with comprehensive purity guarantee." },
+        badge: { ar: "منتجات أصلية معتمدة 100%", en: "100% Certified Authentic" }
+      },
       theme: {
         primaryBg: "bg-[#5A3E7A]",
         primaryText: "text-[#5A3E7A]",

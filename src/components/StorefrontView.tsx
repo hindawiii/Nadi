@@ -494,7 +494,7 @@ export const StorefrontView: React.FC = () => {
         <HairDevicesSpotlight />
       )}
 
-      {/* 5. NATURAL BLOOM CAMPAIGN BANNER (With Expressive High-End Imagery) */}
+      {/* 5. NATURAL BLOOM CAMPAIGN BANNER (Completely Dynamic from activeData.promoBanner) */}
       {sectionsControl.promoBanner && (
         <section id="campaign-section" className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-purple-950 via-[#5A3E7A] to-pink-950 text-white p-6 sm:p-10 lg:p-12 shadow-2xl border border-purple-800/40">
@@ -504,19 +504,19 @@ export const StorefrontView: React.FC = () => {
             <div className="lg:col-span-7 space-y-5 text-start">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider text-pink-200 border border-white/20">
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                Natural Bloom Campaign 2026
+                {activeData.promoBanner?.badge ? activeData.promoBanner.badge[lang] : 'Special Campaign 2026'}
               </span>
               
               <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-relaxed sm:leading-tight tracking-tight">
-                {lang === 'ar'
+                {activeData.promoBanner?.title ? activeData.promoBanner.title[lang] : (lang === 'ar'
                   ? 'مكوّنات نباتية 100% مستخلصة بعناية لتمنحك بشرة نضرة وصحية'
-                  : '100% Pure Botanical Extracts Engineered for Long-Lasting Glow'}
+                  : '100% Pure Botanical Extracts Engineered for Long-Lasting Glow')}
               </h3>
               
               <p className="text-xs sm:text-base text-purple-100/90 leading-relaxed max-w-xl">
-                {lang === 'ar'
+                {activeData.promoBanner?.subtitle ? activeData.promoBanner.subtitle[lang] : (lang === 'ar'
                   ? 'استمتعي بخصم يصل إلى 25% على بوكسات العناية المتكاملة، مع شحن سريع وهدية مجانية مع كل طلب.'
-                  : 'Enjoy up to 25% savings on our all-in-one routine boxes with complimentary gift wrapping.'}
+                  : 'Enjoy up to 25% savings on our all-in-one routine boxes with complimentary gift wrapping.')}
               </p>
 
               <div className="pt-2 flex flex-wrap items-center gap-3">
@@ -527,7 +527,9 @@ export const StorefrontView: React.FC = () => {
                   }}
                   className="px-6 py-3 bg-white text-[#5A3E7A] hover:bg-purple-50 font-extrabold rounded-full text-xs sm:text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2 min-h-[44px]"
                 >
-                  <span>{lang === 'ar' ? 'اكتشفي البوكسات الكاملة' : 'Explore Routine Bundles'}</span>
+                  <span>
+                    {activeData.promoBanner?.ctaText ? activeData.promoBanner.ctaText[lang] : (lang === 'ar' ? 'اكتشفي البوكسات الكاملة' : 'Explore Routine Bundles')}
+                  </span>
                   {isRtl ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
                 </button>
 
@@ -538,12 +540,12 @@ export const StorefrontView: React.FC = () => {
               </div>
             </div>
 
-            {/* Illustrative Photos Column (Expressing Botanical Ingredients & Luxury Gift Boxes) */}
+            {/* Illustrative Photos Column (Dynamically Editable) */}
             <div className="lg:col-span-5 grid grid-cols-2 gap-3 sm:gap-4 relative">
-              {/* Photo 1: Pure Botanical Ingredients & Herbal Pipette */}
+              {/* Photo 1 */}
               <div className="relative rounded-2xl overflow-hidden shadow-xl border-2 border-white/20 aspect-square group bg-purple-900/50">
                 <img
-                  src="https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=700&q=80"
+                  src={activeData.promoBanner?.image1 || "https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=700&q=80"}
                   alt="مكونات نباتية مستخلصة بعناية"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   onError={(e) => {
@@ -552,14 +554,14 @@ export const StorefrontView: React.FC = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
                 <span className="absolute bottom-2.5 start-2.5 end-2.5 text-center text-[10px] sm:text-xs font-extrabold text-white bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded-xl border border-white/20">
-                  {lang === 'ar' ? 'مكوّنات نباتية 100% 🌿' : '100% Botanicals 🌿'}
+                  {activeData.promoBanner?.image1Badge ? activeData.promoBanner.image1Badge[lang] : (lang === 'ar' ? 'مكوّنات نباتية 100% 🌿' : '100% Botanicals 🌿')}
                 </span>
               </div>
 
-              {/* Photo 2: Luxury Skincare Routine Box */}
+              {/* Photo 2 */}
               <div className="relative rounded-2xl overflow-hidden shadow-xl border-2 border-white/20 aspect-square group bg-purple-900/50">
                 <img
-                  src="https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=700&q=80"
+                  src={activeData.promoBanner?.image2 || "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=700&q=80"}
                   alt="بوكسات العناية المتكاملة بخصم 25%"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   onError={(e) => {
@@ -568,7 +570,7 @@ export const StorefrontView: React.FC = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
                 <span className="absolute bottom-2.5 start-2.5 end-2.5 text-center text-[10px] sm:text-xs font-extrabold text-amber-300 bg-purple-950/90 backdrop-blur-sm px-2 py-1 rounded-xl border border-amber-400/30">
-                  {lang === 'ar' ? 'خصم 25% على البوكس 🎁' : '25% OFF Boxes 🎁'}
+                  {activeData.promoBanner?.image2Badge ? activeData.promoBanner.image2Badge[lang] : (lang === 'ar' ? 'خصم 25% على البوكس 🎁' : '25% OFF Boxes 🎁')}
                 </span>
               </div>
             </div>
@@ -578,20 +580,20 @@ export const StorefrontView: React.FC = () => {
       </section>
       )}
 
-      {/* 6. BEFORE & AFTER PROOF (Interactive Slider - Side-by-Side Cards Removed for Space Saving) */}
+      {/* 6. BEFORE & AFTER PROOF (Interactive Slider - Completely Dynamic) */}
       {sectionsControl.beforeAfter && activePresetId === 'cosmetics' && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
         <div className="text-start space-y-1.5 max-w-2xl">
           <span className="text-xs font-black text-[#5A3E7A] uppercase tracking-widest">
-            {lang === 'ar' ? 'نتائج واقعية ومثبتة' : 'Proven Transformations'}
+            {activeData.beforeAfterMedia?.badge ? activeData.beforeAfterMedia.badge[lang] : (lang === 'ar' ? 'نتائج واقعية ومثبتة' : 'Proven Transformations')}
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-            {lang === 'ar' ? 'قبل وبعد (14 يوماً من النضارة)' : 'Before & After (14 Days)'}
+            {activeData.beforeAfterMedia?.title ? activeData.beforeAfterMedia.title[lang] : (lang === 'ar' ? 'قبل وبعد (14 يوماً من النضارة)' : 'Before & After (14 Days)')}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500">
-            {lang === 'ar'
-              ? 'مقارنة حقيقية لنضارة وترطيب البشرة قبل وبعد 14 يوماً من الاستخدام المنتظم لمنتجات So Beauty الطبيعية. اسحبي المؤشر لمعاينة الفرق.'
-              : 'Real photographic comparison of skin radiance and hydration before and after 14 days of So Beauty care. Drag to compare.'}
+            {activeData.beforeAfterMedia?.subtitle ? activeData.beforeAfterMedia.subtitle[lang] : (lang === 'ar'
+              ? 'مقارنة حقيقية لنضارة وترطيب البشرة قبل وبعد 14 يوماً من الاستخدام المنتظم لمنتجات نَدِي الطبيعية. اسحبي المؤشر لمعاينة الفرق.'
+              : 'Real photographic comparison of skin radiance and hydration before and after 14 days of NADI care. Drag to compare.')}
           </p>
         </div>
 
@@ -600,8 +602,8 @@ export const StorefrontView: React.FC = () => {
           <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full rounded-2xl overflow-hidden select-none bg-slate-100">
             {/* "After" Image (Background) */}
             <img
-              src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1000&q=80"
-              alt="After So Beauty"
+              src={activeData.beforeAfterMedia?.afterImage || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1000&q=80"}
+              alt="After Skincare"
               className="absolute inset-0 w-full h-full object-cover"
               onError={(e) => {
                 e.currentTarget.src = "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=1000&q=80";
@@ -609,7 +611,9 @@ export const StorefrontView: React.FC = () => {
             />
             <span className="absolute top-4 end-4 bg-emerald-600/90 backdrop-blur-sm text-white text-xs font-extrabold px-3.5 py-1.5 rounded-full shadow-md z-10 flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>{lang === 'ar' ? 'بعد' : 'After'}</span>
+              <span>
+                {activeData.beforeAfterMedia?.afterLabel ? activeData.beforeAfterMedia.afterLabel[lang] : (lang === 'ar' ? 'بعد' : 'After')}
+              </span>
             </span>
 
             {/* "Before" Image (Clipped Overlay) */}
@@ -618,8 +622,8 @@ export const StorefrontView: React.FC = () => {
               style={{ width: `${beforeAfterPos}%` }}
             >
               <img
-                src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=1000&q=80"
-                alt="Before So Beauty"
+                src={activeData.beforeAfterMedia?.beforeImage || "https://images.unsplash.com/photo-1512290900672-1f551b945199?auto=format&fit=crop&w=1000&q=80"}
+                alt="Before Skincare"
                 className="absolute inset-0 w-full h-full object-cover max-w-none filter grayscale contrast-125"
                 style={{ width: '100%', height: '100%' }}
                 onError={(e) => {
@@ -628,7 +632,9 @@ export const StorefrontView: React.FC = () => {
               />
               <span className="absolute top-4 start-4 bg-slate-900/90 backdrop-blur-sm text-white text-xs font-extrabold px-3.5 py-1.5 rounded-full shadow-md z-10 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
-                <span>{lang === 'ar' ? 'قبل' : 'Before'}</span>
+                <span>
+                  {activeData.beforeAfterMedia?.beforeLabel ? activeData.beforeAfterMedia.beforeLabel[lang] : (lang === 'ar' ? 'قبل' : 'Before')}
+                </span>
               </span>
             </div>
 

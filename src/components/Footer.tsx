@@ -3,7 +3,7 @@ import {
   Sparkles, ShieldCheck, Truck, RotateCcw, MapPin, 
   Phone, Mail, Home, Package, ShoppingBag,
   Info, MessageSquare, CheckCircle2,
-  Wallet, Layers, Instagram, Facebook
+  Wallet, Instagram, Facebook
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 
@@ -65,19 +65,21 @@ export const Footer: React.FC = () => {
             {/* Description */}
             <div className="space-y-1.5 max-w-sm w-full">
               <h3 className="text-sm sm:text-base font-extrabold text-white">
-                {lang === 'ar' ? 'عالم الجمال والعناية' : 'World of Botanical Care'}
+                {activeData.footerAbout?.title ? activeData.footerAbout.title[lang] : (lang === 'ar' ? 'عالم الجمال والعناية' : 'World of Botanical Care')}
               </h3>
               <p className="text-xs text-purple-100/85 leading-relaxed font-normal">
-                {lang === 'ar'
+                {activeData.footerAbout?.description ? activeData.footerAbout.description[lang] : (lang === 'ar'
                   ? 'وجهتكم الأولى لمنتجات العناية الطبيعية بالبشرة والمستخلصات النباتية الأصلية مع ضمان شامل وخدمة استشارات ما بعد الشراء.'
-                  : 'Your premier destination for authentic natural skincare and pure botanicals with comprehensive purity guarantee.'}
+                  : 'Your premier destination for authentic natural skincare and pure botanicals with comprehensive purity guarantee.')}
               </p>
             </div>
 
             {/* Verification Badge */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-900/70 text-emerald-300 text-xs font-bold border border-purple-400/25 backdrop-blur-sm shadow-xs">
               <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{lang === 'ar' ? 'منتجات أصلية معتمدة 100%' : '100% Certified Authentic'}</span>
+              <span>
+                {activeData.footerAbout?.badge ? activeData.footerAbout.badge[lang] : (lang === 'ar' ? 'منتجات أصلية معتمدة 100%' : '100% Certified Authentic')}
+              </span>
             </div>
           </div>
 
@@ -207,7 +209,7 @@ export const Footer: React.FC = () => {
               </span>
               <div className="flex items-center justify-center sm:justify-start gap-2.5">
                 <a
-                  href={`https://wa.me/${activeData.contactInfo.whatsapp}`}
+                  href={`https://api.whatsapp.com/send?phone=${activeData.contactInfo.whatsapp.replace(/[^0-9]/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-md transition-transform hover:scale-110"
@@ -277,22 +279,28 @@ export const Footer: React.FC = () => {
               <span className="text-[11px] font-extrabold">Pay</span>
             </div>
 
-            {/* Bankak (بنكك) */}
+            {/* Bankak (بنكك / Bankak) */}
             <div className="h-9 px-3 rounded-xl bg-white text-[#006A4E] font-black text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
               <Wallet className="w-3.5 h-3.5 text-[#006A4E]" />
-              <span className="text-[11px] font-extrabold">بنكك</span>
+              <span className="text-[11px] font-extrabold">
+                {lang === 'ar' ? 'بنكك' : 'Bankak'}
+              </span>
             </div>
 
-            {/* My Cashi (ماي كاشي) */}
+            {/* My Cashi (ماي كاشي / MyCashi) */}
             <div className="h-9 px-3 rounded-xl bg-white text-[#5A3E7A] font-black text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
               <span className="w-3.5 h-3.5 rounded-full bg-[#5A3E7A] text-white font-black text-[9px] flex items-center justify-center">C</span>
-              <span className="text-[11px] font-extrabold">ماي كاشي</span>
+              <span className="text-[11px] font-extrabold">
+                {lang === 'ar' ? 'ماي كاشي' : 'MyCashi'}
+              </span>
             </div>
 
-            {/* Bravo (برافو) */}
+            {/* Bravo (برافو / Bravo Pay) */}
             <div className="h-9 px-3 rounded-xl bg-white text-indigo-700 font-black text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
               <span className="w-3.5 h-3.5 rounded-full bg-indigo-600 text-white font-black text-[9px] flex items-center justify-center">★</span>
-              <span className="text-[11px] font-extrabold">برافو</span>
+              <span className="text-[11px] font-extrabold">
+                {lang === 'ar' ? 'برافو' : 'Bravo'}
+              </span>
             </div>
 
             {/* Cash on Delivery (COD) */}
@@ -306,9 +314,9 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ======================================================== */}
-        {/* BOTTOM BAR                                               */}
+        {/* BOTTOM BAR - COPYRIGHT & TRUST BADGES                     */}
         {/* ======================================================== */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-start text-xs text-purple-200/90 font-medium">
+        <div className="pt-2 flex flex-col md:flex-row items-center justify-between gap-4 text-center sm:text-start text-xs text-purple-200/90 font-medium">
           <p>
             © 2026 {activeData.storeName.en} · {activeData.storeName.ar}. {lang === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
           </p>

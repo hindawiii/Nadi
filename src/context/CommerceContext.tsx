@@ -256,6 +256,18 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           parsed.presets.cosmetics.heroTitle = siteConfig.presets.cosmetics.heroTitle;
           parsed.presets.cosmetics.heroSubtitle = siteConfig.presets.cosmetics.heroSubtitle;
         }
+
+        // Migrate any cached single-string currency symbols to bilingual symbols from siteConfig
+        if (parsed.currencies) {
+          Object.keys(siteConfig.currencies).forEach((currKey) => {
+            if (parsed.currencies[currKey]) {
+              parsed.currencies[currKey].symbol = siteConfig.currencies[currKey].symbol;
+            } else {
+              parsed.currencies[currKey] = siteConfig.currencies[currKey];
+            }
+          });
+        }
+
         return parsed;
       } catch (e) {
         console.error('Failed to parse config from storage', e);
@@ -772,9 +784,9 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // Convert USD price to current currency
+  // Convert USD price to current currency dynamically adapted to active language (Arabic / English)
   const convertPrice = (usdPrice: number) => {
-    const curConfig = dynamicConfig.currencies[currency] || dynamicConfig.currencies['USD'];
+    const curConfig = dynamicConfig.currencies[currency] || siteConfig.currencies[currency] || dynamicConfig.currencies['USD'] || siteConfig.currencies['USD'];
     const converted = usdPrice * curConfig.rate;
     const isCrypto = !!curConfig.isCrypto;
 
@@ -782,13 +794,49 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (isCrypto) {
       value = converted < 0.01 ? converted.toFixed(6) : converted.toFixed(4);
     } else if (converted >= 100) {
-      value = Math.round(converted).toLocaleString();
+      value = Math.round(converted).toLocaleString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US');
     } else {
       value = converted.toFixed(2);
     }
 
-    const text = lang === 'ar' ? `${value} ${curConfig.symbol}` : `${curConfig.symbol}${value}`;
-    return { value, symbol: curConfig.symbol, text, isCrypto };
+    // Resolve bilingual symbol safely (handles both object { ar, en } and legacy string)
+    let resolvedSymbol = '';
+    if (typeof curConfig.symbol === 'object' && curConfig.symbol !== null) {
+      resolvedSymbol = lang === 'ar' ? (curConfig.symbol.ar || curConfig.symbol.en) : (curConfig.symbol.en || curConfig.symbol.ar);
+    } else if (typeof curConfig.symbol === 'string') {
+      // Fallback mapping if legacy string exists
+      if (lang === 'en') {
+        const enFallbackMap: Record<string, string> = {
+          'ج.س': 'SDG',
+          'ر.س': 'SAR',
+          'د.إ': 'AED',
+          'ج.م': 'EGP',
+          'د.ك': 'KWD',
+        };
+        resolvedSymbol = enFallbackMap[curConfig.symbol] || curConfig.symbol;
+      } else {
+        resolvedSymbol = curConfig.symbol;
+      }
+    } else {
+      resolvedSymbol = currency;
+    }
+
+    // Format text smartly:
+    // In Arabic: "3,000 ج.س"
+    // In English with standard prefix symbols ($ / € / £): "$3,000"
+    // In English with standard code symbols (SDG / SAR / AED): "3,000 SDG"
+    let text = '';
+    if (lang === 'ar') {
+      text = `${value} ${resolvedSymbol}`;
+    } else {
+      if (['$', '€', '£', '¥', '₹'].includes(resolvedSymbol)) {
+        text = `${resolvedSymbol}${value}`;
+      } else {
+        text = `${value} ${resolvedSymbol}`;
+      }
+    }
+
+    return { value, symbol: resolvedSymbol, text, isCrypto };
   };
 
   const dismissToast = () => {

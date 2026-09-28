@@ -44,17 +44,26 @@ const AppContent: React.FC = () => {
       window.history.scrollRestoration = 'manual';
     }
 
-    // Always clean hash on initial boot if it happens to be login or auth or section anchor
-    const rawHash = (window.location.hash || '').replace('#', '').trim();
-    if (rawHash === 'login' || rawHash === 'auth' || rawHash === 'products-section' || rawHash === 'categories-section' || rawHash === 'campaign-section') {
-      try {
-        window.history.replaceState(null, '', window.location.pathname || '/');
-        window.location.hash = '';
-      } catch (_) {}
+    // Check if initial URL points explicitly to admin or developer
+    const initialHash = (window.location.hash || '').replace('#', '').trim().toLowerCase();
+    const initialPath = (window.location.pathname || '').replace(/^\//, '').trim().toLowerCase();
+    const targetRoute = initialPath || initialHash;
+
+    if (targetRoute === 'admin') {
+      setCurrentRoute('admin');
+    } else if (targetRoute === 'developer') {
+      setCurrentRoute('developer');
+    } else {
+      // Clean internal section anchors so refresh never jumps down to products
+      if (initialHash === 'products-section' || initialHash === 'categories-section' || initialHash === 'campaign-section') {
+        try {
+          window.history.replaceState(null, '', window.location.pathname || '/');
+          window.location.hash = '';
+        } catch (_) {}
+      }
+      setCurrentRoute('store');
     }
 
-    // Always start at store home on load/reload/refresh so customer is never stuck on login
-    setCurrentRoute('store');
     window.scrollTo({ top: 0, behavior: 'instant' });
     hasInitializedRef.current = true;
   }, []);
@@ -93,11 +102,7 @@ const AppContent: React.FC = () => {
       if (route === 'admin') {
         setCurrentRoute('admin');
       } else if (route === 'developer') {
-        if (!isDeveloperModeLocked) {
-          setCurrentRoute('developer');
-        } else {
-          setCurrentRoute('store');
-        }
+        setCurrentRoute('developer');
       } else if (route === 'about') {
         setCurrentRoute('about');
       } else if (route === 'wishlist') {
@@ -143,7 +148,7 @@ const AppContent: React.FC = () => {
           {currentRoute === 'cart' && <CartPageView />}
           {currentRoute === 'pdp' && <PDPView />}
           {currentRoute === 'admin' && <AdminPanel />}
-          {currentRoute === 'developer' && (!isDeveloperModeLocked ? (
+          {currentRoute === 'developer' && (
             <Suspense fallback={
               <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 gap-4">
                 <div className="w-10 h-10 border-3 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
@@ -152,7 +157,7 @@ const AppContent: React.FC = () => {
             }>
               <DeveloperPanel />
             </Suspense>
-          ) : <StorefrontView />)}
+          )}
           {currentRoute === 'tracker' && <OrderTrackerView />}
           {currentRoute === 'login' && <LoginPageView />}
         </main>

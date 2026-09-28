@@ -85,6 +85,20 @@ export const FloatingWhatsApp: React.FC = () => {
   const hasMovedSignificantlyRef = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Automatically reset position to safe edge when language changes so it adapts naturally to RTL / LTR
+  useEffect(() => {
+    setPosition(null);
+    try {
+      sessionStorage.removeItem('so_beauty_wa_pos');
+    } catch (e) {}
+  }, [lang]);
+
+  // Is the button positioned on the left half of the viewport?
+  // If not dragged yet: In Arabic (dir="rtl") end-6 is on the left; in English (dir="ltr") end-6 is on the right.
+  const isLeftHalf = position 
+    ? position.x < (typeof window !== 'undefined' ? window.innerWidth / 2 : 300)
+    : (lang === 'ar');
+
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     
@@ -96,19 +110,10 @@ export const FloatingWhatsApp: React.FC = () => {
     setIsCurrentlyDragging(true);
     hasMovedSignificantlyRef.current = false;
 
-    let currentX = position?.x;
-    let currentY = position?.y;
-
-    if (currentX === undefined || currentY === undefined) {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        currentX = rect.left;
-        currentY = rect.top;
-      } else {
-        currentX = isRtl ? 24 : window.innerWidth - 80;
-        currentY = window.innerHeight - 88;
-      }
-    }
+    // Use current button coordinate relative to viewport
+    const rect = e.currentTarget.getBoundingClientRect();
+    const currentX = rect.left;
+    const currentY = rect.top;
 
     dragStartRef.current = {
       startX: e.clientX,
@@ -127,17 +132,21 @@ export const FloatingWhatsApp: React.FC = () => {
       hasMovedSignificantlyRef.current = true;
     }
 
-    const btnWidth = 64;
-    const btnHeight = 64;
-    const maxX = Math.max(10, window.innerWidth - btnWidth - 10);
-    const maxY = Math.max(70, window.innerHeight - btnHeight - 15);
-    const minY = 65;
-    const minX = 10;
+    const btnSize = 64; // The exact size of the circular trigger button
+    const padding = 16; // Consistent 16px luxury viewport margin
+    const minX = padding;
+    const maxX = Math.max(padding, window.innerWidth - btnSize - padding);
+    const minY = 65; // Header safe zone
+    const maxY = Math.max(minY, window.innerHeight - btnSize - padding);
 
-    const newX = Math.min(maxX, Math.max(minX, dragStartRef.current.initialPosX + deltaX));
-    const newY = Math.min(maxY, Math.max(minY, dragStartRef.current.initialPosY + deltaY));
+    // Completely unrestricted movement in both X (left/right) and Y (up/down) with strict bounds
+    const rawX = dragStartRef.current.initialPosX + deltaX;
+    const rawY = dragStartRef.current.initialPosY + deltaY;
 
-    setPosition({ x: newX, y: newY });
+    const clampedX = Math.min(maxX, Math.max(minX, rawX));
+    const clampedY = Math.min(maxY, Math.max(minY, rawY));
+
+    setPosition({ x: clampedX, y: clampedY });
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -150,15 +159,23 @@ export const FloatingWhatsApp: React.FC = () => {
     setIsCurrentlyDragging(false);
 
     if (position) {
+      // Gentle snap to nearest screen edge (left or right)
+      const btnSize = 64;
+      const padding = 16;
+      const midPoint = window.innerWidth / 2;
+      const targetX = position.x < midPoint ? padding : window.innerWidth - btnSize - padding;
+      const finalPos = { x: targetX, y: position.y };
+      setPosition(finalPos);
+
       try {
-        sessionStorage.setItem('so_beauty_wa_pos', JSON.stringify(position));
+        sessionStorage.setItem('so_beauty_wa_pos', JSON.stringify(finalPos));
       } catch (err) {}
     }
   };
 
   if (isCartOpen || isAuthModalOpen || isReviewModalOpen || currentRoute === 'cart' || currentRoute === 'login') return null;
 
-  // WhatsApp Action Handler
+  // WhatsApp Action Handler - Resilient Universal Cross-Platform Deep Link
   const handleOpenWhatsApp = (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
@@ -168,7 +185,29 @@ export const FloatingWhatsApp: React.FC = () => {
     const greeting = lang === 'ar'
       ? `مرحباً ${activeData.storeName.ar}، أود الاستفسار والتواصل بخصوص منتجات العناية الطبيعية والعروض المتوفرة.`
       : `Hello ${activeData.storeName.en}, I would like to consult with you regarding natural skincare products and current offers.`;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(greeting)}`, '_blank');
+    
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const encodedText = encodeURIComponent(greeting);
+    
+    // Primary universal link (guaranteed on all browsers, mobile and desktop)
+    const universalUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
+    
+    try {
+      // First attempt: direct window location or safe open
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+        // On mobile devices, window.location.href seamlessly hands off to the native WhatsApp app without popup blockers
+        window.location.href = universalUrl;
+      } else {
+        // On desktop, open in a new tab
+        const win = window.open(universalUrl, '_blank', 'noopener,noreferrer');
+        if (!win) {
+          window.location.href = universalUrl;
+        }
+      }
+    } catch (_) {
+      window.location.href = universalUrl;
+    }
   };
 
   // Open Luxury Phone Modal
@@ -368,6 +407,7 @@ export const FloatingWhatsApp: React.FC = () => {
 
       {/* ========================================================================= */}
       {/* 2. FLOATING ACTION CONTAINER (Anchored at bottom corner or User-Dragged)   */}
+      {/* Container is strictly 64x64 to guarantee perfect coordinate 1:1 mapping    */}
       {/* ========================================================================= */}
       <div 
         ref={containerRef}
@@ -380,19 +420,23 @@ export const FloatingWhatsApp: React.FC = () => {
           zIndex: 45,
           touchAction: 'none',
         } : undefined}
-        className={!position ? "fixed bottom-6 end-6 z-40 flex flex-col items-end select-none" : "fixed z-45 flex flex-col items-end select-none"}
+        className={!position 
+          ? "fixed bottom-6 end-6 z-40 w-16 h-16 flex items-center justify-center select-none" 
+          : "fixed z-45 w-16 h-16 flex items-center justify-center select-none"}
       >
         
-        {/* Speed-Dial Dual Contact Options (Direct Call + WhatsApp) */}
+        {/* Speed-Dial Dual Contact Options (Direct Call + WhatsApp) - Absolute Overlay Above Button */}
         <div 
-          className={`flex flex-col items-end gap-3 pb-3 transition-all duration-300 ease-out origin-bottom ${
+          className={`absolute bottom-full mb-3 flex flex-col gap-3 transition-all duration-300 ease-out origin-bottom ${
+            isLeftHalf ? 'start-0 items-start' : 'end-0 items-end'
+          } ${
             isMenuOpen 
               ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' 
               : 'opacity-0 translate-y-4 scale-95 pointer-events-none max-h-0 overflow-hidden'
           }`}
         >
           {/* OPTION 1: DIRECT PHONE CALL -> OPENS LUXURY SMART MODAL */}
-          <div className="flex items-center gap-2.5 group/call">
+          <div className={`flex items-center gap-2.5 group/call ${isLeftHalf ? 'flex-row-reverse' : 'flex-row'}`}>
             <button 
               type="button"
               onClick={handleOpenPhoneModal}
@@ -415,7 +459,7 @@ export const FloatingWhatsApp: React.FC = () => {
           </div>
 
           {/* OPTION 2: WHATSAPP CHAT */}
-          <div className="flex items-center gap-2.5 group/wa">
+          <div className={`flex items-center gap-2.5 group/wa ${isLeftHalf ? 'flex-row-reverse' : 'flex-row'}`}>
             <button 
               type="button"
               onClick={handleOpenWhatsApp}
@@ -445,38 +489,38 @@ export const FloatingWhatsApp: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Trigger Button & Smart Auto-Hiding Tooltip */}
-        <div className="flex items-center gap-2">
-          {/* SMART AUTO-COLLAPSING TOOLTIP (Collapses smoothly on scroll or after 3.5s) */}
-          <div 
-            className={`transition-all duration-500 ease-out origin-end overflow-hidden flex items-center ${
-              shouldShowTooltip 
-                ? 'max-w-xs opacity-100 scale-100 pe-1.5 pointer-events-auto' 
-                : 'max-w-0 opacity-0 scale-95 pointer-events-none pe-0'
-            }`}
-          >
-            <div className="flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3.5 py-2 rounded-2xl shadow-2xl border border-emerald-100 text-xs font-bold text-slate-800 whitespace-nowrap">
-              <span className="relative flex h-2.5 w-2.5 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-              </span>
-              <span className="text-xs text-slate-800 font-extrabold">
-                {lang === 'ar' ? 'تواصل معنا' : 'Contact Us'}
-              </span>
-              <button
-                type="button"
-                onClick={handleDismissNote}
-                className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors"
-                title={lang === 'ar' ? 'إغلاق' : 'Close'}
-                aria-label="Dismiss tooltip"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
+        {/* SMART AUTO-COLLAPSING TOOLTIP - Floated Absolutely to the side without altering button container width */}
+        <div 
+          className={`absolute top-1/2 -translate-y-1/2 transition-all duration-500 ease-out overflow-hidden flex items-center pointer-events-none ${
+            isLeftHalf ? 'left-full ms-3 origin-left' : 'right-full me-3 origin-right'
+          } ${
+            shouldShowTooltip && !isCurrentlyDragging
+              ? 'max-w-xs opacity-100 scale-100 pointer-events-auto' 
+              : 'max-w-0 opacity-0 scale-95 pointer-events-none'
+          }`}
+        >
+          <div className="flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3.5 py-2 rounded-2xl shadow-2xl border border-emerald-100 text-xs font-bold text-slate-800 whitespace-nowrap">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <span className="text-xs text-slate-800 font-extrabold">
+              {lang === 'ar' ? 'تواصل معنا' : 'Contact Us'}
+            </span>
+            <button
+              type="button"
+              onClick={handleDismissNote}
+              className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+              title={lang === 'ar' ? 'إغلاق' : 'Close'}
+              aria-label="Dismiss tooltip"
+            >
+              <X className="w-3 h-3" />
+            </button>
           </div>
+        </div>
 
-          {/* LUXURY TRIGGER SQUIRCLE BUTTON (Draggable via Touch & Mouse) */}
-          <button
+        {/* LUXURY TRIGGER SQUIRCLE BUTTON (Draggable via Touch & Mouse) */}
+        <button
             type="button"
             style={{ touchAction: 'none' }}
             onPointerDown={handlePointerDown}
@@ -538,7 +582,6 @@ export const FloatingWhatsApp: React.FC = () => {
               </span>
             )}
           </button>
-        </div>
       </div>
     </>
   );

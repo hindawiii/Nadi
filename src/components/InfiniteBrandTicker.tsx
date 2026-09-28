@@ -11,32 +11,49 @@ export const InfiniteBrandTicker: React.FC<InfiniteBrandTickerProps> = ({ classN
   const isRtl = lang === 'ar';
 
   // Repetition segments to ensure continuous seamless infinite loop with zero gaps
-  const items = [
-    {
-      brand: activeData.storeName.ar || 'نَـــــدِي',
-      slogan: activeData.storeSlogan.ar || 'إشراقة طبيعية، تليق بك.',
-      isArabic: true,
-      tag: 'جمال ونقاء نباتي',
-    },
-    {
-      brand: activeData.storeName.en || 'NADI',
-      slogan: activeData.storeSlogan.en || 'Natural radiance, made for you.',
-      isArabic: false,
-      tag: 'Pure Botanical Radiance',
-    },
-    {
-      brand: activeData.storeName.ar || 'نَـــــدِي',
-      slogan: 'عناية فائقة تلائم رقة بشرتك',
-      isArabic: true,
-      tag: 'خلاصات طبيعية 100%',
-    },
-    {
-      brand: activeData.storeName.en || 'NADI',
-      slogan: activeData.storeSlogan.en || 'Natural radiance, made for you.',
-      isArabic: false,
-      tag: 'Dermatologically Tested',
-    },
-  ];
+  const customTickerItems = activeData.brandTickerItems && activeData.brandTickerItems.length > 0
+    ? activeData.brandTickerItems.flatMap(item => [
+        {
+          brand: item.brandAr || activeData.storeName.ar || 'نَـــــدِي',
+          slogan: item.sloganAr || activeData.storeSlogan.ar || 'إشراقة طبيعية، تليق بك.',
+          isArabic: true,
+          tag: item.tagAr || 'جمال ونقاء نباتي',
+        },
+        {
+          brand: item.brandEn || activeData.storeName.en || 'NADI',
+          slogan: item.sloganEn || activeData.storeSlogan.en || 'Natural radiance, made for you.',
+          isArabic: false,
+          tag: item.tagEn || 'Pure Botanical Radiance',
+        }
+      ])
+    : [
+        {
+          brand: activeData.storeName.ar || 'نَـــــدِي',
+          slogan: activeData.storeSlogan.ar || 'إشراقة طبيعية، تليق بك.',
+          isArabic: true,
+          tag: 'جمال ونقاء نباتي',
+        },
+        {
+          brand: activeData.storeName.en || 'NADI',
+          slogan: activeData.storeSlogan.en || 'Natural radiance, made for you.',
+          isArabic: false,
+          tag: 'Pure Botanical Radiance',
+        },
+        {
+          brand: activeData.storeName.ar || 'نَـــــدِي',
+          slogan: activeData.storeSlogan.ar || 'عناية فائقة تلائم رقة بشرتك',
+          isArabic: true,
+          tag: 'خلاصات طبيعية 100%',
+        },
+        {
+          brand: activeData.storeName.en || 'NADI',
+          slogan: activeData.storeSlogan.en || 'Natural radiance, made for you.',
+          isArabic: false,
+          tag: 'Dermatologically Tested',
+        },
+      ];
+
+  const items = customTickerItems;
 
   // We duplicate the list to create the seamless mathematical continuous loop (Track A + Track B)
   const marqueeList = [...items, ...items];

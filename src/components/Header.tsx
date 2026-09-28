@@ -44,8 +44,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
     };
   }, [isCurrencyDropdownOpen]);
 
-  // Top Announcement Multi-Slide Animated Messages
-  const announcementSlides = [
+  // Top Announcement Multi-Slide Animated Messages (Read dynamically from activeData)
+  const defaultSlides = [
     {
       ar: "تسوقي بذكاء: احفظي في المفضلة ❤️ • قارني المواصفات ⚖️ • اطلبي فـوراً عبر السلة أو واتساب 💬",
       en: "Smart Shopping: Save to Wishlist ❤️ • Compare Specs ⚖️ • Order via Cart or WhatsApp 💬"
@@ -59,6 +59,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
       en: "100% Authentic NADI Skincare 🌿 • 24H Lasting Moisture & Natural Purity"
     }
   ];
+
+  const announcementSlides = (activeData.announcementSlides && activeData.announcementSlides.length > 0)
+    ? activeData.announcementSlides
+    : (activeData.topAnnouncement ? [{ ar: activeData.topAnnouncement.ar, en: activeData.topAnnouncement.en }, ...defaultSlides.slice(1)] : defaultSlides);
   const [activeSlideIdx, setActiveSlideIdx] = useState(0);
   const [isAnnouncementPaused, setIsAnnouncementPaused] = useState(false);
 
