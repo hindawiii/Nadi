@@ -9,7 +9,11 @@ import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
 import { SearchModal } from './SearchModal';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onOpenMobileMenu?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const { 
     lang, setLang, currency, setCurrency, dynamicConfig, 
     activeData, cartCount, wishlist, 
@@ -19,7 +23,6 @@ export const Header: React.FC = () => {
 
   const [isCurrencyDropdownOpen, setIsCurrencyDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const currencyMenuRef = useRef<HTMLDivElement>(null);
   const isRtl = lang === 'ar';
@@ -166,11 +169,11 @@ export const Header: React.FC = () => {
         <div className="flex items-center gap-1 sm:gap-3">
           {/* Mobile menu hamburger button */}
           <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() => onOpenMobileMenu?.()}
             className="md:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
             aria-label="Toggle Navigation"
           >
-            {isMobileMenuOpen ? <X className="w-6 h-6 text-slate-800" /> : <Menu className="w-6 h-6 text-slate-800" />}
+            <Menu className="w-6 h-6 text-slate-800" />
           </button>
 
           {/* INTELLIGENT DUAL-SCRIPT BRAND NAME OR AUTO-IMAGE LOGO */}
@@ -335,214 +338,6 @@ export const Header: React.FC = () => {
 
         </div>
       </div>
-
-      {/* Global Predictive Spotlight Search Modal */}
-      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-
-      {/* 4. MOBILE DRAWER MENU - Full-Screen Side/Bottom Drawer, Touch-friendly, Never Cut Off */}
-      {isMobileMenuOpen && (
-        <div 
-          className="md:hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col justify-end animate-in fade-in duration-200"
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
-          <div 
-            className="bg-white w-full h-[90vh] max-h-[90vh] rounded-t-[32px] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-250 border-t border-purple-100"
-            onClick={(e) => e.stopPropagation()}
-          >
-            
-            {/* Grab Handle bar for mobile UX */}
-            <div className="pt-3 pb-2 flex justify-center items-center shrink-0">
-              <span className="w-12 h-1.5 bg-slate-300 rounded-full" />
-            </div>
-
-            {/* Header of mobile drawer */}
-            <div className="flex items-center justify-between px-5 py-2.5 border-b border-slate-100 shrink-0 bg-white">
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2.5 rounded-full text-slate-500 hover:bg-slate-100 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
-                aria-label="Close Menu"
-              >
-                <X className="w-6 h-6" />
-              </button>
-
-              <div 
-                onClick={() => {
-                  navigateTo('store');
-                  setIsMobileMenuOpen(false);
-                }}
-                className="flex flex-col items-center cursor-pointer select-none"
-              >
-                {activeData.storeLogo ? (
-                  <img 
-                    src={activeData.storeLogo} 
-                    alt={`${activeData.storeName.en} - ${activeData.storeName.ar}`} 
-                    className="h-9 w-auto max-h-9 object-contain" 
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-0.5 text-center">
-                    <span className="font-brand-geometric font-black text-lg text-slate-950 tracking-[0.22em] uppercase leading-none">
-                      {activeData.storeName.en}
-                    </span>
-                    <span className="font-brand-ar font-extrabold text-xs text-slate-800 leading-tight">
-                      {activeData.storeName.ar.includes('ـ') ? activeData.storeName.ar : (activeData.storeName.ar === 'نَدِي' || activeData.storeName.ar === 'ندي' ? 'نَـــــدِي' : activeData.storeName.ar)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  navigateTo('login');
-                }}
-                className="w-10 h-10 rounded-2xl bg-purple-50 text-[#5A3E7A] hover:bg-purple-100 min-h-[44px] min-w-[44px] flex items-center justify-center border border-purple-100 transition-colors shadow-xs"
-                aria-label="User Account"
-              >
-                <User className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Scrollable Body: Full touch scroll area */}
-            <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4 pb-24">
-              
-              {/* Main Navigation Links */}
-              <div className="space-y-1.5">
-                <button
-                  onClick={() => {
-                    navigateTo('store');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-start px-4 py-3 rounded-2xl font-extrabold text-sm flex items-center justify-between transition-colors min-h-[48px] ${currentRoute === 'store' ? 'bg-purple-100 text-[#5A3E7A] shadow-xs' : 'text-slate-800 hover:bg-slate-50'}`}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-[#5A3E7A]" />
-                    {lang === 'ar' ? 'الرئيسية' : 'Home'}
-                  </span>
-                  {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    navigateTo('wishlist');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-start px-4 py-3 rounded-2xl font-extrabold text-sm flex items-center justify-between transition-colors min-h-[48px] ${currentRoute === 'wishlist' ? 'bg-purple-100 text-[#5A3E7A] shadow-xs' : 'text-slate-800 hover:bg-slate-50'}`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Heart className="w-4 h-4 text-rose-500" />
-                    <span>{lang === 'ar' ? 'المفضلة الفاخرة' : 'Wishlist'}</span>
-                    {wishlist.length > 0 && (
-                      <span className="px-2 py-0.5 bg-rose-500 text-white text-[10px] font-bold rounded-full">
-                        {wishlist.length}
-                      </span>
-                    )}
-                  </div>
-                  {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    navigateTo('cart');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-start px-4 py-3 rounded-2xl font-extrabold text-sm flex items-center justify-between transition-colors min-h-[48px] ${currentRoute === 'cart' ? 'bg-purple-100 text-[#5A3E7A] shadow-xs' : 'text-slate-800 hover:bg-slate-50'}`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <StoreCartIcon size="md" className="text-[#5A3E7A]" />
-                    <span>{lang === 'ar' ? 'سلة المشتريات والدفع' : 'Shopping Basket'}</span>
-                    {cartCount > 0 && (
-                      <span className="px-2.5 py-0.5 bg-[#5A3E7A] text-white text-[11px] font-black rounded-full shadow-xs">
-                        {cartCount}
-                      </span>
-                    )}
-                  </div>
-                  {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    navigateTo('about');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-start px-4 py-3 rounded-2xl font-extrabold text-sm flex items-center justify-between transition-colors min-h-[48px] ${currentRoute === 'about' ? 'bg-purple-100 text-[#5A3E7A] shadow-xs' : 'text-slate-800 hover:bg-slate-50'}`}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                    {lang === 'ar' ? 'من نحن وقصة المتجر' : 'Our Story & About'}
-                  </span>
-                  {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    navigateTo('tracker');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-start px-4 py-3 rounded-2xl font-extrabold text-sm flex items-center justify-between transition-colors min-h-[48px] ${currentRoute === 'tracker' ? 'bg-purple-100 text-[#5A3E7A] shadow-xs' : 'text-slate-800 hover:bg-slate-50'}`}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <Truck className="w-4 h-4 text-emerald-600" />
-                    {lang === 'ar' ? 'تتبع الشحنة المباشر' : 'Live Order Tracking'}
-                  </span>
-                  {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}
-                </button>
-              </div>
-
-              {/* Preferences & Settings Section */}
-              <div className="pt-3 border-t border-slate-100 space-y-3">
-                <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block px-1">
-                  {lang === 'ar' ? 'إعدادات المتجر والتخصيص' : 'Store Settings & Preferences'}
-                </span>
-
-                {/* Currency quick toggle */}
-                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">{currentCurrencyObj.country}</span>
-                    <span className="text-xs font-bold text-slate-700">{lang === 'ar' ? 'العملة الحالية' : 'Currency'}:</span>
-                  </div>
-                  <button
-                    onClick={() => setIsCurrencyDropdownOpen(!isCurrencyDropdownOpen)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white shadow-xs border border-purple-100 text-xs font-extrabold text-[#5A3E7A]"
-                  >
-                    <span>{currency}</span>
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* Language Switcher */}
-                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-[#5A3E7A]" />
-                    <span className="text-xs font-bold text-slate-700">{lang === 'ar' ? 'لغة الواجهة' : 'Language'}:</span>
-                  </div>
-                  <button
-                    onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-                    className="px-3.5 py-1.5 rounded-xl bg-[#5A3E7A] text-white text-xs font-extrabold shadow-xs transition-opacity hover:opacity-90"
-                  >
-                    {lang === 'ar' ? 'English (EN)' : 'العربية (AR)'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Bottom Login and Safe Area action */}
-              <div className="pt-2 pb-6 space-y-3">
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    navigateTo('login');
-                  }}
-                  className="w-full py-3.5 bg-gradient-to-r from-[#5A3E7A] to-[#483162] text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2.5 min-h-[48px] shadow-md hover:opacity-95 transition-opacity"
-                >
-                  <User className="w-4 h-4 text-purple-200" />
-                  <span>{lang === 'ar' ? 'تسجيل الدخول / فتح صفحة الحساب' : 'Sign In / Account Page'}</span>
-                </button>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-      )}
 
       {/* Global Predictive Spotlight Search Modal */}
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />

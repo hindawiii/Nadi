@@ -688,14 +688,24 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     window.scrollTo({ top: 0, behavior: 'smooth' });
     try {
       if (r === 'store') {
-        window.history.pushState(null, '', '/');
-        window.location.hash = '';
+        window.history.replaceState(null, '', '/');
+        if (window.location.hash) {
+          window.location.hash = '';
+        }
+      } else if (r === 'login') {
+        // Do not pollute the URL bar with persistent #login so refresh never gets trapped
+        window.history.replaceState(null, '', '/');
+        if (window.location.hash) {
+          window.location.hash = '';
+        }
       } else {
         window.history.pushState(null, '', `/${r}`);
         window.location.hash = r;
       }
     } catch (e) {
-      window.location.hash = r;
+      if (r !== 'store' && r !== 'login') {
+        window.location.hash = r;
+      }
     }
   };
 

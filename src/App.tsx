@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, Suspense, lazy } from 'react';
+import React, { useEffect, useRef, useState, Suspense, lazy } from 'react';
 import { CommerceProvider, useCommerce } from './context/CommerceContext';
 import { Header } from './components/Header';
+import { MobileNavigationDrawer } from './components/MobileNavigationDrawer';
 import { StorefrontView } from './components/StorefrontView';
 import { AboutView } from './components/AboutView';
 import { PDPView } from './components/PDPView';
@@ -33,6 +34,7 @@ const AppContent: React.FC = () => {
     setIsCompareModalOpen,
     lang
   } = useCommerce();
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const prevRouteRef = useRef<string>('');
   const hasInitializedRef = useRef<boolean>(false);
 
@@ -132,7 +134,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-purple-600 selection:text-white flex flex-col justify-between overflow-x-hidden">
       <div className="flex-1 flex flex-col">
-        <Header />
+        <Header onOpenMobileMenu={() => setIsMobileDrawerOpen(true)} />
 
         <main className="flex-1">
           {currentRoute === 'store' && <StorefrontView />}
@@ -158,6 +160,12 @@ const AppContent: React.FC = () => {
 
       {/* Central Footer for all public-facing pages */}
       {currentRoute !== 'developer' && <Footer />}
+
+      {/* Global Mobile Off-Canvas Navigation Drawer (100dvh Root Portal) */}
+      <MobileNavigationDrawer 
+        isOpen={isMobileDrawerOpen} 
+        onClose={() => setIsMobileDrawerOpen(false)} 
+      />
 
       {/* Global Interactive Overlays & Controls */}
       <AuthModal />
