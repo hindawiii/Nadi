@@ -13,7 +13,7 @@ export const AdminPanel: React.FC = () => {
   const { 
     lang, isAdminAuthenticated, loginAdmin, logoutAdmin, 
     orders, updateOrderStatus, dynamicConfig, setDynamicConfig, 
-    activePresetId, setCurrentRoute, showToast 
+    activePresetId, navigateTo, showToast 
   } = useCommerce();
 
   const isRtl = lang === 'ar';
@@ -56,7 +56,7 @@ export const AdminPanel: React.FC = () => {
 
           <div className="space-y-1.5">
             <h2 className="text-xl font-extrabold text-slate-900">
-              {lang === 'ar' ? 'لوحة العميل المشتري (/admin)' : 'Merchant Portal (/admin)'}
+              {lang === 'ar' ? 'لوحة التاجر وإدارة الطلبات (/admin)' : 'Merchant Portal (/admin)'}
             </h2>
             <p className="text-xs text-slate-500">
               {lang === 'ar'
@@ -96,7 +96,7 @@ export const AdminPanel: React.FC = () => {
           </form>
 
           <button
-            onClick={() => setCurrentRoute('store')}
+            onClick={() => navigateTo('store')}
             className="text-xs text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
           >
             {lang === 'ar' ? 'الرجوع للمتجر' : 'Return to Store'}
@@ -284,7 +284,7 @@ export const AdminPanel: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                {lang === 'ar' ? 'لوحة تحكم المتجر والعميل المشتري' : 'Store Merchant Operations'}
+                {lang === 'ar' ? 'لوحة تحكم المتجر وإدارة العمليات' : 'Store Merchant Operations'}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
@@ -297,7 +297,7 @@ export const AdminPanel: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2.5">
             <button
-              onClick={() => setCurrentRoute('store')}
+              onClick={() => navigateTo('store')}
               className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Eye className="w-3.5 h-3.5" />

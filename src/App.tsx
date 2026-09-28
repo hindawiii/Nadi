@@ -136,10 +136,12 @@ const AppContent: React.FC = () => {
     };
   }, [activeData.products, hairStylingDevices, isDeveloperModeLocked, openProductPDP, setCurrentRoute]);
 
+  const isControlPanelRoute = currentRoute === 'admin' || currentRoute === 'developer';
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-purple-600 selection:text-white flex flex-col justify-between overflow-x-hidden">
       <div className="flex-1 flex flex-col">
-        <Header onOpenMobileMenu={() => setIsMobileDrawerOpen(true)} />
+        {!isControlPanelRoute && <Header onOpenMobileMenu={() => setIsMobileDrawerOpen(true)} />}
 
         <main className="flex-1">
           {currentRoute === 'store' && <StorefrontView />}
@@ -163,8 +165,8 @@ const AppContent: React.FC = () => {
         </main>
       </div>
 
-      {/* Central Footer for all public-facing pages */}
-      {currentRoute !== 'developer' && <Footer />}
+      {/* Central Footer for public-facing store pages */}
+      {!isControlPanelRoute && <Footer />}
 
       {/* Global Mobile Off-Canvas Navigation Drawer (100dvh Root Portal) */}
       <MobileNavigationDrawer 
@@ -176,12 +178,12 @@ const AppContent: React.FC = () => {
       <AuthModal />
       <ReviewModal />
       
-      {/* Floating Widgets tied dynamically to central sectionsControl */}
-      {currentRoute !== 'developer' && sectionsControl.floatingWhatsApp && <FloatingWhatsApp />}
-      {currentRoute !== 'developer' && sectionsControl.scrollToTop && <ScrollToTopProgress />}
+      {/* Floating Widgets tied dynamically to central sectionsControl - Only on public pages */}
+      {!isControlPanelRoute && sectionsControl.floatingWhatsApp && <FloatingWhatsApp />}
+      {!isControlPanelRoute && sectionsControl.scrollToTop && <ScrollToTopProgress />}
 
       {/* Floating Comparison Drawer Trigger Bar (Appears when >= 1 item is compared) */}
-      {comparisonList.length > 0 && currentRoute !== 'developer' && (
+      {comparisonList.length > 0 && !isControlPanelRoute && (
         <div className="fixed bottom-20 start-4 z-40 animate-in slide-in-from-bottom duration-300">
           <button
             onClick={() => setIsCompareModalOpen(true)}

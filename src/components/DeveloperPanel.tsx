@@ -16,7 +16,7 @@ export const DeveloperPanel: React.FC = () => {
   const { 
     lang, isDevAuthenticated, loginDeveloper, logoutDeveloper, 
     activePresetId, setActivePresetId, dynamicConfig, setDynamicConfig, 
-    isDeveloperModeLocked, toggleLockDeveloperMode, setCurrentRoute, 
+    isDeveloperModeLocked, toggleLockDeveloperMode, setCurrentRoute, navigateTo,
     showToast, sectionsControl, toggleSection, resetSections,
     activePaletteId, setActivePaletteId, customPalette, setCustomPalette,
     activeTypographyId, setActiveTypographyId, importTemplate, exportCurrentTemplate,
@@ -107,7 +107,7 @@ export const DeveloperPanel: React.FC = () => {
           </form>
 
           <button
-            onClick={() => setCurrentRoute('store')}
+            onClick={() => navigateTo('store')}
             className="text-xs text-slate-400 hover:text-white transition-colors"
           >
             {lang === 'ar' ? 'الرجوع للمتجر' : 'Return to Storefront'}
@@ -469,7 +469,7 @@ export const DeveloperPanel: React.FC = () => {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setCurrentRoute('store')}
+              onClick={() => navigateTo('store')}
               className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
             >
               🏪 {lang === 'ar' ? 'معاينة المتجر حياً' : 'Preview Storefront'}
