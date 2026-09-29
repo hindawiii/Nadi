@@ -88,6 +88,17 @@ export interface PresetNiche {
     beforeLabel: { ar: string; en: string };
     afterLabel: { ar: string; en: string };
   };
+  trioBanners?: {
+    id: string;
+    brand: string;
+    title: { ar: string; en: string };
+    subtitle: { ar: string; en: string };
+    targetTab?: string;
+    bgGradient?: string;
+    accentColor?: string;
+    image: string;
+    isDarkText?: boolean;
+  }[];
   footerAbout?: {
     title: { ar: string; en: string };
     description: { ar: string; en: string };
@@ -266,6 +277,38 @@ export const siteConfig: SiteConfig = {
         beforeLabel: { ar: "قبل", en: "Before" },
         afterLabel: { ar: "بعد", en: "After" }
       },
+      trioBanners: [
+        {
+          id: 'siltek-banner',
+          brand: 'Siltek',
+          title: { ar: 'مكواة التمويج الثلاثية', en: 'Triple Barrel Waver' },
+          subtitle: { ar: 'تمويجات عريضة تدوم طويلاً', en: 'Long-lasting Deep Waves' },
+          targetTab: 'waving',
+          bgGradient: 'from-[#0b2923] via-[#123830] to-[#081a17]',
+          accentColor: '#2B827A',
+          image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
+        },
+        {
+          id: 'okema-banner',
+          brand: 'Okema®',
+          title: { ar: 'المصفف الذكي متعدد الرؤوس', en: 'Multi-Styler Air Brush' },
+          subtitle: { ar: 'تصفيف وتجفيف متكامل 6 في 1', en: '6-in-1 Complete Styling' },
+          targetTab: 'dryer',
+          bgGradient: 'from-[#e4ded6] via-[#dfd7cc] to-[#cfc4b5]',
+          accentColor: '#b48a58',
+          image: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=600&q=80',
+        },
+        {
+          id: 'clara-banner',
+          brand: 'CLARA',
+          title: { ar: 'مكواة التمليس والأيونات', en: 'Ceramic Ion Flat Iron' },
+          subtitle: { ar: 'شعر حريري فائق النعومة', en: 'Silk Sleek Results' },
+          targetTab: 'straightener',
+          bgGradient: 'from-[#f5e6e8] via-[#eedbe0] to-[#e4ccd3]',
+          accentColor: '#cf7588',
+          image: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=600&q=80',
+        }
+      ],
       footerAbout: {
         title: { ar: "عالم الجمال والعناية", en: "World of Botanical Care" },
         description: { ar: "وجهتكم الأولى لمنتجات العناية الطبيعية بالبشرة والمستخلصات النباتية الأصلية مع ضمان شامل وخدمة استشارات ما بعد الشراء.", en: "Your premier destination for authentic natural skincare and pure botanicals with comprehensive purity guarantee." },

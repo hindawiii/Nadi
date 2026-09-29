@@ -235,7 +235,7 @@ export const hairStylingDevices: Product[] = [
 type SubCategoryKey = 'all' | 'waving' | 'straightener' | 'dryer';
 
 export const HairDevicesSpotlight: React.FC = () => {
-  const { lang, showToast } = useCommerce();
+  const { lang, showToast, dynamicConfig, activePresetId } = useCommerce();
   const isRtl = lang === 'ar';
 
   const [activeSubCategory, setActiveSubCategory] = useState<SubCategoryKey>('waving');
@@ -266,8 +266,8 @@ export const HairDevicesSpotlight: React.FC = () => {
     },
   ];
 
-  // Top 3 Visual Trio Banners corresponding to photo 1
-  const trioBanners = [
+  // Top 3 Visual Trio Banners default fallback
+  const defaultTrioBanners = [
     {
       id: 'siltek-banner',
       brand: 'Siltek',
@@ -301,6 +301,11 @@ export const HairDevicesSpotlight: React.FC = () => {
       image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=600&q=80',
     },
   ];
+
+  const presetData = dynamicConfig?.presets?.[activePresetId] || dynamicConfig?.presets?.cosmetics;
+  const trioBanners = (presetData?.trioBanners && presetData.trioBanners.length > 0)
+    ? presetData.trioBanners
+    : defaultTrioBanners;
 
   // Filter products based on sub-category
   const filteredProducts = hairStylingDevices.filter((item) => {
@@ -370,7 +375,7 @@ export const HairDevicesSpotlight: React.FC = () => {
             <div
               key={banner.id}
               onClick={() => {
-                handleTabChange(banner.targetTab);
+                handleTabChange((banner.targetTab as SubCategoryKey) || 'all');
                 showToast(
                   lang === 'ar' 
                     ? `تم عرض تشكيلة: ${banner.brand}` 

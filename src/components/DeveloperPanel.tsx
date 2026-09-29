@@ -4,13 +4,15 @@ import {
   Eye, EyeOff, Lock, AlertTriangle, Check, RefreshCw, 
   Smartphone, Watch, Shirt, Glasses, RotateCcw, Layers, Droplets, Star, ShoppingBag, Image,
   Copy, Trash2, CheckCircle2, ChevronRight, Plus, ExternalLink, Phone, Mail, MapPin, MessageCircle, ArrowUpRight,
-  Download, Upload, Code2, Type, FileJson, CheckCircle, HelpCircle, Sparkle, ArrowUp
+  Download, Upload, Code2, Type, FileJson, CheckCircle, HelpCircle, Sparkle, ArrowUp,
+  Database, Cpu, HardDrive, Terminal, Activity
 } from 'lucide-react';
 import { useCommerce, SectionVisibilityMap } from '../context/CommerceContext';
 import { 
-  curatedPalettes, curatedTypographyPairs, curatedImportableTemplates, 
+  siteConfig, curatedPalettes, curatedTypographyPairs, curatedImportableTemplates, 
   ImportableTemplate, ColorPalette, TypographyPair, PresetNiche 
 } from '../data/siteConfig';
+import { SmartAuthPortal } from './common/SmartAuthPortal';
 
 export const DeveloperPanel: React.FC = () => {
   const { 
@@ -47,73 +49,29 @@ export const DeveloperPanel: React.FC = () => {
 
   // Security Gate
   if (!isDevAuthenticated) {
-    const handlePinSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      const success = loginDeveloper(pinInput);
-      if (!success) {
-        setPinError(true);
-        setPinInput('');
-      } else {
-        setPinError(false);
-      }
-    };
-
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-slate-900 border border-amber-500/30 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
-          <div className="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-2xl mx-auto flex items-center justify-center border border-amber-500/40">
-            <Shield className="w-8 h-8" />
-          </div>
-
-          <div className="space-y-1.5">
-            <h2 className="text-xl font-extrabold text-white">
-              {lang === 'ar' ? 'بوابة المطور البرمجية العليا (/developer)' : 'Supreme Developer Console (/developer)'}
-            </h2>
-            <p className="text-xs text-amber-200/80">
-              {lang === 'ar'
-                ? 'محمية برمز رئيسي من 6 أرقام (الافتراضي: 998877)'
-                : 'Secured by 6-digit Master Key (Default: 998877)'}
-            </p>
-          </div>
-
-          <form onSubmit={handlePinSubmit} className="space-y-4">
-            <div className="relative">
-              <KeyRound className="w-5 h-5 text-amber-400 absolute start-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="password"
-                maxLength={6}
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                placeholder="••••••"
-                className={`w-full ps-11 pe-4 py-3 text-center tracking-[1em] text-lg font-mono font-bold bg-slate-800 text-white border rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-400 ${
-                  pinError ? 'border-rose-500 bg-rose-950/40' : 'border-slate-700'
-                }`}
-                autoFocus
-              />
-            </div>
-
-            {pinError && (
-              <p className="text-xs font-semibold text-rose-400">
-                {lang === 'ar' ? 'رمز المطور غير صحيح. حاول مجدداً.' : 'Invalid Master PIN. Please retry.'}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 rounded-2xl font-black text-sm shadow-lg transition-all min-h-[48px]"
-            >
-              {lang === 'ar' ? 'تأكيد الدخول للنواة' : 'Authenticate Console'}
-            </button>
-          </form>
-
-          <button
-            onClick={() => navigateTo('store')}
-            className="text-xs text-slate-400 hover:text-white transition-colors"
-          >
-            {lang === 'ar' ? 'الرجوع للمتجر' : 'Return to Storefront'}
-          </button>
-        </div>
-      </div>
+      <SmartAuthPortal
+        portalType="developer"
+        pinLength={6}
+        defaultPin="998877"
+        title={{
+          ar: 'بوابة المطور البرمجية العليا (/developer)',
+          en: 'Supreme Developer Console (/developer)'
+        }}
+        subtitle={{
+          ar: 'التحكم بالمعمارية البرمجية، محول القوالب، باليت الألوان، والدرع البرمجي الذهبي',
+          en: 'Architecture controls, template adapter, palettes, and golden snapshot shield'
+        }}
+        roleBadge={{
+          ar: 'صلاحيات المطور العليا (Master Developer)',
+          en: 'Master Developer Access'
+        }}
+        accent="amber"
+        onAuthenticate={(pin, rememberLogin, rememberPin) => loginDeveloper(pin, rememberLogin, rememberPin)}
+        onReturnToStore={() => navigateTo('store')}
+        savedAuthKey="luxe_dev_auth_saved"
+        savedPinKey="luxe_dev_saved_pin"
+      />
     );
   }
 
@@ -234,14 +192,20 @@ export const DeveloperPanel: React.FC = () => {
     },
   ];
 
-  const currentPresetData = dynamicConfig.presets[activePresetId];
+  // Safeguard currentPresetData against missing preset or corrupted storage
+  const fallbackPreset = siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics;
+  const currentPresetData = dynamicConfig?.presets?.[activePresetId] || fallbackPreset;
 
   const [clonedSections, setClonedSections] = useState<Record<string, boolean>>({});
 
-  // Inline content updater
+  // Inline content updater with safety guards
   const handleUpdateText = (field: string, subfield: string, val: string) => {
     setDynamicConfig((prev) => {
-      const clone = JSON.parse(JSON.stringify(prev));
+      const clone = JSON.parse(JSON.stringify(prev || siteConfig));
+      if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
+      if (!clone.presets[activePresetId]) {
+        clone.presets[activePresetId] = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics));
+      }
       if (!clone.presets[activePresetId][field]) {
         clone.presets[activePresetId][field] = {};
       }
@@ -252,7 +216,11 @@ export const DeveloperPanel: React.FC = () => {
 
   const handleUpdateDirect = (field: string, val: string) => {
     setDynamicConfig((prev) => {
-      const clone = JSON.parse(JSON.stringify(prev));
+      const clone = JSON.parse(JSON.stringify(prev || siteConfig));
+      if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
+      if (!clone.presets[activePresetId]) {
+        clone.presets[activePresetId] = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics));
+      }
       clone.presets[activePresetId][field] = val;
       return clone;
     });
@@ -260,7 +228,19 @@ export const DeveloperPanel: React.FC = () => {
 
   const handleUpdateContact = (field: string, val: string) => {
     setDynamicConfig((prev) => {
-      const clone = JSON.parse(JSON.stringify(prev));
+      const clone = JSON.parse(JSON.stringify(prev || siteConfig));
+      if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
+      if (!clone.presets[activePresetId]) {
+        clone.presets[activePresetId] = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics));
+      }
+      if (!clone.presets[activePresetId].contactInfo) {
+        clone.presets[activePresetId].contactInfo = {
+          address: { ar: 'المقر الرئيسي', en: 'Headquarters' },
+          phone: '',
+          email: '',
+          whatsapp: ''
+        };
+      }
       clone.presets[activePresetId].contactInfo[field] = val;
       return clone;
     });
@@ -268,7 +248,11 @@ export const DeveloperPanel: React.FC = () => {
 
   const handleUpdateLogo = (val: string) => {
     setDynamicConfig((prev) => {
-      const clone = JSON.parse(JSON.stringify(prev));
+      const clone = JSON.parse(JSON.stringify(prev || siteConfig));
+      if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
+      if (!clone.presets[activePresetId]) {
+        clone.presets[activePresetId] = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics));
+      }
       clone.presets[activePresetId].storeLogo = val;
       return clone;
     });
@@ -444,53 +428,113 @@ export const DeveloperPanel: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-8 sm:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
         
-        {/* Top Developer Bar */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+        {/* Top Developer Command Bar */}
+        <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800/80 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-2.5 w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400" />
+              </span>
               <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-widest">
-                MASTER DEVELOPER ENGINE v2.8 PRO
+                SUPREME ARCHITECTURE CONSOLE v3.0 PRO
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               {lang === 'ar' ? 'محرك التحكم المعماري وتطويع القوالب' : 'Architecture & Template Normalizer Studio'}
             </h1>
-            <p className="text-xs text-slate-400">
-              {lang === 'ar' ? 'النشاط المفعّل حالياً:' : 'Active Niche:'}{' '}
-              <span className="font-bold text-amber-300">{currentPresetData.nicheLabel[lang]}</span>
-              {' · '}
-              {lang === 'ar' ? 'باليت الألوان:' : 'Color Palette:'}{' '}
-              <span className="font-semibold text-rose-300">{currentActivePalette.name[lang]}</span>
+            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+              {lang === 'ar' 
+                ? 'إدارة محول القوالب، باليتات الألوان، الخطوط المتجانسة، صمام الأمان الذهبي، واختبار استقرار البيانات في الوقت الفعلي.' 
+                : 'Full architectural control over presets, theme palettes, typography pairs, and golden stability shield.'}
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => navigateTo('store')}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+              className="h-11 px-5 rounded-2xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
             >
-              🏪 {lang === 'ar' ? 'معاينة المتجر حياً' : 'Preview Storefront'}
+              <Eye className="w-4 h-4 text-slate-400" />
+              <span>{lang === 'ar' ? 'معاينة المتجر حياً' : 'Preview Storefront'}</span>
             </button>
             <button
               onClick={logoutDeveloper}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 transition-colors"
+              className="h-11 px-5 rounded-2xl text-xs font-bold bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
             >
-              🔒 {lang === 'ar' ? 'قفل الخروج' : 'Lock Console'}
+              <Lock className="w-4 h-4 text-rose-400" />
+              <span>{lang === 'ar' ? 'قفل اللوحة' : 'Lock Console'}</span>
             </button>
           </div>
         </div>
 
-        {/* Tab Selector */}
-        <div className="flex gap-2.5 border-b border-slate-800 pb-4 overflow-x-auto no-scrollbar">
+        {/* System Architecture Telemetry Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800/80 space-y-1.5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider">{lang === 'ar' ? 'النشاط المفعّل' : 'Active Preset'}</span>
+              <Cpu className="w-4 h-4 text-amber-400" />
+            </div>
+            <p className="text-sm font-black text-white truncate">
+              {currentPresetData?.nicheLabel?.[lang] || activePresetId}
+            </p>
+            <span className="text-[10px] text-amber-400 font-mono block">
+              ID: {activePresetId}
+            </span>
+          </div>
+
+          <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800/80 space-y-1.5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider">{lang === 'ar' ? 'الباليت النشط' : 'Active Palette'}</span>
+              <Palette className="w-4 h-4 text-purple-400" />
+            </div>
+            <p className="text-sm font-black text-white truncate">
+              {currentActivePalette.name[lang]}
+            </p>
+            <div className="flex items-center gap-1.5 pt-0.5">
+              <span className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: currentActivePalette.primary }} />
+              <span className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: currentActivePalette.accent }} />
+              <span className="text-[10px] text-slate-400 font-mono">{currentActivePalette.primary}</span>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800/80 space-y-1.5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider">{lang === 'ar' ? 'صمام الأمان الذهبي' : 'Golden Shield'}</span>
+              <Shield className={`w-4 h-4 ${goldenSnapshot ? 'text-emerald-400' : 'text-slate-500'}`} />
+            </div>
+            <p className="text-sm font-black text-white">
+              {goldenSnapshot ? (lang === 'ar' ? 'محمي ومحفوظ ✅' : 'Protected ✅') : (lang === 'ar' ? 'غير مسجل ⚠️' : 'Unsaved ⚠️')}
+            </p>
+            <span className="text-[10px] text-slate-400 font-mono block truncate">
+              {goldenSnapshot ? new Date(goldenSnapshot.savedAt).toLocaleTimeString() : (lang === 'ar' ? 'ينصح بأخذ لقطة' : 'Snapshot advised')}
+            </span>
+          </div>
+
+          <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800/80 space-y-1.5">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider">{lang === 'ar' ? 'بصمة التخزين' : 'Storage Size'}</span>
+              <HardDrive className="w-4 h-4 text-sky-400" />
+            </div>
+            <p className="text-sm font-black text-white font-mono">
+              ~{(JSON.stringify(dynamicConfig).length / 1024).toFixed(1)} KB
+            </p>
+            <span className="text-[10px] text-emerald-400 font-mono block">
+              Healthy & Valid JSON
+            </span>
+          </div>
+        </div>
+
+        {/* Tab Selector - Luxe Pro 44px Navigation */}
+        <div className="flex gap-2 p-1.5 bg-slate-900/80 rounded-2xl border border-slate-800/80 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('presets')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+            className={`h-11 px-4 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'presets'
-                ? 'bg-amber-500 text-slate-950 shadow-lg font-black'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <Layout className="w-4 h-4" />
@@ -499,86 +543,86 @@ export const DeveloperPanel: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('templates')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+            className={`h-11 px-4 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'templates'
-                ? 'bg-amber-500 text-slate-950 shadow-lg font-black'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <Code2 className="w-4 h-4" />
-            <span>{lang === 'ar' ? 'مستورد ومطوع القوالب (Templates & Code Adapter)' : 'Template Importer & Adapter'}</span>
+            <span>{lang === 'ar' ? 'مستورد ومطوع القوالب' : 'Template Importer'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('colors')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+            className={`h-11 px-4 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'colors'
-                ? 'bg-amber-500 text-slate-950 shadow-lg font-black'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <Palette className="w-4 h-4" />
-            <span>{lang === 'ar' ? 'منظومة الألوان المتجانسة (Color Harmony)' : 'Color Harmony System'}</span>
+            <span>{lang === 'ar' ? 'منظومة الألوان' : 'Color Harmony'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('typography')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+            className={`h-11 px-4 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'typography'
-                ? 'bg-amber-500 text-slate-950 shadow-lg font-black'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <Type className="w-4 h-4" />
-            <span>{lang === 'ar' ? 'منظومة الخطوط المتجانسة (Typography)' : 'Typography Pairs'}</span>
+            <span>{lang === 'ar' ? 'منظومة الخطوط' : 'Typography'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('sections')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+            className={`h-11 px-4 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'sections'
-                ? 'bg-amber-500 text-slate-950 shadow-lg font-black'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <Sliders className="w-4 h-4" />
-            <span>{lang === 'ar' ? 'إدارة الأقسام (Sections)' : 'Sections'}</span>
+            <span>{lang === 'ar' ? 'إدارة الأقسام' : 'Sections'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('content')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+            className={`h-11 px-4 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'content'
-                ? 'bg-amber-500 text-slate-950 shadow-lg font-black'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <Sparkle className="w-4 h-4" />
-            <span>{lang === 'ar' ? 'المحتوى والشعار (CMS)' : 'Live CMS'}</span>
+            <span>{lang === 'ar' ? 'المحتوى والشعار' : 'Live CMS'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('golden')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+            className={`h-11 px-4 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'golden'
-                ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20 font-black'
-                : 'bg-emerald-950/40 text-emerald-300 hover:text-white border border-emerald-800/60'
+                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-black'
+                : 'text-emerald-400 hover:text-white hover:bg-emerald-950/40'
             }`}
           >
-            <Shield className="w-4 h-4 text-emerald-400" />
-            <span>{lang === 'ar' ? '🛡️ درع الثبات وتجميد الكود (Golden Shield)' : '🛡️ Golden Stability Shield'}</span>
+            <Shield className="w-4 h-4" />
+            <span>{lang === 'ar' ? '🛡️ درع الثبات الذهبي' : '🛡️ Golden Shield'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('security')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+            className={`h-11 px-4 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'security'
-                ? 'bg-rose-500 text-white shadow-lg font-black'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-rose-500 text-white shadow-md font-black'
+                : 'text-rose-400 hover:text-white hover:bg-rose-950/40'
             }`}
           >
             <AlertTriangle className="w-4 h-4" />
-            <span>{lang === 'ar' ? 'الحماية والتأمين (Security)' : 'Security Guard'}</span>
+            <span>{lang === 'ar' ? 'الحماية والتأمين' : 'Security Guard'}</span>
           </button>
         </div>
 
@@ -633,7 +677,7 @@ export const DeveloperPanel: React.FC = () => {
 
                     <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs font-semibold">
                       <span className="text-slate-500">
-                        {dynamicConfig.presets[preset.id].products.length} {lang === 'ar' ? 'منتجات جاهزة' : 'products'}
+                        {dynamicConfig?.presets?.[preset.id]?.products?.length ?? siteConfig.presets[preset.id]?.products?.length ?? 0} {lang === 'ar' ? 'منتجات جاهزة' : 'products'}
                       </span>
                       <button
                         className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
@@ -1554,7 +1598,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.storeName.ar}
+                    value={currentPresetData?.storeName?.ar || ''}
                     onChange={(e) => handleUpdateText('storeName', 'ar', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                   />
@@ -1566,7 +1610,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.storeName.en}
+                    value={currentPresetData?.storeName?.en || ''}
                     onChange={(e) => handleUpdateText('storeName', 'en', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                   />
@@ -1579,7 +1623,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.storeSlogan ? currentPresetData.storeSlogan.ar : ''}
+                    value={currentPresetData?.storeSlogan ? currentPresetData.storeSlogan.ar : ''}
                     onChange={(e) => handleUpdateText('storeSlogan', 'ar', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                   />
@@ -1591,7 +1635,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.storeSlogan ? currentPresetData.storeSlogan.en : ''}
+                    value={currentPresetData?.storeSlogan ? currentPresetData.storeSlogan.en : ''}
                     onChange={(e) => handleUpdateText('storeSlogan', 'en', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                   />
@@ -1604,7 +1648,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.topAnnouncement ? currentPresetData.topAnnouncement.ar : ''}
+                    value={currentPresetData?.topAnnouncement ? currentPresetData.topAnnouncement.ar : ''}
                     onChange={(e) => handleUpdateText('topAnnouncement', 'ar', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                   />
@@ -1616,7 +1660,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.topAnnouncement ? currentPresetData.topAnnouncement.en : ''}
+                    value={currentPresetData?.topAnnouncement ? currentPresetData.topAnnouncement.en : ''}
                     onChange={(e) => handleUpdateText('topAnnouncement', 'en', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                   />
@@ -1628,7 +1672,7 @@ export const DeveloperPanel: React.FC = () => {
                     <label className="text-xs font-bold text-slate-300 block">
                       {lang === 'ar' ? 'رابط صورة الشعار (Store Logo Image URL):' : 'Store Logo Image URL:'}
                     </label>
-                    {currentPresetData.storeLogo && (
+                    {currentPresetData?.storeLogo && (
                       <button
                         type="button"
                         onClick={() => handleUpdateLogo('')}
@@ -1641,7 +1685,7 @@ export const DeveloperPanel: React.FC = () => {
                   <input
                     type="url"
                     placeholder="https://... (Leave blank for text-only)"
-                    value={currentPresetData.storeLogo || ''}
+                    value={currentPresetData?.storeLogo || ''}
                     onChange={(e) => handleUpdateLogo(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                   />
@@ -1668,7 +1712,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.heroTitle.ar}
+                    value={currentPresetData?.heroTitle?.ar || ''}
                     onChange={(e) => handleUpdateText('heroTitle', 'ar', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                   />
@@ -1680,7 +1724,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.heroTitle.en}
+                    value={currentPresetData?.heroTitle?.en || ''}
                     onChange={(e) => handleUpdateText('heroTitle', 'en', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                   />
@@ -1693,7 +1737,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <textarea
                     rows={2}
-                    value={currentPresetData.heroSubtitle.ar}
+                    value={currentPresetData?.heroSubtitle?.ar || ''}
                     onChange={(e) => handleUpdateText('heroSubtitle', 'ar', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none"
                   />
@@ -1705,7 +1749,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <textarea
                     rows={2}
-                    value={currentPresetData.heroSubtitle.en}
+                    value={currentPresetData?.heroSubtitle?.en || ''}
                     onChange={(e) => handleUpdateText('heroSubtitle', 'en', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none"
                   />
@@ -1718,7 +1762,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.heroCtaPrimary ? currentPresetData.heroCtaPrimary.ar : ''}
+                    value={currentPresetData?.heroCtaPrimary ? currentPresetData.heroCtaPrimary.ar : ''}
                     onChange={(e) => handleUpdateText('heroCtaPrimary', 'ar', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                   />
@@ -1730,7 +1774,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.heroCtaPrimary ? currentPresetData.heroCtaPrimary.en : ''}
+                    value={currentPresetData?.heroCtaPrimary ? currentPresetData.heroCtaPrimary.en : ''}
                     onChange={(e) => handleUpdateText('heroCtaPrimary', 'en', e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                   />
@@ -1744,11 +1788,11 @@ export const DeveloperPanel: React.FC = () => {
                   <div className="flex gap-3 items-center">
                     <input
                       type="url"
-                      value={currentPresetData.heroImage || ''}
+                      value={currentPresetData?.heroImage || ''}
                       onChange={(e) => handleUpdateDirect('heroImage', e.target.value)}
                       className="flex-1 px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                     />
-                    {currentPresetData.heroImage && (
+                    {currentPresetData?.heroImage && (
                       <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-700 shrink-0">
                         <img src={currentPresetData.heroImage} alt="Hero Preview" className="w-full h-full object-cover" />
                       </div>
@@ -1773,7 +1817,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.contactInfo.whatsapp}
+                    value={currentPresetData?.contactInfo?.whatsapp || ''}
                     onChange={(e) => handleUpdateContact('whatsapp', e.target.value)}
                     placeholder="249912345678"
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
@@ -1789,7 +1833,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.contactInfo.phone}
+                    value={currentPresetData?.contactInfo?.phone || ''}
                     onChange={(e) => handleUpdateContact('phone', e.target.value)}
                     placeholder="+249 91 234 5678"
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
@@ -1805,7 +1849,7 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="email"
-                    value={currentPresetData.contactInfo.email}
+                    value={currentPresetData?.contactInfo?.email || ''}
                     onChange={(e) => handleUpdateContact('email', e.target.value)}
                     placeholder="contact@store.com"
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
@@ -1821,10 +1865,17 @@ export const DeveloperPanel: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={currentPresetData.contactInfo.address.ar}
+                    value={currentPresetData?.contactInfo?.address?.ar || ''}
                     onChange={(e) => {
                       setDynamicConfig((prev) => {
-                        const clone = JSON.parse(JSON.stringify(prev));
+                        const clone = JSON.parse(JSON.stringify(prev || siteConfig));
+                        if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
+                        if (!clone.presets[activePresetId]) {
+                          clone.presets[activePresetId] = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics));
+                        }
+                        if (!clone.presets[activePresetId].contactInfo) {
+                          clone.presets[activePresetId].contactInfo = { address: { ar: '', en: '' }, phone: '', email: '', whatsapp: '' };
+                        }
                         clone.presets[activePresetId].contactInfo.address.ar = e.target.value;
                         return clone;
                       });

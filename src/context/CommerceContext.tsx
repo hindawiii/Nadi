@@ -99,11 +99,11 @@ interface CommerceContextType {
   
   // Auth PINs
   isAdminAuthenticated: boolean;
-  loginAdmin: (pin: string) => boolean;
+  loginAdmin: (pin: string, rememberLogin?: boolean, rememberPin?: boolean) => boolean;
   logoutAdmin: () => void;
   
   isDevAuthenticated: boolean;
-  loginDeveloper: (pin: string) => boolean;
+  loginDeveloper: (pin: string, rememberLogin?: boolean, rememberPin?: boolean) => boolean;
   logoutDeveloper: () => void;
   
   // Self Destruct / Lock Mode
@@ -257,6 +257,35 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           parsed.presets.cosmetics.heroSubtitle = siteConfig.presets.cosmetics.heroSubtitle;
         }
 
+        // Ensure all presets from siteConfig exist, and merge each preset deeply
+        const mergedPresets = { ...siteConfig.presets };
+        if (parsed.presets && typeof parsed.presets === 'object') {
+          (Object.keys(siteConfig.presets) as (keyof typeof siteConfig.presets)[]).forEach((presetKey) => {
+            if (parsed.presets[presetKey]) {
+              mergedPresets[presetKey] = {
+                ...siteConfig.presets[presetKey],
+                ...parsed.presets[presetKey],
+                contactInfo: {
+                  ...siteConfig.presets[presetKey].contactInfo,
+                  ...(parsed.presets[presetKey].contactInfo || {})
+                },
+                storeName: {
+                  ...siteConfig.presets[presetKey].storeName,
+                  ...(parsed.presets[presetKey].storeName || {})
+                },
+                storeSlogan: {
+                  ...siteConfig.presets[presetKey].storeSlogan,
+                  ...(parsed.presets[presetKey].storeSlogan || {})
+                },
+                products: Array.isArray(parsed.presets[presetKey].products) && parsed.presets[presetKey].products.length > 0
+                  ? parsed.presets[presetKey].products
+                  : siteConfig.presets[presetKey].products
+              };
+            }
+          });
+        }
+        parsed.presets = mergedPresets;
+
         // Migrate any cached single-string currency symbols to bilingual symbols from siteConfig
         if (parsed.currencies) {
           Object.keys(siteConfig.currencies).forEach((currKey) => {
@@ -283,8 +312,12 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   const [currentRoute, setCurrentRouteState] = useState<RouteName>('store');
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
-  const [isDevAuthenticated, setIsDevAuthenticated] = useState<boolean>(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    return safeStorage.getItem('luxe_admin_auth_saved') === 'true';
+  });
+  const [isDevAuthenticated, setIsDevAuthenticated] = useState<boolean>(() => {
+    return safeStorage.getItem('luxe_dev_auth_saved') === 'true';
+  });
 
   // Persistent Cart in LocalStorage
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -1000,25 +1033,51 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const loginAdmin = (pin: string) => {
+  const loginAdmin = (pin: string, rememberLogin: boolean = false, rememberPin: boolean = false) => {
     if (pin.trim() === dynamicConfig.security.adminPin) {
       setIsAdminAuthenticated(true);
+      if (rememberLogin) {
+        safeStorage.setItem('luxe_admin_auth_saved', 'true');
+      } else {
+        safeStorage.removeItem('luxe_admin_auth_saved');
+      }
+      if (rememberPin) {
+        safeStorage.setItem('luxe_admin_saved_pin', pin.trim());
+      } else {
+        safeStorage.removeItem('luxe_admin_saved_pin');
+      }
       return true;
     }
     return false;
   };
 
-  const logoutAdmin = () => setIsAdminAuthenticated(false);
+  const logoutAdmin = () => {
+    setIsAdminAuthenticated(false);
+    safeStorage.removeItem('luxe_admin_auth_saved');
+  };
 
-  const loginDeveloper = (pin: string) => {
+  const loginDeveloper = (pin: string, rememberLogin: boolean = false, rememberPin: boolean = false) => {
     if (pin.trim() === dynamicConfig.security.developerPin) {
       setIsDevAuthenticated(true);
+      if (rememberLogin) {
+        safeStorage.setItem('luxe_dev_auth_saved', 'true');
+      } else {
+        safeStorage.removeItem('luxe_dev_auth_saved');
+      }
+      if (rememberPin) {
+        safeStorage.setItem('luxe_dev_saved_pin', pin.trim());
+      } else {
+        safeStorage.removeItem('luxe_dev_saved_pin');
+      }
       return true;
     }
     return false;
   };
 
-  const logoutDeveloper = () => setIsDevAuthenticated(false);
+  const logoutDeveloper = () => {
+    setIsDevAuthenticated(false);
+    safeStorage.removeItem('luxe_dev_auth_saved');
+  };
 
   const toggleLockDeveloperMode = () => {
     const next = !isDeveloperModeLocked;

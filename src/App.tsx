@@ -18,6 +18,7 @@ import { ScrollToTopProgress } from './components/common/ScrollToTopProgress';
 import { Toast } from './components/Toast';
 import { CompareModal } from './components/CompareModal';
 import { hairStylingDevices } from './components/HairDevicesSpotlight';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Lazy load heavy admin & developer tools to keep initial customer bundle featherlight for Vercel
 const DeveloperPanel = lazy(() => import('./components/DeveloperPanel').then(m => ({ default: m.DeveloperPanel })));
@@ -151,14 +152,25 @@ const AppContent: React.FC = () => {
           {currentRoute === 'pdp' && <PDPView />}
           {currentRoute === 'admin' && <AdminPanel />}
           {currentRoute === 'developer' && (
-            <Suspense fallback={
-              <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 gap-4">
-                <div className="w-10 h-10 border-3 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-slate-600 font-semibold text-sm">Loading Developer Console...</p>
-              </div>
-            }>
-              <DeveloperPanel />
-            </Suspense>
+            <ErrorBoundary
+              fallbackTitle={{
+                ar: 'بوابة المطور البرمجية: تم تفعيل صمام الأمان',
+                en: 'Developer Console: Safety Guard Active'
+              }}
+              fallbackMessage={{
+                ar: 'تم حماية شاشة المطور من الانقطاع أو الشاشة البيضاء. يمكنك الضغط على زر الإصلاح التلقائي لإعادة ضبط الذاكرة المؤقتة وتشغيل اللوحة فوراً.',
+                en: 'Developer console caught a state discrepancy. Click Auto-Repair to reset corrupted session caches and restore the panel immediately.'
+              }}
+            >
+              <Suspense fallback={
+                <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 gap-4 bg-slate-950 text-white">
+                  <div className="w-10 h-10 border-3 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-slate-300 font-semibold text-sm">Loading Developer Console...</p>
+                </div>
+              }>
+                <DeveloperPanel />
+              </Suspense>
+            </ErrorBoundary>
           )}
           {currentRoute === 'tracker' && <OrderTrackerView />}
           {currentRoute === 'login' && <LoginPageView />}
