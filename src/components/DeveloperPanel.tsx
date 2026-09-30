@@ -29,7 +29,8 @@ export const DeveloperPanel: React.FC = () => {
   const isRtl = lang === 'ar';
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'presets' | 'templates' | 'colors' | 'typography' | 'sections' | 'content' | 'security' | 'golden'>('golden');
+  const [activeTab, setActiveTab] = useState<'presets' | 'templates' | 'colors' | 'typography' | 'sections' | 'content' | 'security' | 'golden'>('presets');
+  const [isConfirmingRollback, setIsConfirmingRollback] = useState(false);
 
   // Custom template import/export state
   const [customCodeInput, setCustomCodeInput] = useState('');
@@ -254,6 +255,52 @@ export const DeveloperPanel: React.FC = () => {
         clone.presets[activePresetId] = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics));
       }
       clone.presets[activePresetId].storeLogo = val;
+      return clone;
+    });
+  };
+
+  const handleUpdateSkinDiagnosis = (cardId: string, field: string, val: string, subfield?: string) => {
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev || siteConfig));
+      if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
+      if (!clone.presets[activePresetId]) {
+        clone.presets[activePresetId] = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics));
+      }
+      if (!clone.presets[activePresetId].skinDiagnosisCards) {
+        clone.presets[activePresetId].skinDiagnosisCards = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.skinDiagnosisCards || []));
+      }
+      const card = clone.presets[activePresetId].skinDiagnosisCards.find((c: any) => c.id === cardId);
+      if (card) {
+        if (subfield) {
+          if (!card[field]) card[field] = {};
+          card[field][subfield] = val;
+        } else {
+          card[field] = val;
+        }
+      }
+      return clone;
+    });
+  };
+
+  const handleUpdateTestimonial = (testId: number, field: string, val: string, subfield?: string) => {
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev || siteConfig));
+      if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
+      if (!clone.presets[activePresetId]) {
+        clone.presets[activePresetId] = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics));
+      }
+      if (!clone.presets[activePresetId].testimonials) {
+        clone.presets[activePresetId].testimonials = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.testimonials || []));
+      }
+      const t = clone.presets[activePresetId].testimonials.find((item: any) => item.id === testId);
+      if (t) {
+        if (subfield) {
+          if (!t[field]) t[field] = {};
+          t[field][subfield] = val;
+        } else {
+          t[field] = val;
+        }
+      }
       return clone;
     });
   };
@@ -519,7 +566,7 @@ export const DeveloperPanel: React.FC = () => {
               <HardDrive className="w-4 h-4 text-sky-400" />
             </div>
             <p className="text-sm font-black text-white font-mono">
-              ~{(JSON.stringify(dynamicConfig).length / 1024).toFixed(1)} KB
+              ~{(JSON.stringify(dynamicConfig || siteConfig).length / 1024).toFixed(1)} KB
             </p>
             <span className="text-[10px] text-emerald-400 font-mono block">
               Healthy & Valid JSON
@@ -1886,6 +1933,244 @@ export const DeveloperPanel: React.FC = () => {
               </div>
             </div>
 
+            {/* Section 4: Smart Skin Routine Diagnosis Cards */}
+            <div className="space-y-4 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
+                    💧 {lang === 'ar' ? '٤. كروت تشخيص روتين البشرة الذكي (Skin Diagnosis Cards)' : '4. Smart Skin Diagnosis Cards'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {lang === 'ar'
+                      ? 'تحكم كامل بصور البطاقات الأربعة، ونصوص المكونات الفعالة، وشارات الترطيب والنتائج.'
+                      : 'Customize visual imagery, active botanical ingredients, and trust badges for each skin goal.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {(currentPresetData?.skinDiagnosisCards || siteConfig.presets.cosmetics.skinDiagnosisCards || []).map((card) => (
+                  <div key={card.id} className="bg-slate-950/70 p-5 rounded-2xl border border-slate-800 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                        <span className="text-xs font-black text-white">{card.title[lang] || card.title.ar}</span>
+                      </div>
+                      <span className="text-[10px] font-mono uppercase text-slate-500 font-bold">ID: {card.id}</span>
+                    </div>
+
+                    {/* Image URL & Thumbnail preview */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-300 block">
+                        {lang === 'ar' ? 'رابط صورة الكرت (Card Image URL):' : 'Card Image URL:'}
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="url"
+                          value={card.image || ''}
+                          onChange={(e) => handleUpdateSkinDiagnosis(card.id, 'image', e.target.value)}
+                          className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        />
+                        {card.image && (
+                          <div className="w-11 h-11 rounded-xl overflow-hidden border border-slate-700 shrink-0 bg-slate-900">
+                            <img src={card.image} alt={card.title.en} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 block">{lang === 'ar' ? 'العنوان (عربي):' : 'Title (Arabic):'}</label>
+                        <input
+                          type="text"
+                          value={card.title.ar}
+                          onChange={(e) => handleUpdateSkinDiagnosis(card.id, 'title', e.target.value, 'ar')}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 block">{lang === 'ar' ? 'المكوّن الفعّال (عربي):' : 'Ingredient (Arabic):'}</label>
+                        <input
+                          type="text"
+                          value={card.ingredient.ar}
+                          onChange={(e) => handleUpdateSkinDiagnosis(card.id, 'ingredient', e.target.value, 'ar')}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 block">{lang === 'ar' ? 'الشارة الترويجية (عربي):' : 'Badge (Arabic):'}</label>
+                      <input
+                        type="text"
+                        value={card.badge.ar}
+                        onChange={(e) => handleUpdateSkinDiagnosis(card.id, 'badge', e.target.value, 'ar')}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Section 5: Customer Testimonials */}
+            <div className="space-y-4 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
+                    ⭐ {lang === 'ar' ? '٥. شهادات وتقييمات العميلات الحقيقية (Customer Testimonials)' : '5. Customer Testimonials'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {lang === 'ar'
+                      ? 'تعديل صور الأفاتار الشخصية، والأسماء، والمدن، ونصوص التقييمات المعروضة في سلايدر المتجر.'
+                      : 'Control buyer avatars, verified testimonials, city origins, and review copy.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {(currentPresetData?.testimonials || siteConfig.presets.cosmetics.testimonials || []).map((t) => (
+                  <div key={t.id} className="bg-slate-950/70 p-5 rounded-2xl border border-slate-800 space-y-3 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      {/* Avatar URL & Preview */}
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-300 block">{lang === 'ar' ? 'رابط صورة الأفاتار:' : 'Avatar Image URL:'}</label>
+                        <div className="flex items-center gap-2.5">
+                          <input
+                            type="url"
+                            value={t.avatar || ''}
+                            onChange={(e) => handleUpdateTestimonial(t.id, 'avatar', e.target.value)}
+                            className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white"
+                          />
+                          {t.avatar && (
+                            <img src={t.avatar} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-slate-600 shrink-0" />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 block">{lang === 'ar' ? 'اسم العميلة:' : 'Name:'}</label>
+                          <input
+                            type="text"
+                            value={t.name.ar}
+                            onChange={(e) => handleUpdateTestimonial(t.id, 'name', e.target.value, 'ar')}
+                            className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 block">{lang === 'ar' ? 'المدينة:' : 'City:'}</label>
+                          <input
+                            type="text"
+                            value={t.city.ar}
+                            onChange={(e) => handleUpdateTestimonial(t.id, 'city', e.target.value, 'ar')}
+                            className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 block">{lang === 'ar' ? 'نص الشهادة:' : 'Review Text:'}</label>
+                        <textarea
+                          rows={3}
+                          value={t.comment.ar}
+                          onChange={(e) => handleUpdateTestimonial(t.id, 'comment', e.target.value, 'ar')}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Section 6: Promo Campaign & Before-After Slider Images */}
+            <div className="space-y-4 pt-4 border-t border-slate-800">
+              <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
+                🖼️ {lang === 'ar' ? '٦. صور العروض التسويقية وسلايدر قبل وبعد (Visual Promos & Sliders)' : '6. Visual Promos & Sliders'}
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Promo Campaign Banner Image */}
+                <div className="bg-slate-950/70 p-5 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white">{lang === 'ar' ? 'صورة بنر العرض الترويجي الرئيسي' : 'Promo Banner Image'}</span>
+                    <span className="text-[10px] text-amber-400 font-mono">1200x600</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="url"
+                      value={currentPresetData?.promoBanner?.image1 || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setDynamicConfig((prev) => {
+                          const clone = JSON.parse(JSON.stringify(prev || siteConfig));
+                          if (!clone.presets[activePresetId].promoBanner) {
+                            clone.presets[activePresetId].promoBanner = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.promoBanner || {}));
+                          }
+                          clone.presets[activePresetId].promoBanner.image1 = val;
+                          return clone;
+                        });
+                      }}
+                      className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white"
+                    />
+                    {currentPresetData?.promoBanner?.image1 && (
+                      <img src={currentPresetData.promoBanner.image1} alt="Promo" className="w-12 h-12 rounded-xl object-cover border border-slate-700 shrink-0" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Before / After Images */}
+                <div className="bg-slate-950/70 p-5 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white">{lang === 'ar' ? 'صور مقارنة قبل وبعد التفاعلية' : 'Before/After Comparison Images'}</span>
+                    <span className="text-[10px] text-purple-400 font-mono">2 Images</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-400 w-10 shrink-0">{lang === 'ar' ? 'قبل:' : 'Before:'}</span>
+                      <input
+                        type="url"
+                        value={currentPresetData?.beforeAfterMedia?.beforeImage || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setDynamicConfig((prev) => {
+                            const clone = JSON.parse(JSON.stringify(prev || siteConfig));
+                            if (!clone.presets[activePresetId].beforeAfterMedia) {
+                              clone.presets[activePresetId].beforeAfterMedia = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.beforeAfterMedia || {}));
+                            }
+                            clone.presets[activePresetId].beforeAfterMedia.beforeImage = val;
+                            return clone;
+                          });
+                        }}
+                        className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-400 w-10 shrink-0">{lang === 'ar' ? 'بعد:' : 'After:'}</span>
+                      <input
+                        type="url"
+                        value={currentPresetData?.beforeAfterMedia?.afterImage || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setDynamicConfig((prev) => {
+                            const clone = JSON.parse(JSON.stringify(prev || siteConfig));
+                            if (!clone.presets[activePresetId].beforeAfterMedia) {
+                              clone.presets[activePresetId].beforeAfterMedia = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.beforeAfterMedia || {}));
+                            }
+                            clone.presets[activePresetId].beforeAfterMedia.afterImage = val;
+                            return clone;
+                          });
+                        }}
+                        className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -1964,19 +2249,40 @@ export const DeveloperPanel: React.FC = () => {
                     <span>{lang === 'ar' ? 'حفظ نقطة استقرار ذهبية 🛡️' : 'Save Golden Snapshot 🛡️'}</span>
                   </button>
 
-                  {/* Restore Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm(lang === 'ar' ? 'هل أنت متأكد من رغبتك في استعادة الحالة الذهبية المستقرة للمتجر؟' : 'Are you sure you want to restore the Golden Snapshot?')) {
-                        rollbackToGoldenState();
-                      }
-                    }}
-                    className="flex-1 sm:flex-none px-5 py-3 rounded-2xl text-xs font-black bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/40 shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>{lang === 'ar' ? 'استعادة الحالة الذهبية 🔄' : 'Restore Golden State 🔄'}</span>
-                  </button>
+                  {/* Restore Button with in-UI confirmation */}
+                  {isConfirmingRollback ? (
+                    <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-2xl border border-amber-500/50">
+                      <span className="text-[11px] text-amber-300 font-bold px-2">
+                        {lang === 'ar' ? 'تأكيد الاستعادة؟' : 'Confirm rollback?'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsConfirmingRollback(false);
+                          rollbackToGoldenState();
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all cursor-pointer"
+                      >
+                        {lang === 'ar' ? 'نعم، استعد الآن' : 'Yes, Restore'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsConfirmingRollback(false)}
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                      >
+                        {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsConfirmingRollback(true)}
+                      className="flex-1 sm:flex-none px-5 py-3 rounded-2xl text-xs font-black bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/40 shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>{lang === 'ar' ? 'استعادة الحالة الذهبية 🔄' : 'Restore Golden State 🔄'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 

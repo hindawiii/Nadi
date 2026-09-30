@@ -6,7 +6,7 @@ import {
   Sliders, FileText, ShoppingBag, Plus, Trash2, Layers,
   Phone, Mail, MapPin, Eye, ExternalLink, MessageCircle,
   Upload, Wand2, X, Search, Filter, CheckCircle2, Clock, Truck,
-  Tag, ArrowUpRight, ShieldCheck, CheckCheck
+  Tag, ArrowUpRight, ShieldCheck, CheckCheck, Droplets, Star
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product, siteConfig } from '../data/siteConfig';
@@ -165,7 +165,7 @@ export const AdminPanel: React.FC = () => {
       setNewProdImage(dataUrl);
       showToast(lang === 'ar' ? 'تم رفع ومعاينة صورة المنتج بنجاح!' : 'Product image uploaded successfully!');
     } catch (err: any) {
-      alert(err.message || 'Error reading image file');
+      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
     } finally {
       setIsUploadingImage(false);
       // Reset input value so same file can be re-selected if desired
@@ -194,7 +194,7 @@ export const AdminPanel: React.FC = () => {
       });
       showToast(lang === 'ar' ? 'تم رفع الصورة وإضافتها لمعرض المنتج!' : 'Image uploaded to product gallery!');
     } catch (err: any) {
-      alert(err.message || 'Error reading image file');
+      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
     } finally {
       setActiveTargetProductIdForGallery(null);
       if (e.target) e.target.value = '';
@@ -211,7 +211,7 @@ export const AdminPanel: React.FC = () => {
       updateField('storeLogo', dataUrl);
       showToast(lang === 'ar' ? 'تم رفع وتطبيق شعار المتجر بنجاح!' : 'Store logo uploaded successfully!');
     } catch (err: any) {
-      alert(err.message || 'Error reading image file');
+      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -227,7 +227,7 @@ export const AdminPanel: React.FC = () => {
       updateField('heroImage', dataUrl);
       showToast(lang === 'ar' ? 'تم رفع وتطبيق صورة الهيرو الرئيسية بنجاح!' : 'Hero image uploaded successfully!');
     } catch (err: any) {
-      alert(err.message || 'Error reading image file');
+      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -266,7 +266,7 @@ export const AdminPanel: React.FC = () => {
       updateTrioBanner(activeTrioBannerIdx, 'image', dataUrl);
       showToast(lang === 'ar' ? 'تم تحديث صورة كرت التشكيلة بنجاح!' : 'Brand banner image updated!');
     } catch (err: any) {
-      alert(err.message || 'Error reading image file');
+      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
     } finally {
       setActiveTrioBannerIdx(null);
       if (e.target) e.target.value = '';
@@ -282,7 +282,7 @@ export const AdminPanel: React.FC = () => {
       updateField('promoBanner.image1', dataUrl);
       showToast(lang === 'ar' ? 'تم تحديث صورة البوكس الأولى!' : 'Promo image 1 updated!');
     } catch (err: any) {
-      alert(err.message || 'Error reading image file');
+      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -297,7 +297,7 @@ export const AdminPanel: React.FC = () => {
       updateField('promoBanner.image2', dataUrl);
       showToast(lang === 'ar' ? 'تم تحديث صورة البوكس الثانية!' : 'Promo image 2 updated!');
     } catch (err: any) {
-      alert(err.message || 'Error reading image file');
+      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -312,7 +312,7 @@ export const AdminPanel: React.FC = () => {
       updateField('beforeAfterMedia.beforeImage', dataUrl);
       showToast(lang === 'ar' ? 'تم تحديث صورة (قبل) بنجاح!' : 'Before image updated!');
     } catch (err: any) {
-      alert(err.message || 'Error reading image file');
+      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -327,10 +327,58 @@ export const AdminPanel: React.FC = () => {
       updateField('beforeAfterMedia.afterImage', dataUrl);
       showToast(lang === 'ar' ? 'تم تحديث صورة (بعد) بنجاح!' : 'After image updated!');
     } catch (err: any) {
-      alert(err.message || 'Error reading image file');
+      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
+  };
+
+  // Helper for Skin Diagnosis cards update
+  const updateSkinDiagnosisCard = (cardId: string, field: string, value: any) => {
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      if (!clone.presets[activePresetId].skinDiagnosisCards) {
+        clone.presets[activePresetId].skinDiagnosisCards = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.skinDiagnosisCards || []));
+      }
+      const card = clone.presets[activePresetId].skinDiagnosisCards.find((c: any) => c.id === cardId);
+      if (card) {
+        if (field.includes('.')) {
+          const [f, sub] = field.split('.');
+          if (!card[f]) card[f] = {};
+          card[f][sub] = value;
+        } else {
+          card[field] = value;
+        }
+      }
+      try {
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (err) {}
+      return clone;
+    });
+  };
+
+  // Helper for Testimonials update
+  const updateTestimonialItem = (testId: number, field: string, value: any) => {
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      if (!clone.presets[activePresetId].testimonials) {
+        clone.presets[activePresetId].testimonials = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.testimonials || []));
+      }
+      const item = clone.presets[activePresetId].testimonials.find((t: any) => t.id === testId);
+      if (item) {
+        if (field.includes('.')) {
+          const [f, sub] = field.split('.');
+          if (!item[f]) item[f] = {};
+          item[f][sub] = value;
+        } else {
+          item[field] = value;
+        }
+      }
+      try {
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (err) {}
+      return clone;
+    });
   };
 
   // Smart Product Auto-Complete AI Generator
@@ -513,12 +561,16 @@ export const AdminPanel: React.FC = () => {
   };
 
   // Computed KPIs & Helpers
-  const totalRevenueDisplay = orders.length > 0
-    ? orders.reduce((sum, o) => {
-        const num = parseFloat(o.totalFormatted?.replace(/[^0-9.]/g, '') || '0') || 0;
-        return sum + num;
-      }, 0).toLocaleString() + ' ' + (orders[0]?.currency || 'SDG')
-    : convertPrice(0).text;
+  const totalRevenueUSD = orders.reduce((sum, o) => {
+    if (typeof o.totalUSD === 'number' && !isNaN(o.totalUSD)) {
+      return sum + o.totalUSD;
+    }
+    // Fallback: estimate from totalFormatted if legacy order
+    const num = parseFloat(o.totalFormatted?.replace(/[^0-9.]/g, '') || '0') || 0;
+    const rate = siteConfig.currencies[o.currency]?.rate || 1;
+    return sum + (num / rate);
+  }, 0);
+  const totalRevenueDisplay = convertPrice(totalRevenueUSD).text;
   const lowStockProducts = products.filter(p => p.stock <= 3);
   const outOfStockProducts = products.filter(p => p.stock === 0);
 
@@ -2006,6 +2058,146 @@ export const AdminPanel: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* 4. Smart Skin Routine Diagnosis Cards */}
+              <div className="p-6 rounded-2xl bg-blue-50/40 border border-blue-100 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-blue-950 flex items-center gap-2">
+                    <Droplets className="w-4 h-4 text-blue-600" />
+                    <span>{lang === 'ar' ? '4. كروت تشخيص روتين البشرة الذكي (Skin Diagnosis)' : '4. Skin Diagnosis Cards'}</span>
+                  </h3>
+                  <span className="text-[11px] text-blue-700 font-bold bg-blue-100/80 px-2.5 py-0.5 rounded-full">
+                    {lang === 'ar' ? '٤ بطاقات تفاعلية' : '4 Cards'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(activePreset.skinDiagnosisCards || siteConfig.presets.cosmetics.skinDiagnosisCards || []).map((card) => (
+                    <div key={card.id} className="p-4 bg-white rounded-2xl border border-slate-200 space-y-3 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-slate-900">{card.title[lang] || card.title.ar}</span>
+                        <span className="text-[10px] font-mono text-slate-400 font-bold uppercase">{card.id}</span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 block">{lang === 'ar' ? 'رابط صورة الكرت:' : 'Card Image URL:'}</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="url"
+                            value={card.image || ''}
+                            onChange={(e) => updateSkinDiagnosisCard(card.id, 'image', e.target.value)}
+                            placeholder="https://..."
+                            className="flex-1 h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
+                          />
+                          {card.image && (
+                            <img src={card.image} alt="Card" className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0" />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 block">{lang === 'ar' ? 'العنوان:' : 'Title:'}</label>
+                          <input
+                            type="text"
+                            value={card.title.ar}
+                            onChange={(e) => updateSkinDiagnosisCard(card.id, 'title.ar', e.target.value)}
+                            className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 block">{lang === 'ar' ? 'المكوّن الفعّال:' : 'Ingredient:'}</label>
+                          <input
+                            type="text"
+                            value={card.ingredient.ar}
+                            onChange={(e) => updateSkinDiagnosisCard(card.id, 'ingredient.ar', e.target.value)}
+                            className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 block">{lang === 'ar' ? 'الشارة الترويجية:' : 'Badge:'}</label>
+                        <input
+                          type="text"
+                          value={card.badge.ar}
+                          onChange={(e) => updateSkinDiagnosisCard(card.id, 'badge.ar', e.target.value)}
+                          className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5. Verified Buyer Testimonials */}
+              <div className="p-6 rounded-2xl bg-amber-50/30 border border-amber-100 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-amber-950 flex items-center gap-2">
+                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                    <span>{lang === 'ar' ? '5. شهادات وتقييمات العميلات الحقيقية (Verified Testimonials)' : '5. Customer Testimonials'}</span>
+                  </h3>
+                  <span className="text-[11px] text-amber-800 font-bold bg-amber-100/80 px-2.5 py-0.5 rounded-full">
+                    {lang === 'ar' ? 'سلايدر التقييمات' : 'Reviews Carousel'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {(activePreset.testimonials || siteConfig.presets.cosmetics.testimonials || []).map((t) => (
+                    <div key={t.id} className="p-4 bg-white rounded-2xl border border-slate-200 space-y-3 shadow-2xs flex flex-col justify-between">
+                      <div className="space-y-2.5">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 block">{lang === 'ar' ? 'صورة الأفاتار:' : 'Avatar URL:'}</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="url"
+                              value={t.avatar || ''}
+                              onChange={(e) => updateTestimonialItem(t.id, 'avatar', e.target.value)}
+                              placeholder="https://..."
+                              className="flex-1 h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-mono"
+                            />
+                            {t.avatar && (
+                              <img src={t.avatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" />
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 block">{lang === 'ar' ? 'الاسم:' : 'Name:'}</label>
+                            <input
+                              type="text"
+                              value={t.name.ar}
+                              onChange={(e) => updateTestimonialItem(t.id, 'name.ar', e.target.value)}
+                              className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 block">{lang === 'ar' ? 'المدينة:' : 'City:'}</label>
+                            <input
+                              type="text"
+                              value={t.city.ar}
+                              onChange={(e) => updateTestimonialItem(t.id, 'city.ar', e.target.value)}
+                              className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 block">{lang === 'ar' ? 'نص التجربة:' : 'Review Text:'}</label>
+                          <textarea
+                            rows={3}
+                            value={t.comment.ar}
+                            onChange={(e) => updateTestimonialItem(t.id, 'comment.ar', e.target.value)}
+                            className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
           </div>
         )}

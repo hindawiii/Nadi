@@ -26,9 +26,23 @@ export interface OrderRecord {
   address: string;
   items: { productName: string; quantity: number; price: string }[];
   totalFormatted: string;
+  totalUSD?: number;
+  discountAmountUSD?: number;
+  shippingFeeUSD?: number;
+  promoCode?: string;
   currency: string;
   status: 'received' | 'processing' | 'dispatched' | 'delivered';
   trackingCode: string;
+}
+
+export interface PlaceOrderParams {
+  name: string;
+  phone: string;
+  address: string;
+  finalTotalUSD?: number;
+  discountAmountUSD?: number;
+  shippingFeeUSD?: number;
+  promoCode?: string;
 }
 
 export interface ToastData {
@@ -112,7 +126,7 @@ interface CommerceContextType {
   
   // Orders
   orders: OrderRecord[];
-  placeOrder: (customer: { name: string; phone: string; address: string }) => OrderRecord;
+  placeOrder: (customer: PlaceOrderParams) => OrderRecord;
   updateOrderStatus: (orderId: string, status: OrderRecord['status']) => void;
   
   // Smart Toast System
@@ -277,9 +291,20 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                   ...siteConfig.presets[presetKey].storeSlogan,
                   ...(parsed.presets[presetKey].storeSlogan || {})
                 },
-                products: Array.isArray(parsed.presets[presetKey].products) && parsed.presets[presetKey].products.length > 0
-                  ? parsed.presets[presetKey].products
-                  : siteConfig.presets[presetKey].products
+                products: (() => {
+                  const baseProds = siteConfig.presets[presetKey].products || [];
+                  const cachedProds = Array.isArray(parsed.presets[presetKey].products) ? parsed.presets[presetKey].products : [];
+                  if (cachedProds.length === 0) return baseProds;
+                  const existingIds = new Set(cachedProds.map((p: any) => p.id));
+                  const missingProds = baseProds.filter(p => !existingIds.has(p.id));
+                  return [...cachedProds, ...missingProds];
+                })(),
+                skinDiagnosisCards: Array.isArray(parsed.presets[presetKey]?.skinDiagnosisCards) && parsed.presets[presetKey].skinDiagnosisCards.length > 0
+                  ? parsed.presets[presetKey].skinDiagnosisCards
+                  : (siteConfig.presets[presetKey]?.skinDiagnosisCards || siteConfig.presets.cosmetics.skinDiagnosisCards || []),
+                testimonials: Array.isArray(parsed.presets[presetKey]?.testimonials) && parsed.presets[presetKey].testimonials.length > 0
+                  ? parsed.presets[presetKey].testimonials
+                  : (siteConfig.presets[presetKey]?.testimonials || siteConfig.presets.cosmetics.testimonials || [])
               };
             }
           });
@@ -1094,8 +1119,11 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const placeOrder = (customer: { name: string; phone: string; address: string }) => {
-    const { text } = convertPrice(cartTotalUSD);
+  const placeOrder = (customer: PlaceOrderParams) => {
+    const finalUSD = typeof customer.finalTotalUSD === 'number' && !isNaN(customer.finalTotalUSD)
+      ? customer.finalTotalUSD
+      : cartTotalUSD;
+    const { text } = convertPrice(finalUSD);
     const trackingCode = `TRK-${Math.floor(10000 + Math.random() * 90000)}`;
     const newOrder: OrderRecord = {
       id: `ORD-2026-${Math.floor(100 + Math.random() * 900)}`,
@@ -1109,10 +1137,41 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         price: convertPrice(i.product.basePriceUSD * i.quantity).text,
       })),
       totalFormatted: text,
+      totalUSD: finalUSD,
+      discountAmountUSD: customer.discountAmountUSD || 0,
+      shippingFeeUSD: customer.shippingFeeUSD || 0,
+      promoCode: customer.promoCode || undefined,
       currency,
       status: 'received',
       trackingCode,
     };
+
+    // Decrement stock for purchased items
+    setDynamicConfig((prevConfig) => {
+      const updatedPresets = { ...prevConfig.presets };
+      const currentPreset = updatedPresets[activePresetId];
+      if (currentPreset && Array.isArray(currentPreset.products)) {
+        const cartQuantities = new Map<string, number>();
+        cart.forEach((item) => {
+          cartQuantities.set(item.product.id, (cartQuantities.get(item.product.id) || 0) + item.quantity);
+        });
+
+        currentPreset.products = currentPreset.products.map((p) => {
+          const qtyBought = cartQuantities.get(p.id);
+          if (qtyBought) {
+            return {
+              ...p,
+              stock: Math.max(0, (p.stock || 0) - qtyBought),
+            };
+          }
+          return p;
+        });
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(prevConfig));
+      } catch (_) {}
+      return { ...prevConfig, presets: updatedPresets };
+    });
 
     setOrders((prev) => [newOrder, ...prev]);
     clearCart();

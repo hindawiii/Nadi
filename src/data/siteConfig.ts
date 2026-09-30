@@ -104,6 +104,28 @@ export interface PresetNiche {
     description: { ar: string; en: string };
     badge: { ar: string; en: string };
   };
+  skinDiagnosisCards?: {
+    id: string;
+    title: { ar: string; en: string };
+    ingredient: { ar: string; en: string };
+    desc: { ar: string; en: string };
+    image: string;
+    fallbackImage?: string;
+    badge: { ar: string; en: string };
+    bg: string;
+    badgeColor: string;
+  }[];
+  testimonials?: {
+    id: number;
+    name: { ar: string; en: string };
+    city: { ar: string; en: string };
+    avatar: string;
+    purchasedProduct: { ar: string; en: string; id: string };
+    date: { ar: string; en: string };
+    comment: { ar: string; en: string };
+    badge: { ar: string; en: string };
+    rating?: number;
+  }[];
   theme: {
     primaryBg: string;
     primaryText: string;
@@ -314,6 +336,96 @@ export const siteConfig: SiteConfig = {
         description: { ar: "وجهتكم الأولى لمنتجات العناية الطبيعية بالبشرة والمستخلصات النباتية الأصلية مع ضمان شامل وخدمة استشارات ما بعد الشراء.", en: "Your premier destination for authentic natural skincare and pure botanicals with comprehensive purity guarantee." },
         badge: { ar: "منتجات أصلية معتمدة 100%", en: "100% Certified Authentic" }
       },
+      skinDiagnosisCards: [
+        {
+          id: 'hydrated',
+          title: { ar: 'بشرة مرطبة', en: 'Moisturized Skin' },
+          ingredient: { ar: 'حمض الهيالورونيك المكثف', en: 'Intense Hyaluronic Acid' },
+          desc: { ar: 'حمض الهيالورونيك المكثف لحبس الرطوبة ومحاربة الجفاف.', en: 'Hyaluronic acid deep hydration barrier.' },
+          image: 'https://images.unsplash.com/photo-1512290900672-1f41b2f6ef8d?auto=format&fit=crop&w=700&q=80',
+          fallbackImage: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=700&q=80',
+          badge: { ar: 'ترطيب عميق 💧', en: 'Deep Moisture 💧' },
+          bg: 'bg-blue-50/70 border-blue-200/80 hover:border-blue-400 text-blue-900',
+          badgeColor: 'bg-blue-600 text-white'
+        },
+        {
+          id: 'even',
+          title: { ar: 'بشرة موحّدة', en: 'Even Tone Skin' },
+          ingredient: { ar: 'فيتامين سي العضوي', en: 'Pure Organic Vitamin C' },
+          desc: { ar: 'فيتامين سي العضوي لتفتيح التصبغات وتوحيد لون البشرة.', en: 'Active Vitamin C to combat hyperpigmentation.' },
+          image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=700&q=80',
+          fallbackImage: 'https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=700&q=80',
+          badge: { ar: 'تفتيح وتوحيد ☀️', en: 'Even Tone ☀️' },
+          bg: 'bg-amber-50/70 border-amber-200/80 hover:border-amber-400 text-amber-900',
+          badgeColor: 'bg-amber-600 text-white'
+        },
+        {
+          id: 'firm',
+          title: { ar: 'بشرة مشدودة', en: 'Firm Skin' },
+          ingredient: { ar: 'خلاصات الكولاجين النباتي', en: 'Botanical Collagen Boost' },
+          desc: { ar: 'مستخلصات نباتية لتجديد الكولاجين والمرونة الطبيعية.', en: 'Plant botanicals restoring elasticity.' },
+          image: 'https://images.unsplash.com/photo-1508746829417-e6f548d8d6ed?auto=format&fit=crop&w=700&q=80',
+          fallbackImage: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=700&q=80',
+          badge: { ar: 'شد ومرونة 🌿', en: 'Firm & Elastic 🌿' },
+          bg: 'bg-purple-50/70 border-purple-200/80 hover:border-purple-400 text-purple-900',
+          badgeColor: 'bg-purple-700 text-white'
+        },
+        {
+          id: 'radiant',
+          title: { ar: 'بشرة مشرقة', en: 'Radiant Skin' },
+          ingredient: { ar: 'زيوت اللافندر والورد', en: 'Rose & Lavender Infusion' },
+          desc: { ar: 'زيوت اللافندر والورد لنضارة فورية وإشراقة طبيعية تدوم.', en: 'Lavender & Rose extracts for healthy glow.' },
+          image: 'https://images.unsplash.com/photo-1556228722-d0b5b0340fe3?auto=format&fit=crop&w=700&q=80',
+          fallbackImage: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=700&q=80',
+          badge: { ar: 'إشراقة طبيعية ✨', en: 'Natural Glow ✨' },
+          bg: 'bg-rose-50/70 border-rose-200/80 hover:border-rose-400 text-rose-900',
+          badgeColor: 'bg-rose-600 text-white'
+        }
+      ],
+      testimonials: [
+        {
+          id: 0,
+          name: { ar: 'فاطمة أم عبد الله', en: 'Fatima Um Abdallah' },
+          city: { ar: 'أم درمان، السودان', en: 'Omdurman, Sudan' },
+          avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
+          purchasedProduct: { ar: 'مرطب الهيالورونيك المكثف', en: 'Intense Hyaluronic Moisturizer', id: 'sb-01' },
+          date: { ar: 'منذ أسبوعين', en: '2 weeks ago' },
+          comment: {
+            ar: 'أحس بالفرق من أول أسبوع! النضارة واضحة وتوصيلهم كان سريع ومحترم جداً في أم درمان. أنصح به كل صديقاتي.',
+            en: 'Felt the noticeable glow in the first week! Ultra-fast and polite delivery in Omdurman. Highly recommended!'
+          },
+          badge: { ar: 'مشتري مؤكد ✓', en: 'Verified Buyer ✓' },
+          rating: 5
+        },
+        {
+          id: 1,
+          name: { ar: 'ريم الصادق', en: 'Reem El Sadig' },
+          city: { ar: 'الخرطوم بحري', en: 'Bahri, Khartoum' },
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+          purchasedProduct: { ar: 'سيروم فيتامين سي المشرق', en: 'Brightening Vitamin C Serum', id: 'sb-02' },
+          date: { ar: 'منذ 3 أسابيع', en: '3 weeks ago' },
+          comment: {
+            ar: 'سيروم فيتامين سي خفّف التصبغات تماماً بعد رحلة البحر. تركيبته خفيفة ولا تترك أي ملمس دهني مزعج.',
+            en: 'Vitamin C serum cleared hyperpigmentation after my trip. Lightweight and zero greasy residue.'
+          },
+          badge: { ar: 'مشتري مؤكد ✓', en: 'Verified Buyer ✓' },
+          rating: 5
+        },
+        {
+          id: 2,
+          name: { ar: 'د. سارة عثمان', en: 'Dr. Sarah Osman' },
+          city: { ar: 'بورتسودان', en: 'Port Sudan' },
+          avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
+          purchasedProduct: { ar: 'كريم الليل لتجديد الكولاجين', en: 'Collagen Renewal Night Cream', id: 'sb-03' },
+          date: { ar: 'منذ شهر', en: '1 month ago' },
+          comment: {
+            ar: 'كمتخصصة صيدلانية، أعجبني جداً وضوح قائمة المكونات النقية. النعومة والترطيب تدوم طوال الليل.',
+            en: 'As a pharmacist, I deeply appreciate the clean ingredient deck. Rich moisture lasts all night.'
+          },
+          badge: { ar: 'طبيبة معتمدة 🌿', en: 'Verified Specialist 🌿' },
+          rating: 5
+        }
+      ],
       theme: {
         primaryBg: "bg-[#5A3E7A]",
         primaryText: "text-[#5A3E7A]",
@@ -510,6 +622,228 @@ export const siteConfig: SiteConfig = {
             reviews: {
               ar: "تقييم 5.0/5. 'هدية فخمة جداً والنتائج سحرية بشهادة كل من جربها.'",
               en: "Rated 5.0/5. 'The ultimate self-care gift. Remarkable results!'"
+            }
+          }
+        },
+        {
+          id: "hd-01",
+          name: { 
+            ar: "جهاز تجعيد الشعر من سل تيك - SLTK-12", 
+            en: "Siltek Triple Barrel Hair Waver - SLTK-12" 
+          },
+          category: { ar: "أجهزة الشعر", en: "Hair Devices" },
+          basePriceUSD: 29.44,
+          originalPriceUSD: 46.00,
+          discountPercentage: 36,
+          stock: 8,
+          badge: { ar: "وفر 36%", en: "36% OFF" },
+          rating: 5.0,
+          reviewsCount: 142,
+          images: [
+            "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=700&q=80",
+            "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=700&q=80"
+          ],
+          tabs: {
+            description: {
+              ar: "مكواة تجعيد وتمويج الشعر الثلاثية الأسطوانات بتورمالين السيراميك لحماية ألياف الشعر من الحرارة العالية ومنحه تمويجات شاطئية عريضة ولامعة في ثوانٍ معدودة.",
+              en: "Triple barrel tourmaline ceramic waver engineered to protect hair strands from thermal damage while crafting lustrous, natural beach waves in seconds."
+            },
+            usage: {
+              ar: "قسمي الشعر إلى خصلات متساوية، ثم اضغطي الجهاز على الخصلة لمدة 5 إلى 8 ثوانٍ من الجذور حتى الأطراف.",
+              en: "Divide hair into even sections, gently clamp down for 5-8 seconds from roots to ends for bouncy textured waves."
+            },
+            ingredientsOrSpecs: {
+              ar: "أسطوانات ثلاثية سيراميك 25مم | تحكم بالحرارة حتى 220°C | سلك دوار 360 درجة | ضمان سنتين شامل معتمد.",
+              en: "25mm Triple Ceramic Barrels | Temp up to 220°C | 360° Swivel Cord | Full 2-Year Certified Warranty."
+            },
+            reviews: {
+              ar: "تقييم 5/5. 'الجهاز يجنن وسهل جداً ويعطي ويفي طبيعي وثابت ليومين!'",
+              en: "5/5 Stars. 'Incredible wave texture that stays in place all day without crunchiness.'"
+            }
+          }
+        },
+        {
+          id: "hd-02",
+          name: { 
+            ar: "جهاز تمويج الشعر بيتش بيب من شيقلام - 25مم", 
+            en: "Sheglam Beach Babe Hair Waver - 25mm" 
+          },
+          category: { ar: "أجهزة الشعر", en: "Hair Devices" },
+          basePriceUSD: 22.55,
+          originalPriceUSD: 32.22,
+          discountPercentage: 30,
+          stock: 2,
+          badge: { ar: "وفر 30%", en: "30% OFF" },
+          rating: 4.9,
+          reviewsCount: 98,
+          images: [
+            "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=700&q=80",
+            "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=700&q=80"
+          ],
+          tabs: {
+            description: {
+              ar: "جهاز تمويج فوري وردي بتصميم مريح وعصري، يعتمد تقنية التسخين السريع PTC لتمويجات حيوية بدون تجعد وبحماية فائقة لترطيب الشعر.",
+              en: "Signature blush pink deep waver featuring PTC rapid heating technology for soft, frizz-free waves with maximum moisture retention."
+            },
+            usage: {
+              ar: "يستخدم على شعر جاف تماماً، اختاري درجة الحرارة المناسبة لنوع شعركِ واضغطي بلطف على طول الخصلة.",
+              en: "Use on completely dry hair. Select your ideal heat level and clamp down gently along hair sections."
+            },
+            ingredientsOrSpecs: {
+              ar: "قطر الأسطوانة 25مم | لوحات سيراميك زيت الأرجان | إيقاف تلقائي بعد 60 دقيقة | ضمان سنتين شامل معتمد.",
+              en: "25mm Barrel | Argan Oil-Infused Ceramic | 60-min Auto Shutoff | 2-Year Certified Warranty."
+            },
+            reviews: {
+              ar: "تقييم 4.9/5. 'لونه وردي كيوت وخفيف باليد ويسوي الشعر بسرعة البرق.'",
+              en: "4.9/5 Stars. 'Lightweight, ergonomic and styles thick hair effortlessly fast.'"
+            }
+          }
+        },
+        {
+          id: "hd-03",
+          name: { 
+            ar: "مكواة تجعيد الشعر الفورية كيوبيدز تشارم من شيقلام - 32 مم", 
+            en: "Cupid's Charm Instant Auto Hair Curler - 32mm" 
+          },
+          category: { ar: "أجهزة الشعر", en: "Hair Devices" },
+          basePriceUSD: 25.97,
+          originalPriceUSD: 37.11,
+          discountPercentage: 30,
+          stock: 6,
+          badge: { ar: "وفر 30%", en: "30% OFF" },
+          rating: 5.0,
+          reviewsCount: 115,
+          images: [
+            "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=700&q=80",
+            "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=700&q=80"
+          ],
+          tabs: {
+            description: {
+              ar: "مكواة التجعيد الأوتوماتيكية الذكية كيوبيدز تشارم مع حجرة حماية عازلة للحرارة بنسبة 100% لمنع ملامسة الجلد، وتجعيد آلي بلمسة زر واحدة.",
+              en: "Smart automatic rotating curling wand featuring full anti-scald thermal shielding and one-touch bi-directional rotation for salon bouncy curls."
+            },
+            usage: {
+              ar: "ضعي خصلة رفيعة في الفتحة المخصصة واضغطي زر الدوران، سينتظر الجهاز التوقيت المناسب ويصدر نغمة تنبيه عند اكتمال اللفة.",
+              en: "Insert a thin section of hair into the chamber, press rotation button, and release when the smart timer beeps."
+            },
+            ingredientsOrSpecs: {
+              ar: "أسطوانة 32مم كبرى | دوران مزدوج يمين ويسار | حماية من التشابك الذكي | ضمان سنتين شامل معتمد.",
+              en: "32mm Large Barrel | Dual Direction Rotation | Anti-Tangle Sensor | 2-Year Certified Warranty."
+            },
+            reviews: {
+              ar: "تقييم 5/5. 'أفضل اختراع للبنات اللي ما يعرفوا يلفوا شعرهم، بدون أي حروق!'",
+              en: "5/5 Stars. 'Foolproof curls with zero burns. Complete game changer for quick mornings.'"
+            }
+          }
+        },
+        {
+          id: "hd-04",
+          name: { 
+            ar: "فرشاة تصفيف الشعر 6 في 1 من سل تيك - SLTK-10", 
+            en: "Siltek 6-in-1 Multi Hair Styler Air Brush - SLTK-10" 
+          },
+          category: { ar: "أجهزة الشعر", en: "Hair Devices" },
+          basePriceUSD: 63.78,
+          originalPriceUSD: 99.66,
+          discountPercentage: 36,
+          stock: 3,
+          badge: { ar: "وفر 36%", en: "36% OFF" },
+          rating: 5.0,
+          reviewsCount: 189,
+          images: [
+            "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=700&q=80",
+            "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=700&q=80"
+          ],
+          tabs: {
+            description: {
+              ar: "المصفف الهوائي الاحترافي المتكامل بست رؤوس قابلة للتبديل (تجفيف سريع، تكثيف، تمليس، لف هوائي بكواندا، وفرشاة مستديرة) بقوة 1400 واط.",
+              en: "The all-in-one 6-in-1 hot air styling system powered by high-speed airflow (Coanda effect curlers, volumizer brush, oval smoother, and concentrated dryer)."
+            },
+            usage: {
+              ar: "ركبي الرأس المناسب على المقبض الذكي، واستخدمي تدفق الهواء البارد أو الساخن لتصفيف وتثبيت الشعر في خطوة واحدة.",
+              en: "Snap the desired attachment onto the ergonomic handle and style while drying with adjustable heat and cold shot lock."
+            },
+            ingredientsOrSpecs: {
+              ar: "محرك رقمي عالي السرعة 110,000 دورة/دقيقة | 6 رؤوس مغناطيسية | تقنية الأيونات السالبة | ضمان سنتين شامل معتمد.",
+              en: "110,000 RPM Digital Motor | 6 Interchangeable Attachments | Negative Ion Care | 2-Year Certified Warranty."
+            },
+            reviews: {
+              ar: "تقييم 5/5. 'بديل مذهل وفخم جداً للعلامات الغالية، يجفف ويسرح في 10 دقائق فقط.'",
+              en: "5/5 Stars. 'Super salon blowout finish without burning hair. The volume brush is magical.'"
+            }
+          }
+        },
+        {
+          id: "hd-05",
+          name: { 
+            ar: "مكواة تمليس الشعر الاحترافية كلارا بالأيونات", 
+            en: "Clara Pro Ionic Tourmaline Flat Iron" 
+          },
+          category: { ar: "أجهزة الشعر", en: "Hair Devices" },
+          basePriceUSD: 51.00,
+          originalPriceUSD: 68.00,
+          discountPercentage: 25,
+          stock: 7,
+          badge: { ar: "وفر 25%", en: "25% OFF" },
+          rating: 4.95,
+          reviewsCount: 84,
+          images: [
+            "https://images.unsplash.com/photo-1522337094346-290f26a0b58a?auto=format&fit=crop&w=700&q=80",
+            "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=700&q=80"
+          ],
+          tabs: {
+            description: {
+              ar: "مكواة تمليس شعر انسيابية بالصفائح العريضة المطلية بالسيراميك التيتانيوم والأيونات السالبة، تمنحك شعراً حريرياً أملس من تمريرة واحدة.",
+              en: "Precision titanium ceramic straightener with floating plates and continuous negative ion stream for ultra-glossy sleek finish in one stroke."
+            },
+            usage: {
+              ar: "مرري المكواة بسلاسة على خصلة رفيعة بسرعة معتدلة من الجذور نحو الأطراف للحصول على شعر ناعم كالحرير.",
+              en: "Glide gently down dry strands at a steady pace for salon-level mirror shine."
+            },
+            ingredientsOrSpecs: {
+              ar: "صفائح تيتانيوم عائمة 1.25 إنش | تسخين سريع خلال 15 ثانية | حرارة تصل 230°C | ضمان سنتين شامل معتمد.",
+              en: "1.25' Floating Titanium Plates | 15s Rapid Heat | Up to 230°C | 2-Year Certified Warranty."
+            },
+            reviews: {
+              ar: "تقييم 4.95/5. 'تخلي الشعر ناعم كأنه معالج بالبروتين وتبقى النتيجة ثابتة حتى مع الرطوبة.'",
+              en: "4.95/5 Stars. 'Keeps frizzy hair ultra flat and sleek even in humid weather.'"
+            }
+          }
+        },
+        {
+          id: "hd-06",
+          name: { 
+            ar: "مجفف الشعر الذكي السريع فائق الهدوء أوكيما", 
+            en: "Okema Ultra-Quiet Smart Ionic Blow Dryer" 
+          },
+          category: { ar: "أجهزة الشعر", en: "Hair Devices" },
+          basePriceUSD: 61.20,
+          originalPriceUSD: 85.00,
+          discountPercentage: 28,
+          stock: 5,
+          badge: { ar: "وفر 28%", en: "28% OFF" },
+          rating: 5.0,
+          reviewsCount: 76,
+          images: [
+            "https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=700&q=80",
+            "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=700&q=80"
+          ],
+          tabs: {
+            description: {
+              ar: "مجفف شعر رقمي خفيف الوزن بمحرك ذكي بدون فرش، يوفر تدفق هواء فائق السرعة مع خفض الضوضاء وحماية حرارية ذكية تمنع جفاف الأطراف.",
+              en: "Lightweight smart brushless hair dryer generating hurricane airflow with whisper-quiet acoustics and microchip temperature regulation."
+            },
+            usage: {
+              ar: "استخدمي فوهة التكثيف أو موزع الهواء الكيرلي مع التحكم بسرعات الهواء الثلاث لتجفيف صحي وسريع.",
+              en: "Attach diffuser or styling nozzle to dry curly or straight styles efficiently."
+            },
+            ingredientsOrSpecs: {
+              ar: "وزن خفيف 380 غرام فقط | 3 درجات حرارة + زر هواء بارد | فوهة مغناطيسية | ضمان سنتين شامل معتمد.",
+              en: "Ultra-Lightweight 380g | 3 Speeds & Heat Settings + Cool Shot | Magnetic Nozzle | 2-Year Certified Warranty."
+            },
+            reviews: {
+              ar: "تقييم 5/5. 'صوته واطي جداً ومريح لليد ويجفف شعري الطويل في 7 دقائق فقط.'",
+              en: "5/5 Stars. 'Incredibly quiet yet powerful. Dries thick hair in under 8 minutes.'"
             }
           }
         }

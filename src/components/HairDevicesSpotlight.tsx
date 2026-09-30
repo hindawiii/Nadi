@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { 
-  ArrowUp, ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
@@ -307,8 +307,12 @@ export const HairDevicesSpotlight: React.FC = () => {
     ? presetData.trioBanners
     : defaultTrioBanners;
 
+  // Source devices either dynamically from active catalog or fallback to hairStylingDevices
+  const availableDevices = (presetData?.products || []).filter(p => p.id.startsWith('hd-'));
+  const effectiveDevices = availableDevices.length > 0 ? availableDevices : hairStylingDevices;
+
   // Filter products based on sub-category
-  const filteredProducts = hairStylingDevices.filter((item) => {
+  const filteredProducts = effectiveDevices.filter((item) => {
     if (activeSubCategory === 'all') return true;
     if (activeSubCategory === 'waving') {
       return item.id === 'hd-01' || item.id === 'hd-02' || item.id === 'hd-03';
@@ -355,10 +359,6 @@ export const HairDevicesSpotlight: React.FC = () => {
 
   const handleMouseLeave = () => {
     isDraggingRef.current = false;
-  };
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -515,15 +515,6 @@ export const HairDevicesSpotlight: React.FC = () => {
           {isRtl ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
       </div>
-
-      {/* 6. FLOATING SCROLL TO TOP BUTTON (Matching Bottom-Start in Photo 1) */}
-      <button
-        onClick={scrollToTop}
-        aria-label={lang === 'ar' ? 'الصعود لأعلى الصفحة' : 'Scroll to Top'}
-        className="fixed bottom-6 start-6 z-40 w-11 h-11 rounded-full bg-white text-slate-800 border border-slate-200/80 shadow-lg hover:shadow-xl hover:bg-slate-50 flex items-center justify-center transition-all duration-300 hover:scale-105 group"
-      >
-        <ArrowUp className="w-5 h-5 text-[#2B827A] group-hover:-translate-y-0.5 transition-transform" />
-      </button>
     </section>
   );
 };

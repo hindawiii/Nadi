@@ -44,6 +44,15 @@ export const StorefrontView: React.FC = () => {
       if (activeSkinFilter === 'radiant' && !p.id.includes('02') && !p.id.includes('03') && !p.id.includes('04')) return false;
     }
     if (selectedCategory === 'all') return true;
+    if (selectedCategory === 'hair') {
+      return p.category.en.toLowerCase().includes('hair') || p.category.ar.includes('شعر') || p.id.startsWith('hd-');
+    }
+    if (selectedCategory === 'skin') {
+      return p.category.en.toLowerCase().includes('skin') || p.category.ar.includes('بشرة') || p.id.startsWith('sb-01') || p.id.startsWith('sb-02') || p.id.startsWith('sb-03');
+    }
+    if (selectedCategory === 'box') {
+      return p.category.en.toLowerCase().includes('box') || p.category.en.toLowerCase().includes('gift') || p.category.ar.includes('بكج') || !!p.bundle;
+    }
     return p.category.en.toLowerCase().includes(selectedCategory.toLowerCase()) || p.category.ar.includes(selectedCategory);
   });
 
@@ -160,6 +169,19 @@ export const StorefrontView: React.FC = () => {
       badge: { ar: 'استشارة موثقة ✓', en: 'Consultation Verified ✓' }
     }
   ];
+
+  // Dynamic Skin Routine Diagnosis from activeData or fallback
+  const effectiveSkinDiagnosis = (activeData?.skinDiagnosisCards && activeData.skinDiagnosisCards.length > 0)
+    ? activeData.skinDiagnosisCards.map(s => ({
+        ...s,
+        icon: s.id === 'hydrated' ? Droplets : (s.id === 'even' ? Sun : (s.id === 'firm' ? Shield : Sparkle))
+      }))
+    : skinTypes;
+
+  // Dynamic Verified Testimonials from activeData or fallback
+  const effectiveTestimonials = (activeData?.testimonials && activeData.testimonials.length > 0)
+    ? activeData.testimonials
+    : testimonials;
 
   const iconMap: Record<string, any> = {
     Sparkles,
@@ -321,7 +343,7 @@ export const StorefrontView: React.FC = () => {
 
         {/* 4 Smart Cards: Exactly 4 in a single row on Tablet & Desktop (md:grid-cols-4), and 2 side-by-side on Mobile (grid-cols-2) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
-          {skinTypes.map((type) => {
+          {effectiveSkinDiagnosis.map((type) => {
             const Icon = type.icon;
             const isSelected = activeSkinFilter === type.id;
             return (
@@ -357,7 +379,9 @@ export const StorefrontView: React.FC = () => {
                     className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700"
                     loading="lazy"
                     onError={(e) => {
-                      e.currentTarget.src = type.fallbackImage;
+                      if (type.fallbackImage) {
+                        e.currentTarget.src = type.fallbackImage;
+                      }
                     }}
                   />
 
@@ -459,6 +483,16 @@ export const StorefrontView: React.FC = () => {
                 }`}
               >
                 {lang === 'ar' ? 'بكجات وعروض' : 'Gift Sets'}
+              </button>
+              <button
+                onClick={() => setSelectedCategory('hair')}
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${
+                  selectedCategory === 'hair'
+                    ? 'bg-theme-primary text-white shadow-xs'
+                    : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50'
+                }`}
+              >
+                {lang === 'ar' ? 'أجهزة وتصفيف' : 'Hair Devices'}
               </button>
             </div>
 
@@ -618,7 +652,7 @@ export const StorefrontView: React.FC = () => {
 
             {/* "Before" Image (Clipped Overlay) */}
             <div 
-              className="absolute inset-0 overflow-hidden"
+              className="absolute inset-y-0 start-0 overflow-hidden"
               style={{ width: `${beforeAfterPos}%` }}
             >
               <img
@@ -640,8 +674,8 @@ export const StorefrontView: React.FC = () => {
 
             {/* Slider Divider Line */}
             <div
-              className="absolute top-0 bottom-0 w-1 bg-white cursor-ew-resize z-20 shadow-2xl flex items-center justify-center"
-              style={{ [isRtl ? 'right' : 'left']: `${beforeAfterPos}%` }}
+              className="absolute top-0 bottom-0 w-1 bg-white cursor-ew-resize z-20 shadow-2xl flex items-center justify-center -translate-x-1/2"
+              style={{ insetInlineStart: `${beforeAfterPos}%` }}
             >
               <div className="w-9 h-9 rounded-full bg-white text-slate-900 shadow-xl flex items-center justify-center font-black text-sm border-2 border-[#5A3E7A]">
                 ↔
@@ -700,7 +734,7 @@ export const StorefrontView: React.FC = () => {
         {/* Smart Luxury Testimonial Cards Carousel: 1 on mobile, 2 on tablet/desktop */}
         <div className="relative">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-            {[testimonials[reviewSlide % testimonials.length], testimonials[(reviewSlide + 1) % testimonials.length]].map((review, idx) => {
+            {[effectiveTestimonials[reviewSlide % effectiveTestimonials.length], effectiveTestimonials[(reviewSlide + 1) % effectiveTestimonials.length]].filter(Boolean).map((review, idx) => {
               const reviewId = review.id;
               const hasVoted = !!userVoted[reviewId];
               const votesCount = helpfulVotes[reviewId] || 40;
@@ -816,12 +850,12 @@ export const StorefrontView: React.FC = () => {
           <div className="mt-6 flex items-center justify-between">
             {/* Dots Pagination */}
             <div className="flex items-center gap-1.5">
-              {testimonials.map((_, i) => (
+              {effectiveTestimonials.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setReviewSlide(i)}
                   className={`transition-all rounded-full ${
-                    reviewSlide % testimonials.length === i 
+                    reviewSlide % effectiveTestimonials.length === i 
                       ? 'w-7 h-2 bg-[#5A3E7A]' 
                       : 'w-2 h-2 bg-slate-300 hover:bg-slate-400'
                   }`}
@@ -833,14 +867,14 @@ export const StorefrontView: React.FC = () => {
             {/* Prev / Next Arrows */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setReviewSlide((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
+                onClick={() => setReviewSlide((prev) => (prev - 1 + effectiveTestimonials.length) % effectiveTestimonials.length)}
                 className="w-10 h-10 rounded-full border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 flex items-center justify-center shadow-xs transition-colors min-h-[40px] min-w-[40px]"
                 aria-label="Previous review"
               >
                 {isRtl ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
               </button>
               <button
-                onClick={() => setReviewSlide((prev) => (prev + 1) % testimonials.length)}
+                onClick={() => setReviewSlide((prev) => (prev + 1) % effectiveTestimonials.length)}
                 className="w-10 h-10 rounded-full border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 flex items-center justify-center shadow-xs transition-colors min-h-[40px] min-w-[40px]"
                 aria-label="Next review"
               >

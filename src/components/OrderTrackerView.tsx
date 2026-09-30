@@ -205,6 +205,12 @@ export const OrderTrackerView: React.FC = () => {
                       <span className="text-slate-900 font-bold">{it.price}</span>
                     </div>
                   ))}
+                  {selectedOrder.promoCode && (
+                    <div className="flex justify-between text-xs text-emerald-600 font-bold">
+                      <span>{lang === 'ar' ? 'كود الخصم المطبق:' : 'Applied Promo:'}</span>
+                      <span className="bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">{selectedOrder.promoCode}</span>
+                    </div>
+                  )}
                   <div className="pt-2 border-t border-slate-200 flex justify-between font-extrabold text-sm text-slate-900">
                     <span>{lang === 'ar' ? 'الإجمالي عند الاستلام:' : 'Total due on delivery:'}</span>
                     <span className="text-[#5A3E7A]">{selectedOrder.totalFormatted}</span>

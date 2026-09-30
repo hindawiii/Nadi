@@ -113,12 +113,16 @@ export const CartPageView: React.FC = () => {
       return;
     }
 
-    // Place the order
+    // Place the order with accurate financial calculations
     const fullAddress = `${selectedCity} - ${address} [طريقة الدفع: ${paymentMethod.toUpperCase()}]`;
     const newPlacedOrder = placeOrder({
       name: customerName,
       phone,
-      address: fullAddress
+      address: fullAddress,
+      finalTotalUSD,
+      discountAmountUSD,
+      shippingFeeUSD,
+      promoCode: promoCode.trim() || undefined
     });
 
     // Show luxury order confirmation modal
