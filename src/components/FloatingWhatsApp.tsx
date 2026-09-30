@@ -1,10 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Phone, PhoneCall, Copy, Check, Clock, Sparkles, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Phone, PhoneCall, Copy, Check, Clock, ShieldCheck } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 
+/**
+ * FloatingWhatsApp Component
+ * 
+ * Luxury Pro Floating Action Button & Speed-Dial Contact Hub.
+ * Architected with 100% Pure CSS Logical Properties (RTL/LTR dynamic parity).
+ * - Fixed and stable at bottom-6 end-6 (bottom-left in RTL, bottom-right in LTR)
+ * - Speed-dial icons strictly vertically aligned above trigger button
+ * - Labels and tooltips naturally extend inwards toward screen center
+ * - Instant zero-delay touch/click response
+ */
 export const FloatingWhatsApp: React.FC = () => {
   const { lang, activeData, isCartOpen, isAuthModalOpen, isReviewModalOpen, currentRoute, showToast } = useCommerce();
-  const isRtl = lang === 'ar';
   const phone = activeData.contactInfo.whatsapp;
   const directPhone = activeData.contactInfo.phone || phone;
 
@@ -15,17 +24,17 @@ export const FloatingWhatsApp: React.FC = () => {
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  // Smart Tooltip: Visible on mount for 3.5 seconds, or until user scrolls / dismisses
+  // Smart Tooltip: Visible on mount for 4 seconds, or until user scrolls / dismisses
   const [isAutoVisible, setIsAutoVisible] = useState(true);
   const [isDismissed, setIsDismissed] = useState(() => {
     try {
       return sessionStorage.getItem('so_beauty_wa_note_dismissed') === 'true';
-    } catch (e) {
+    } catch {
       return false;
     }
   });
 
-  // Auto-collapse tooltip after 3.5 seconds
+  // Auto-collapse tooltip after 4 seconds
   useEffect(() => {
     if (isDismissed) {
       setIsAutoVisible(false);
@@ -33,19 +42,19 @@ export const FloatingWhatsApp: React.FC = () => {
     }
     const timer = setTimeout(() => {
       setIsAutoVisible(false);
-    }, 3500);
+    }, 4000);
     return () => clearTimeout(timer);
   }, [isDismissed]);
 
-  // Smart Scroll Dismissal: When user begins scrolling, gracefully dismiss tooltip so it never blocks content
+  // Smart Scroll Dismissal: When user scrolls, gracefully collapse tooltip
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 30) {
+      if (window.scrollY > 40) {
         setIsAutoVisible(false);
         setIsDismissed(true);
         try {
           sessionStorage.setItem('so_beauty_wa_note_dismissed', 'true');
-        } catch (e) {}
+        } catch {}
       }
     };
 
@@ -65,115 +74,9 @@ export const FloatingWhatsApp: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Draggable Floating Position State (Touch & Mouse)
-  const [position, setPosition] = useState<{ x: number; y: number } | null>(() => {
-    try {
-      const saved = sessionStorage.getItem('so_beauty_wa_pos');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
+  if (isCartOpen || isAuthModalOpen || isReviewModalOpen || currentRoute === 'cart' || currentRoute === 'login') {
     return null;
-  });
-
-  const [isCurrentlyDragging, setIsCurrentlyDragging] = useState(false);
-  const isDraggingRef = useRef(false);
-  const dragStartRef = useRef<{ startX: number; startY: number; initialPosX: number; initialPosY: number }>({
-    startX: 0,
-    startY: 0,
-    initialPosX: 0,
-    initialPosY: 0,
-  });
-  const hasMovedSignificantlyRef = useRef(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  // Automatically reset position to safe edge when language changes so it adapts naturally to RTL / LTR
-  useEffect(() => {
-    setPosition(null);
-    try {
-      sessionStorage.removeItem('so_beauty_wa_pos');
-    } catch (e) {}
-  }, [lang]);
-
-  // Is the button positioned on the left half of the viewport?
-  // If not dragged yet: In Arabic (dir="rtl") end-6 is on the left; in English (dir="ltr") end-6 is on the right.
-  const isLeftHalf = position 
-    ? position.x < (typeof window !== 'undefined' ? window.innerWidth / 2 : 300)
-    : (lang === 'ar');
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (e.button !== 0 && e.pointerType === 'mouse') return;
-    
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch (_) {}
-
-    isDraggingRef.current = true;
-    setIsCurrentlyDragging(true);
-    hasMovedSignificantlyRef.current = false;
-
-    // Use current button coordinate relative to viewport
-    const rect = e.currentTarget.getBoundingClientRect();
-    const currentX = rect.left;
-    const currentY = rect.top;
-
-    dragStartRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      initialPosX: currentX,
-      initialPosY: currentY,
-    };
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (!isDraggingRef.current) return;
-    const deltaX = e.clientX - dragStartRef.current.startX;
-    const deltaY = e.clientY - dragStartRef.current.startY;
-
-    if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
-      hasMovedSignificantlyRef.current = true;
-    }
-
-    const btnSize = 64; // The exact size of the circular trigger button
-    const padding = 16; // Consistent 16px luxury viewport margin
-    const minX = padding;
-    const maxX = Math.max(padding, window.innerWidth - btnSize - padding);
-    const minY = 65; // Header safe zone
-    const maxY = Math.max(minY, window.innerHeight - btnSize - padding);
-
-    // Completely unrestricted movement in both X (left/right) and Y (up/down) with strict bounds
-    const rawX = dragStartRef.current.initialPosX + deltaX;
-    const rawY = dragStartRef.current.initialPosY + deltaY;
-
-    const clampedX = Math.min(maxX, Math.max(minX, rawX));
-    const clampedY = Math.min(maxY, Math.max(minY, rawY));
-
-    setPosition({ x: clampedX, y: clampedY });
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (!isDraggingRef.current) return;
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch (_) {}
-
-    isDraggingRef.current = false;
-    setIsCurrentlyDragging(false);
-
-    if (position) {
-      // Gentle snap to nearest screen edge (left or right)
-      const btnSize = 64;
-      const padding = 16;
-      const midPoint = window.innerWidth / 2;
-      const targetX = position.x < midPoint ? padding : window.innerWidth - btnSize - padding;
-      const finalPos = { x: targetX, y: position.y };
-      setPosition(finalPos);
-
-      try {
-        sessionStorage.setItem('so_beauty_wa_pos', JSON.stringify(finalPos));
-      } catch (err) {}
-    }
-  };
-
-  if (isCartOpen || isAuthModalOpen || isReviewModalOpen || currentRoute === 'cart' || currentRoute === 'login') return null;
+  }
 
   // WhatsApp Action Handler - Resilient Universal Cross-Platform Deep Link
   const handleOpenWhatsApp = (e?: React.MouseEvent) => {
@@ -188,24 +91,19 @@ export const FloatingWhatsApp: React.FC = () => {
     
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const encodedText = encodeURIComponent(greeting);
-    
-    // Primary universal link (guaranteed on all browsers, mobile and desktop)
     const universalUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
     
     try {
-      // First attempt: direct window location or safe open
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       if (isMobile) {
-        // On mobile devices, window.location.href seamlessly hands off to the native WhatsApp app without popup blockers
         window.location.href = universalUrl;
       } else {
-        // On desktop, open in a new tab
         const win = window.open(universalUrl, '_blank', 'noopener,noreferrer');
         if (!win) {
           window.location.href = universalUrl;
         }
       }
-    } catch (_) {
+    } catch {
       window.location.href = universalUrl;
     }
   };
@@ -231,10 +129,16 @@ export const FloatingWhatsApp: React.FC = () => {
     try {
       navigator.clipboard.writeText(directPhone);
       setIsCopied(true);
-      showToast(lang === 'ar' ? 'تم نسخ رقم الهاتف بنجاح' : 'Phone number copied to clipboard');
+      showToast({
+        type: 'success',
+        message: lang === 'ar' ? 'تم نسخ رقم الهاتف بنجاح' : 'Phone number copied to clipboard'
+      });
       setTimeout(() => setIsCopied(false), 2500);
-    } catch (e) {
-      showToast(lang === 'ar' ? `رقم الهاتف: ${directPhone}` : `Phone: ${directPhone}`);
+    } catch {
+      showToast({
+        type: 'info',
+        message: lang === 'ar' ? `رقم الهاتف: ${directPhone}` : `Phone: ${directPhone}`
+      });
     }
   };
 
@@ -246,7 +150,7 @@ export const FloatingWhatsApp: React.FC = () => {
     setIsAutoVisible(false);
     try {
       sessionStorage.setItem('so_beauty_wa_note_dismissed', 'true');
-    } catch (e) {}
+    } catch {}
   };
 
   // Toggle speed-dial menu reliably on tap / click
@@ -254,10 +158,6 @@ export const FloatingWhatsApp: React.FC = () => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
-    }
-    if (hasMovedSignificantlyRef.current) {
-      hasMovedSignificantlyRef.current = false;
-      return;
     }
     setIsMenuOpen(prev => !prev);
     setIsAutoVisible(false);
@@ -272,7 +172,7 @@ export const FloatingWhatsApp: React.FC = () => {
       {isMenuOpen && (
         <div 
           onClick={() => setIsMenuOpen(false)}
-          className="fixed inset-0 z-40 bg-slate-900/25 backdrop-blur-[2px] transition-opacity duration-200"
+          className="fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-[1px] transition-opacity duration-200"
           aria-hidden="true"
         />
       )}
@@ -406,37 +306,26 @@ export const FloatingWhatsApp: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 2. FLOATING ACTION CONTAINER (Anchored at bottom corner or User-Dragged)   */}
-      {/* Container is strictly 64x64 to guarantee perfect coordinate 1:1 mapping    */}
+      {/* 2. FLOATING ACTION CONTAINER                                              */}
+      {/* Anchored stably at bottom-6 end-6 (bottom-left in RTL, bottom-right in LTR)*/}
       {/* ========================================================================= */}
-      <div 
-        ref={containerRef}
-        style={position ? {
-          position: 'fixed',
-          left: `${position.x}px`,
-          top: `${position.y}px`,
-          bottom: 'auto',
-          right: 'auto',
-          zIndex: 45,
-          touchAction: 'none',
-        } : undefined}
-        className={!position 
-          ? "fixed bottom-6 end-6 z-40 w-16 h-16 flex items-center justify-center select-none" 
-          : "fixed z-45 w-16 h-16 flex items-center justify-center select-none"}
-      >
+      <div className="fixed bottom-6 end-6 z-40 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center select-none">
         
-        {/* Speed-Dial Dual Contact Options (Direct Call + WhatsApp) - Absolute Overlay Above Button */}
+        {/* ========================================================================= */}
+        {/* SPEED-DIAL POPUP OPTIONS (Calls & WhatsApp)                               */}
+        {/* Perfectly aligned to end-0 items-end above the main trigger button       */}
+        {/* In LTR: circle is on the right, label on the left                        */}
+        {/* In RTL: circle is on the left, label on the right                        */}
+        {/* ========================================================================= */}
         <div 
-          className={`absolute bottom-full mb-3 flex flex-col gap-3 transition-all duration-300 ease-out origin-bottom ${
-            isLeftHalf ? 'start-0 items-start' : 'end-0 items-end'
-          } ${
+          className={`absolute bottom-full mb-3 end-0 flex flex-col gap-3 items-end transition-all duration-300 ease-out origin-bottom ${
             isMenuOpen 
               ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' 
-              : 'opacity-0 translate-y-4 scale-95 pointer-events-none max-h-0 overflow-hidden'
+              : 'opacity-0 translate-y-3 scale-95 pointer-events-none max-h-0 overflow-hidden'
           }`}
         >
           {/* OPTION 1: DIRECT PHONE CALL -> OPENS LUXURY SMART MODAL */}
-          <div className={`flex items-center gap-2.5 group/call ${isLeftHalf ? 'flex-row-reverse' : 'flex-row'}`}>
+          <div className="flex items-center gap-2.5 justify-end">
             <button 
               type="button"
               onClick={handleOpenPhoneModal}
@@ -446,7 +335,6 @@ export const FloatingWhatsApp: React.FC = () => {
               <span>{lang === 'ar' ? 'عرض الرقم والاتصال' : 'View Phone & Call'}</span>
               <span className="text-[11px] text-slate-400 font-mono hidden sm:inline" dir="ltr">{directPhone}</span>
             </button>
-
             <button
               type="button"
               onClick={handleOpenPhoneModal}
@@ -459,7 +347,7 @@ export const FloatingWhatsApp: React.FC = () => {
           </div>
 
           {/* OPTION 2: WHATSAPP CHAT */}
-          <div className={`flex items-center gap-2.5 group/wa ${isLeftHalf ? 'flex-row-reverse' : 'flex-row'}`}>
+          <div className="flex items-center gap-2.5 justify-end">
             <button 
               type="button"
               onClick={handleOpenWhatsApp}
@@ -470,7 +358,6 @@ export const FloatingWhatsApp: React.FC = () => {
               </svg>
               <span>{lang === 'ar' ? 'محادثة واتساب' : 'WhatsApp Chat'}</span>
             </button>
-
             <button
               type="button"
               onClick={handleOpenWhatsApp}
@@ -489,28 +376,33 @@ export const FloatingWhatsApp: React.FC = () => {
           </div>
         </div>
 
-        {/* SMART AUTO-COLLAPSING TOOLTIP - Floated Absolutely to the side without altering button container width */}
+        {/* ========================================================================= */}
+        {/* SMART AUTO-COLLAPSING TOOLTIP ("تواصل معنا" / "Contact Us")                */}
+        {/* Pure logical positioning: end-full me-3                                  */}
+        {/* Always extends toward screen center with a 12px gap from the button        */}
+        {/* ========================================================================= */}
         <div 
-          className={`absolute top-1/2 -translate-y-1/2 transition-all duration-500 ease-out overflow-hidden flex items-center pointer-events-none ${
-            isLeftHalf ? 'left-full ms-3 origin-left' : 'right-full me-3 origin-right'
-          } ${
-            shouldShowTooltip && !isCurrentlyDragging
+          className={`absolute top-1/2 -translate-y-1/2 end-full me-3 transition-all duration-300 ease-out overflow-hidden flex items-center pointer-events-none ${
+            shouldShowTooltip
               ? 'max-w-xs opacity-100 scale-100 pointer-events-auto' 
               : 'max-w-0 opacity-0 scale-95 pointer-events-none'
           }`}
         >
-          <div className="flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3.5 py-2 rounded-2xl shadow-2xl border border-emerald-100 text-xs font-bold text-slate-800 whitespace-nowrap">
+          <div 
+            onClick={toggleMenu}
+            className="flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3.5 py-2 rounded-2xl shadow-2xl border border-emerald-100 text-xs font-bold text-slate-800 whitespace-nowrap cursor-pointer hover:bg-emerald-50/50 transition-colors"
+          >
             <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
             </span>
-            <span className="text-xs text-slate-800 font-extrabold">
+            <span className="text-xs text-slate-900 font-extrabold">
               {lang === 'ar' ? 'تواصل معنا' : 'Contact Us'}
             </span>
             <button
               type="button"
               onClick={handleDismissNote}
-              className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+              className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer ms-1"
               title={lang === 'ar' ? 'إغلاق' : 'Close'}
               aria-label="Dismiss tooltip"
             >
@@ -519,69 +411,57 @@ export const FloatingWhatsApp: React.FC = () => {
           </div>
         </div>
 
-        {/* LUXURY TRIGGER SQUIRCLE BUTTON (Draggable via Touch & Mouse) */}
+        {/* ========================================================================= */}
+        {/* LUXURY TRIGGER SQUIRCLE BUTTON                                            */}
+        {/* Clean, instant tap with zero drag interference                            */}
+        {/* ========================================================================= */}
         <button
-            type="button"
-            style={{ touchAction: 'none' }}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            onClick={(e) => {
-              if (hasMovedSignificantlyRef.current) {
-                e.preventDefault();
-                e.stopPropagation();
-                hasMovedSignificantlyRef.current = false;
-                return;
-              }
-              toggleMenu(e);
-            }}
-            aria-expanded={isMenuOpen}
-            aria-label={lang === 'ar' ? 'خيارات التواصل السريع' : 'Instant Contact Options'}
-            className={`relative group p-1 cursor-grab active:cursor-grabbing focus:outline-none focus:ring-4 focus:ring-emerald-400/30 rounded-[22px] transition-transform select-none ${
-              isCurrentlyDragging ? 'scale-110 shadow-2xl opacity-90' : 'active:scale-95'
-            }`}
-            title={lang === 'ar' ? 'اسحب لتحريك الزر أو انقر للتواصل' : 'Drag to reposition or click to contact'}
-          >
-            {/* Layer 1: Ambient Glow */}
-            <div className={`absolute inset-1 rounded-[22px] bg-emerald-400/35 backdrop-blur-sm pointer-events-none transition-all duration-500 ${
-              isMenuOpen ? 'rotate-12 scale-105' : 'rotate-6 scale-100 group-hover:rotate-12 group-hover:scale-105'
-            }`} />
+          type="button"
+          onClick={toggleMenu}
+          aria-expanded={isMenuOpen}
+          aria-label={lang === 'ar' ? 'خيارات التواصل السريع' : 'Instant Contact Options'}
+          className="relative group p-1 focus:outline-none focus:ring-4 focus:ring-emerald-400/30 rounded-[22px] transition-transform select-none active:scale-95 cursor-pointer"
+          title={lang === 'ar' ? 'انقر لفتح خيارات التواصل (واتساب أو اتصال)' : 'Click to view contact options (WhatsApp or Call)'}
+        >
+          {/* Layer 1: Ambient Glow */}
+          <div className={`absolute inset-1 rounded-[22px] bg-emerald-400/35 backdrop-blur-sm pointer-events-none transition-all duration-500 ${
+            isMenuOpen ? 'rotate-12 scale-105' : 'rotate-6 scale-100 group-hover:rotate-12 group-hover:scale-105'
+          }`} />
 
-            {/* Layer 2: Secondary Glow */}
-            <div className={`absolute inset-1 rounded-[22px] bg-teal-500/25 pointer-events-none transition-all duration-500 ${
-              isMenuOpen ? '-rotate-6 scale-100' : '-rotate-3 scale-95 group-hover:-rotate-6 group-hover:scale-100'
-            }`} />
+          {/* Layer 2: Secondary Glow */}
+          <div className={`absolute inset-1 rounded-[22px] bg-teal-500/25 pointer-events-none transition-all duration-500 ${
+            isMenuOpen ? '-rotate-6 scale-100' : '-rotate-3 scale-95 group-hover:-rotate-6 group-hover:scale-100'
+          }`} />
 
-            {/* Layer 3: Main Foreground Luxury Squircle Button */}
-            <div className={`relative w-14 h-14 rounded-[20px] bg-gradient-to-br from-[#25D366] via-[#128C7E] to-[#075E54] text-white shadow-2xl shadow-emerald-950/35 border border-emerald-200/40 flex items-center justify-center transition-all duration-300 ${
-              isMenuOpen ? 'scale-95 bg-gradient-to-br from-slate-800 to-slate-900 ring-2 ring-emerald-400' : 'group-hover:scale-105'
-            } overflow-hidden`}>
-              {/* Subtle Glass Highlight Reflex */}
-              <div className="absolute top-0 start-0 end-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-[19px] pointer-events-none" />
+          {/* Layer 3: Main Foreground Luxury Squircle Button */}
+          <div className={`relative w-14 h-14 rounded-[20px] bg-gradient-to-br from-[#25D366] via-[#128C7E] to-[#075E54] text-white shadow-2xl shadow-emerald-950/35 border border-emerald-200/40 flex items-center justify-center transition-all duration-300 ${
+            isMenuOpen ? 'scale-95 bg-gradient-to-br from-slate-800 to-slate-900 ring-2 ring-emerald-400' : 'group-hover:scale-105'
+          } overflow-hidden`}>
+            {/* Subtle Glass Highlight Reflex */}
+            <div className="absolute top-0 start-0 end-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-[19px] pointer-events-none" />
 
-              {/* Icon Switcher: X when menu is open, WhatsApp when menu is closed */}
-              {isMenuOpen ? (
-                <X className="w-6 h-6 text-white drop-shadow-xs relative z-10 transition-transform duration-300 animate-in zoom-in-75" />
-              ) : (
-                <svg 
-                  viewBox="0 0 24 24" 
-                  className="w-7 h-7 fill-white drop-shadow-xs relative z-10 transition-transform duration-300 group-hover:scale-110" 
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.04 14.69 2 12.04 2ZM12.05 20.16C10.57 20.16 9.12 19.76 7.85 19L7.55 18.82L4.43 19.64L5.26 16.6L5.06 16.29C4.24 14.98 3.8 13.47 3.8 11.91C3.8 7.37 7.5 3.67 12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.16 12.05 20.16ZM16.57 14.41C16.32 14.28 15.1 13.68 14.88 13.6C14.65 13.52 14.49 13.48 14.32 13.73C14.16 13.98 13.69 14.53 13.55 14.69C13.41 14.86 13.26 14.88 13.01 14.75C12.77 14.63 11.98 14.37 11.04 13.53C10.31 12.88 9.81 12.07 9.67 11.83C9.53 11.58 9.65 11.45 9.77 11.33C9.88 11.22 10.02 11.04 10.14 10.9C10.26 10.76 10.3 10.66 10.38 10.5C10.46 10.33 10.42 10.19 10.36 10.07C10.3 9.94 9.81 8.74 9.61 8.25C9.41 7.77 9.21 7.83 9.06 7.83C8.92 7.82 8.76 7.82 8.59 7.82C8.43 7.82 8.16 7.88 7.94 8.13C7.71 8.37 7.08 8.96 7.08 10.17C7.08 11.38 7.96 12.54 8.09 12.71C8.21 12.87 9.82 15.36 12.3 16.42C12.89 16.67 13.35 16.83 13.71 16.94C14.3 17.13 14.84 17.1 15.27 17.04C15.75 16.97 16.74 16.44 16.94 15.86C17.15 15.28 17.15 14.79 17.09 14.69C17.02 14.59 16.82 14.53 16.57 14.41Z" />
-                </svg>
-              )}
-            </div>
-
-            {/* Live Active Online Ping Dot (Only when menu is closed) */}
-            {!isMenuOpen && (
-              <span className="absolute top-0 end-0 flex h-4 w-4 z-20 pointer-events-none">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-85" />
-                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white shadow-xs" />
-              </span>
+            {/* Icon Switcher: X when menu is open, WhatsApp when menu is closed */}
+            {isMenuOpen ? (
+              <X className="w-6 h-6 text-white drop-shadow-xs relative z-10 transition-transform duration-300 animate-in zoom-in-75" />
+            ) : (
+              <svg 
+                viewBox="0 0 24 24" 
+                className="w-7 h-7 fill-white drop-shadow-xs relative z-10 transition-transform duration-300 group-hover:scale-110" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.04 14.69 2 12.04 2ZM12.05 20.16C10.57 20.16 9.12 19.76 7.85 19L7.55 18.82L4.43 19.64L5.26 16.6L5.06 16.29C4.24 14.98 3.8 13.47 3.8 11.91C3.8 7.37 7.5 3.67 12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.16 12.05 20.16ZM16.57 14.41C16.32 14.28 15.1 13.68 14.88 13.6C14.65 13.52 14.49 13.48 14.32 13.73C14.16 13.98 13.69 14.53 13.55 14.69C13.41 14.86 13.26 14.88 13.01 14.75C12.77 14.63 11.98 14.37 11.04 13.53C10.31 12.88 9.81 12.07 9.67 11.83C9.53 11.58 9.65 11.45 9.77 11.33C9.88 11.22 10.02 11.04 10.14 10.9C10.26 10.76 10.3 10.66 10.38 10.5C10.46 10.33 10.42 10.19 10.36 10.07C10.3 9.94 9.81 8.74 9.61 8.25C9.41 7.77 9.21 7.83 9.06 7.83C8.92 7.82 8.76 7.82 8.59 7.82C8.43 7.82 8.16 7.88 7.94 8.13C7.71 8.37 7.08 8.96 7.08 10.17C7.08 11.38 7.96 12.54 8.09 12.71C8.21 12.87 9.82 15.36 12.3 16.42C12.89 16.67 13.35 16.83 13.71 16.94C14.3 17.13 14.84 17.1 15.27 17.04C15.75 16.97 16.74 16.44 16.94 15.86C17.15 15.28 17.15 14.79 17.09 14.69C17.02 14.59 16.82 14.53 16.57 14.41Z" />
+              </svg>
             )}
-          </button>
+          </div>
+
+          {/* Live Active Online Ping Dot (Only when menu is closed) */}
+          {!isMenuOpen && (
+            <span className="absolute top-0 end-0 flex h-4 w-4 z-20 pointer-events-none">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-85" />
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white shadow-xs" />
+            </span>
+          )}
+        </button>
       </div>
     </>
   );
