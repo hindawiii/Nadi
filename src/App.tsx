@@ -196,7 +196,7 @@ const AppContent: React.FC = () => {
 
       {/* Floating Comparison Drawer Trigger Bar (Appears when >= 1 item is compared) */}
       {comparisonList.length > 0 && !isControlPanelRoute && (
-        <div className="fixed bottom-20 start-4 z-40 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed bottom-20 start-4 z-30 animate-in slide-in-from-bottom duration-300">
           <button
             onClick={() => setIsCompareModalOpen(true)}
             className="flex items-center gap-2.5 px-4 py-2.5 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-full shadow-xl border border-white/20 hover:scale-105 active:scale-95 transition-all"

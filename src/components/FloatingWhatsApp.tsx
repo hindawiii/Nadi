@@ -3,14 +3,33 @@ import { X, Phone, PhoneCall, Copy, Check, Clock, ShieldCheck } from 'lucide-rea
 import { useCommerce } from '../context/CommerceContext';
 
 /**
+ * Clamps coordinates within viewport boundaries with safe paddings
+ */
+const clampToViewport = (x: number, y: number) => {
+  if (typeof window === 'undefined') return { x, y };
+  const btnSize = 64;
+  const padding = 16;
+  const minX = padding;
+  const maxX = Math.max(padding, window.innerWidth - btnSize - padding);
+  const minY = 70; // Header safe zone
+  const maxY = Math.max(minY, window.innerHeight - btnSize - padding);
+  return {
+    x: Math.min(maxX, Math.max(minX, x)),
+    y: Math.min(maxY, Math.max(minY, y)),
+  };
+};
+
+/**
  * FloatingWhatsApp Component
  * 
  * Luxury Pro Draggable Floating Action Button & Speed-Dial Contact Hub.
- * Features Column-Locked Vertical Alignment:
- * - Speed-dial icons are strictly locked in the same 56px/64px vertical column as the main FAB
- * - Action text badges and tooltips are side-anchored, pointing inward into the screen
- * - Spatial awareness: adapts whether docked on left or right, top or bottom
- * - Instant zero-delay clicks with a 6px drag threshold
+ * Features:
+ * - Column-Locked Vertical Alignment: speed-dial icons locked strictly to the FAB vertical axis
+ * - Touch & Pointer Capture: buttery-smooth dragging without page scroll conflicts
+ * - Z-Index Hierarchy: elevated to z-50 with backdrop at z-40 and modals at z-[60]
+ * - Viewport Clamping: validates coordinates on initial mount and window resize
+ * - Responsive Badge Containment: max-width safeguards to prevent any mobile overflow
+ * - Native Direct Link Dispatch: avoids pop-up blocker issues across all browsers
  */
 export const FloatingWhatsApp: React.FC = () => {
   const { lang, activeData, isCartOpen, isAuthModalOpen, isReviewModalOpen, currentRoute, showToast } = useCommerce();
@@ -25,14 +44,14 @@ export const FloatingWhatsApp: React.FC = () => {
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  // Draggable floating position state { x, y } in viewport pixels
+  // Draggable floating position state { x, y } in viewport pixels with immediate viewport clamping
   const [position, setPosition] = useState<{ x: number; y: number } | null>(() => {
     try {
       const saved = sessionStorage.getItem('so_beauty_wa_pos');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
-          return parsed;
+          return clampToViewport(parsed.x, parsed.y);
         }
       }
     } catch {}
@@ -98,16 +117,7 @@ export const FloatingWhatsApp: React.FC = () => {
     const handleResize = () => {
       setPosition(prev => {
         if (!prev) return null;
-        const btnSize = 64;
-        const padding = 16;
-        const minX = padding;
-        const maxX = Math.max(padding, window.innerWidth - btnSize - padding);
-        const minY = 70;
-        const maxY = Math.max(minY, window.innerHeight - btnSize - padding);
-        return {
-          x: Math.min(maxX, Math.max(minX, prev.x)),
-          y: Math.min(maxY, Math.max(minY, prev.y)),
-        };
+        return clampToViewport(prev.x, prev.y);
       });
     };
     window.addEventListener('resize', handleResize);
@@ -136,9 +146,17 @@ export const FloatingWhatsApp: React.FC = () => {
     ? position.y < 240
     : false;
 
-  // DRAG ENGINE (Pointer Down Handler with dynamic window listeners)
+  // DRAG ENGINE (Pointer Down Handler with Pointer Capture & native gesture isolation)
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    // Only primary mouse button or touch/pen
     if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+    const targetBtn = e.currentTarget;
+    const pointerId = e.pointerId;
+
+    try {
+      targetBtn.setPointerCapture?.(pointerId);
+    } catch {}
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -163,23 +181,15 @@ export const FloatingWhatsApp: React.FC = () => {
 
       if (!localMoved) return;
 
-      const btnSize = 64;
-      const padding = 16;
-      const minX = padding;
-      const maxX = Math.max(padding, window.innerWidth - btnSize - padding);
-      const minY = 70; // Header safe margin
-      const maxY = Math.max(minY, window.innerHeight - btnSize - padding);
-
-      const rawX = initialPosX + deltaX;
-      const rawY = initialPosY + deltaY;
-
-      const clampedX = Math.min(maxX, Math.max(minX, rawX));
-      const clampedY = Math.min(maxY, Math.max(minY, rawY));
-
-      setPosition({ x: clampedX, y: clampedY });
+      const clamped = clampToViewport(initialPosX + deltaX, initialPosY + deltaY);
+      setPosition(clamped);
     };
 
-    const onPointerUp = () => {
+    const onPointerUp = (upEvent: PointerEvent) => {
+      try {
+        targetBtn.releasePointerCapture?.(pointerId);
+      } catch {}
+
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
@@ -204,11 +214,12 @@ export const FloatingWhatsApp: React.FC = () => {
     window.addEventListener('pointercancel', onPointerUp);
   };
 
+  // Hide on modal pages or dedicated routes
   if (isCartOpen || isAuthModalOpen || isReviewModalOpen || currentRoute === 'cart' || currentRoute === 'login') {
     return null;
   }
 
-  // WhatsApp Action Handler - Resilient Universal Cross-Platform Deep Link
+  // WhatsApp Action Handler - Resilient Universal Direct Anchor Dispatch
   const handleOpenWhatsApp = (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
@@ -223,19 +234,14 @@ export const FloatingWhatsApp: React.FC = () => {
     const encodedText = encodeURIComponent(greeting);
     const universalUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
     
-    try {
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile) {
-        window.location.href = universalUrl;
-      } else {
-        const win = window.open(universalUrl, '_blank', 'noopener,noreferrer');
-        if (!win) {
-          window.location.href = universalUrl;
-        }
-      }
-    } catch {
-      window.location.href = universalUrl;
-    }
+    // Create direct anchor element to bypass popup blockers reliably
+    const anchor = document.createElement('a');
+    anchor.href = universalUrl;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
   };
 
   // Open Luxury Phone Modal
@@ -302,7 +308,7 @@ export const FloatingWhatsApp: React.FC = () => {
 
   return (
     <>
-      {/* Invisible backdrop to dismiss speed-dial menu on tap outside */}
+      {/* Invisible backdrop to dismiss speed-dial menu on tap outside - z-40 sits below z-50 container */}
       {isMenuOpen && (
         <div 
           onClick={() => setIsMenuOpen(false)}
@@ -313,17 +319,18 @@ export const FloatingWhatsApp: React.FC = () => {
 
       {/* ========================================================================= */}
       {/* 1. LUXURY SMART PHONE POPUP MODAL (نافذة منبثقة ذكية وفاخرة لعرض الهاتف)    */}
+      {/* Highest Z-Index: z-[60] so it sits above all widgets and menus            */}
       {/* ========================================================================= */}
       {isPhoneModalOpen && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-200"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-md animate-in fade-in duration-200"
           onClick={() => setIsPhoneModalOpen(false)}
           aria-modal="true"
           role="dialog"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 relative overflow-hidden animate-in zoom-in-95 duration-200 space-y-6"
+            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden animate-in zoom-in-95 duration-200 space-y-6"
           >
             {/* Top Luxury Gradient Accent Bar */}
             <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-[#5A3E7A]" />
@@ -335,7 +342,7 @@ export const FloatingWhatsApp: React.FC = () => {
                   <PhoneCall className="w-6 h-6 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white leading-tight">
                     {lang === 'ar' ? 'الاتصال المباشر والدعم' : 'Direct Support & Inquiries'}
                   </h3>
                   <div className="flex items-center gap-1.5 mt-1">
@@ -343,7 +350,7 @@ export const FloatingWhatsApp: React.FC = () => {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                     </span>
-                    <span className="text-xs font-bold text-emerald-600">
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                       {lang === 'ar' ? 'متاح الآن للرد الفوري' : 'Online & Ready to Help'}
                     </span>
                   </div>
@@ -354,7 +361,7 @@ export const FloatingWhatsApp: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsPhoneModalOpen(false)}
-                className="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors flex items-center justify-center shrink-0 cursor-pointer active:scale-95"
+                className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center justify-center shrink-0 cursor-pointer active:scale-95"
                 aria-label={lang === 'ar' ? 'إغلاق النافذة' : 'Close modal'}
               >
                 <X className="w-5 h-5" />
@@ -362,14 +369,14 @@ export const FloatingWhatsApp: React.FC = () => {
             </div>
 
             {/* Luxury Phone Display Box */}
-            <div className="bg-gradient-to-b from-slate-50 to-slate-100/70 border border-slate-200/80 rounded-2xl p-5 flex flex-col items-center justify-center gap-3 text-center shadow-inner">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <div className="bg-gradient-to-b from-slate-50 to-slate-100/70 dark:from-slate-800/60 dark:to-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-2xl p-5 flex flex-col items-center justify-center gap-3 text-center shadow-inner">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 {lang === 'ar' ? 'رقم الهاتف المعتمد للمتجر' : 'Official Store Phone Number'}
               </span>
 
               {/* Phone Number Display */}
               <div 
-                className="text-2xl sm:text-3xl font-black text-slate-900 tracking-wider font-mono select-all"
+                className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-wider font-mono select-all"
                 dir="ltr"
               >
                 {directPhone}
@@ -379,16 +386,16 @@ export const FloatingWhatsApp: React.FC = () => {
               <button
                 type="button"
                 onClick={handleCopyNumber}
-                className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 hover:text-slate-900 transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
+                className="px-4 py-2 rounded-xl bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-slate-900 transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
               >
                 {isCopied ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    <span className="text-emerald-700">{lang === 'ar' ? 'تم نسخ الرقم بنجاح!' : 'Copied!'}</span>
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-emerald-700 dark:text-emerald-400">{lang === 'ar' ? 'تم نسخ الرقم بنجاح!' : 'Copied!'}</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5 text-slate-500" />
+                    <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                     <span>{lang === 'ar' ? 'نسخ رقم الهاتف' : 'Copy Number'}</span>
                   </>
                 )}
@@ -414,7 +421,7 @@ export const FloatingWhatsApp: React.FC = () => {
                   setIsPhoneModalOpen(false);
                   handleOpenWhatsApp();
                 }}
-                className="w-full min-h-[48px] py-3 px-6 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-sm flex items-center justify-center gap-2.5 transition-colors cursor-pointer active:scale-95"
+                className="w-full min-h-[48px] py-3 px-6 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-sm flex items-center justify-center gap-2.5 transition-colors cursor-pointer active:scale-95"
               >
                 <svg viewBox="0 0 24 24" className="w-4 h-4 fill-[#25D366] shrink-0" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.04 14.69 2 12.04 2ZM12.05 20.16C10.57 20.16 9.12 19.76 7.85 19L7.55 18.82L4.43 19.64L5.26 16.6L5.06 16.29C4.24 14.98 3.8 13.47 3.8 11.91C3.8 7.37 7.5 3.67 12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.16 12.05 20.16ZM16.57 14.41C16.32 14.28 15.1 13.68 14.88 13.6C14.65 13.52 14.49 13.48 14.32 13.73C14.16 13.98 13.69 14.53 13.55 14.69C13.41 14.86 13.26 14.88 13.01 14.75C12.77 14.63 11.98 14.37 11.04 13.53C10.31 12.88 9.81 12.07 9.67 11.83C9.53 11.58 9.65 11.45 9.77 11.33C9.88 11.22 10.02 11.04 10.14 10.9C10.26 10.76 10.3 10.66 10.38 10.5C10.46 10.33 10.42 10.19 10.36 10.07C10.3 9.94 9.81 8.74 9.61 8.25C9.41 7.77 9.21 7.83 9.06 7.83C8.92 7.82 8.76 7.82 8.59 7.82C8.43 7.82 8.16 7.88 7.94 8.13C7.71 8.37 7.08 8.96 7.08 10.17C7.08 11.38 7.96 12.54 8.09 12.71C8.21 12.87 9.82 15.36 12.3 16.42C12.89 16.67 13.35 16.83 13.71 16.94C14.3 17.13 14.84 17.1 15.27 17.04C15.75 16.97 16.74 16.44 16.94 15.86C17.15 15.28 17.15 14.79 17.09 14.69C17.02 14.59 16.82 14.53 16.57 14.41Z" />
@@ -424,7 +431,7 @@ export const FloatingWhatsApp: React.FC = () => {
             </div>
 
             {/* Working Hours & Trust Info Note */}
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span>{lang === 'ar' ? 'يومياً: ٩:٠٠ ص – ١١:٠٠ م' : 'Daily: 9:00 AM – 11:00 PM'}</span>
@@ -441,7 +448,7 @@ export const FloatingWhatsApp: React.FC = () => {
 
       {/* ========================================================================= */}
       {/* 2. DRAGGABLE FLOATING ACTION CONTAINER                                    */}
-      {/* Size is strictly w-14 sm:w-16 to lock vertical column alignment           */}
+      {/* Elevated strictly to z-50 to remain above all background bars and drawers */}
       {/* ========================================================================= */}
       <div 
         ref={containerRef}
@@ -451,12 +458,12 @@ export const FloatingWhatsApp: React.FC = () => {
           top: `${position.y}px`,
           bottom: 'auto',
           right: 'auto',
-          zIndex: 45,
+          zIndex: 50,
           touchAction: 'none',
         } : undefined}
         className={!position 
-          ? "fixed bottom-6 end-6 z-40 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center select-none" 
-          : "fixed z-45 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center select-none"}
+          ? "fixed bottom-6 end-6 z-50 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center select-none touch-none" 
+          : "fixed z-50 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center select-none touch-none"}
       >
         
         {/* ========================================================================= */}
@@ -465,7 +472,7 @@ export const FloatingWhatsApp: React.FC = () => {
         {/* Action icons are locked in the center, text badges float to the safe side */}
         {/* ========================================================================= */}
         <div 
-          className={`absolute inset-x-0 w-full flex flex-col gap-3 items-center transition-all duration-300 ease-out ${
+          className={`absolute inset-x-0 w-full flex flex-col gap-3 items-center transition-all duration-300 ease-out z-50 ${
             isTopHalf ? 'top-full mt-3 origin-top' : 'bottom-full mb-3 origin-bottom'
           } ${
             isMenuOpen 
@@ -479,7 +486,7 @@ export const FloatingWhatsApp: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenPhoneModal}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-950/25 border-2 border-white flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-950/25 border-2 border-white dark:border-slate-800 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
               title={lang === 'ar' ? `عرض رقم الهاتف: ${directPhone}` : `View Phone: ${directPhone}`}
               aria-label="Direct Phone Modal"
             >
@@ -490,13 +497,13 @@ export const FloatingWhatsApp: React.FC = () => {
             <button 
               type="button"
               onClick={handleOpenPhoneModal}
-              className={`absolute top-1/2 -translate-y-1/2 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-xl border border-emerald-100 text-xs font-bold text-slate-800 whitespace-nowrap hover:bg-emerald-50 hover:text-emerald-700 transition-all flex items-center gap-2 cursor-pointer active:scale-95 z-20 ${
+              className={`absolute top-1/2 -translate-y-1/2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-xl border border-emerald-100 dark:border-emerald-900/40 text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap max-w-[calc(100vw-96px)] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-700 transition-all flex items-center gap-2 cursor-pointer active:scale-95 z-20 ${
                 isLeftHalf ? 'left-full ml-3' : 'right-full mr-3'
               }`}
             >
               <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>{lang === 'ar' ? 'عرض الرقم والاتصال' : 'View Phone & Call'}</span>
-              <span className="text-[11px] text-slate-400 font-mono hidden sm:inline" dir="ltr">{directPhone}</span>
+              <span className="truncate">{lang === 'ar' ? 'عرض الرقم والاتصال' : 'View Phone & Call'}</span>
+              <span className="text-[11px] text-slate-400 font-mono hidden sm:inline shrink-0" dir="ltr">{directPhone}</span>
             </button>
           </div>
 
@@ -506,7 +513,7 @@ export const FloatingWhatsApp: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenWhatsApp}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-[#25D366] via-[#128C7E] to-[#075E54] text-white shadow-xl shadow-emerald-950/25 border-2 border-white flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-[#25D366] via-[#128C7E] to-[#075E54] text-white shadow-xl shadow-emerald-950/25 border-2 border-white dark:border-slate-800 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
               title={lang === 'ar' ? 'محادثة واتساب سريعة' : 'WhatsApp Instant Chat'}
               aria-label="WhatsApp Instant Chat"
             >
@@ -523,14 +530,14 @@ export const FloatingWhatsApp: React.FC = () => {
             <button 
               type="button"
               onClick={handleOpenWhatsApp}
-              className={`absolute top-1/2 -translate-y-1/2 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-xl border border-emerald-100 text-xs font-bold text-slate-800 whitespace-nowrap hover:bg-emerald-50 hover:text-emerald-700 transition-all flex items-center gap-2 cursor-pointer active:scale-95 z-20 ${
+              className={`absolute top-1/2 -translate-y-1/2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-xl border border-emerald-100 dark:border-emerald-900/40 text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap max-w-[calc(100vw-96px)] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-700 transition-all flex items-center gap-2 cursor-pointer active:scale-95 z-20 ${
                 isLeftHalf ? 'left-full ml-3' : 'right-full mr-3'
               }`}
             >
               <svg viewBox="0 0 24 24" className="w-4 h-4 fill-[#25D366] shrink-0" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.04 14.69 2 12.04 2ZM12.05 20.16C10.57 20.16 9.12 19.76 7.85 19L7.55 18.82L4.43 19.64L5.26 16.6L5.06 16.29C4.24 14.98 3.8 13.47 3.8 11.91C3.8 7.37 7.5 3.67 12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.16 12.05 20.16ZM16.57 14.41C16.32 14.28 15.1 13.68 14.88 13.6C14.65 13.52 14.49 13.48 14.32 13.73C14.16 13.98 13.69 14.53 13.55 14.69C13.41 14.86 13.26 14.88 13.01 14.75C12.77 14.63 11.98 14.37 11.04 13.53C10.31 12.88 9.81 12.07 9.67 11.83C9.53 11.58 9.65 11.45 9.77 11.33C9.88 11.22 10.02 11.04 10.14 10.9C10.26 10.76 10.3 10.66 10.38 10.5C10.46 10.33 10.42 10.19 10.36 10.07C10.3 9.94 9.81 8.74 9.61 8.25C9.41 7.77 9.21 7.83 9.06 7.83C8.92 7.82 8.76 7.82 8.59 7.82C8.43 7.82 8.16 7.88 7.94 8.13C7.71 8.37 7.08 8.96 7.08 10.17C7.08 11.38 7.96 12.54 8.09 12.71C8.21 12.87 9.82 15.36 12.3 16.42C12.89 16.67 13.35 16.83 13.71 16.94C14.3 17.13 14.84 17.1 15.27 17.04C15.75 16.97 16.74 16.44 16.94 15.86C17.15 15.28 17.15 14.79 17.09 14.69C17.02 14.59 16.82 14.53 16.57 14.41Z" />
               </svg>
-              <span>{lang === 'ar' ? 'محادثة واتساب' : 'WhatsApp Chat'}</span>
+              <span className="truncate">{lang === 'ar' ? 'محادثة واتساب' : 'WhatsApp Chat'}</span>
             </button>
           </div>
         </div>
@@ -550,19 +557,19 @@ export const FloatingWhatsApp: React.FC = () => {
         >
           <div 
             onClick={toggleMenu}
-            className="flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3.5 py-2 rounded-2xl shadow-2xl border border-emerald-100 text-xs font-bold text-slate-800 whitespace-nowrap cursor-pointer hover:bg-emerald-50/50 transition-colors"
+            className="flex items-center gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-3.5 py-2 rounded-2xl shadow-2xl border border-emerald-100 dark:border-emerald-900/40 text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-emerald-950/40 transition-colors"
           >
             <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
             </span>
-            <span className="text-xs text-slate-900 font-extrabold">
+            <span className="text-xs text-slate-900 dark:text-white font-extrabold">
               {lang === 'ar' ? 'تواصل معنا' : 'Contact Us'}
             </span>
             <button
               type="button"
               onClick={handleDismissNote}
-              className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer ms-1"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer ms-1"
               title={lang === 'ar' ? 'إغلاق' : 'Close'}
               aria-label="Dismiss tooltip"
             >
@@ -572,7 +579,7 @@ export const FloatingWhatsApp: React.FC = () => {
         </div>
 
         {/* ========================================================================= */}
-        {/* LUXURY TRIGGER SQUIRCLE BUTTON (Draggable with Mouse & Touch)             */}
+        {/* LUXURY TRIGGER SQUIRCLE BUTTON (Draggable with Pointer Capture & Touch)    */}
         {/* ========================================================================= */}
         <button
           type="button"
@@ -588,7 +595,7 @@ export const FloatingWhatsApp: React.FC = () => {
           }}
           aria-expanded={isMenuOpen}
           aria-label={lang === 'ar' ? 'خيارات التواصل السريع' : 'Instant Contact Options'}
-          className={`relative group p-1 focus:outline-none focus:ring-4 focus:ring-emerald-400/30 rounded-[22px] transition-transform select-none ${
+          className={`relative group p-1 focus:outline-none focus:ring-4 focus:ring-emerald-400/30 rounded-[22px] transition-transform select-none touch-none ${
             isDragging ? 'scale-105 shadow-2xl opacity-95 cursor-grabbing' : 'active:scale-95 cursor-grab'
           }`}
           title={lang === 'ar' ? 'اسحب لتحريك الزر لأي مكان، أو انقر لفتح الخيارات' : 'Drag anywhere on screen, or click to open options'}
@@ -628,7 +635,7 @@ export const FloatingWhatsApp: React.FC = () => {
           {!isMenuOpen && (
             <span className="absolute top-0 end-0 flex h-4 w-4 z-20 pointer-events-none">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-85" />
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white shadow-xs" />
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white dark:border-slate-800 shadow-xs" />
             </span>
           )}
         </button>

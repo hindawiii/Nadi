@@ -64,7 +64,7 @@ export const ScrollToTopProgress: React.FC = () => {
 
   return (
     <div
-      className={`fixed bottom-6 start-6 z-40 transition-all duration-300 ease-out select-none ${
+      className={`fixed bottom-6 start-6 z-30 transition-all duration-300 ease-out select-none ${
         isVisible
           ? 'opacity-100 translate-y-0 pointer-events-auto scale-100'
           : 'opacity-0 translate-y-6 pointer-events-none scale-90'
