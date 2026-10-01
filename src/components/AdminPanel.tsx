@@ -6,7 +6,8 @@ import {
   Sliders, FileText, ShoppingBag, Plus, Trash2, Layers,
   Phone, Mail, MapPin, Eye, ExternalLink, MessageCircle,
   Upload, Wand2, X, Search, Filter, CheckCircle2, Clock, Truck,
-  Tag, ArrowUpRight, ShieldCheck, CheckCheck, Droplets, Star
+  Tag, ArrowUpRight, ShieldCheck, CheckCheck, Droplets, Star,
+  Undo2, RotateCcw
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product, siteConfig } from '../data/siteConfig';
@@ -17,7 +18,8 @@ export const AdminPanel: React.FC = () => {
   const { 
     lang, isAdminAuthenticated, loginAdmin, logoutAdmin, 
     orders, updateOrderStatus, dynamicConfig, setDynamicConfig, 
-    activePresetId, navigateTo, showToast, convertPrice
+    activePresetId, navigateTo, showToast, convertPrice,
+    historyStack, canUndo, undoLastChange, resetFieldToDefault, isFieldModified, recordHistorySnapshot
   } = useCommerce();
 
   const isRtl = lang === 'ar';
@@ -90,8 +92,37 @@ export const AdminPanel: React.FC = () => {
   const activePreset = dynamicConfig.presets[activePresetId];
   const products = activePreset.products || [];
 
+  // Field-level Reset to Default Button Component for Admin
+  const FieldResetBtn: React.FC<{
+    path: string;
+    descAr: string;
+    descEn: string;
+  }> = ({ path, descAr, descEn }) => {
+    const modified = isFieldModified(path);
+    return (
+      <button
+        type="button"
+        onClick={() => resetFieldToDefault(path, descAr, descEn)}
+        title={lang === 'ar' ? `استعادة القيمة الافتراضية لـ (${descAr})` : `Reset (${descEn}) to factory default`}
+        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+          modified
+            ? 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300 shadow-xs'
+            : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-transparent'
+        }`}
+      >
+        <RotateCcw className="w-3 h-3" />
+        <span>{lang === 'ar' ? (modified ? 'استعادة الافتراضي ↺' : 'افتراضي') : (modified ? 'Reset ↺' : 'Default')}</span>
+      </button>
+    );
+  };
+
   // Update helper for active preset fields
   const updateField = (path: string, value: any) => {
+    recordHistorySnapshot(
+      `تعديل ${path}`,
+      `Edit ${path}`,
+      path
+    );
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev));
       const parts = path.split('.');
@@ -641,6 +672,27 @@ export const AdminPanel: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Smart Undo Button */}
+            <button
+              type="button"
+              onClick={undoLastChange}
+              disabled={!canUndo}
+              title={lang === 'ar' ? 'تراجع عن آخر تعديل (Undo)' : 'Undo last modification'}
+              className={`h-11 px-4 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs active:scale-95 ${
+                canUndo 
+                  ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 shadow-xs' 
+                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+              }`}
+            >
+              <Undo2 className="w-4 h-4" />
+              <span>{lang === 'ar' ? 'تراجع (Undo)' : 'Undo'}</span>
+              {historyStack.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500 text-white font-black">
+                  {historyStack.length}
+                </span>
+              )}
+            </button>
+
             <button
               onClick={() => navigateTo('store')}
               className="h-11 px-5 rounded-2xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-all flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
@@ -989,26 +1041,32 @@ export const AdminPanel: React.FC = () => {
 
             {/* 1. TOP ANNOUNCEMENT SLIDES */}
             <div className="p-6 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-[#5A3E7A]">
                   <Sparkles className="w-5 h-5" />
                   <h3 className="font-extrabold text-sm sm:text-base">
                     {lang === 'ar' ? '1. شرائح الشريط الإعلاني العلوي المتحرك' : '1. Top Announcement Ticker Slides'}
                   </h3>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentSlides = activePreset.announcementSlides || [];
-                    const newSlides = [...currentSlides, { ar: 'نص إعلاني جديد هنا ✨', en: 'New announcement text here ✨' }];
-                    updateField('announcementSlides', newSlides);
-                    showToast(lang === 'ar' ? 'تمت إضافة شريحة إعلانية جديدة' : 'Slide added');
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-[#5A3E7A] text-white text-xs font-bold hover:bg-[#483162] flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{lang === 'ar' ? 'إضافة شريحة' : 'Add Slide'}</span>
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] font-bold text-purple-900 bg-purple-100/90 border border-purple-200/80 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-2xs">
+                    <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                    <span>{lang === 'ar' ? '📍 أعلى شريط في المتجر (شريط الإعلانات البنفسجي)' : '📍 Top Header Bar (Purple Ticker)'}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentSlides = activePreset.announcementSlides || [];
+                      const newSlides = [...currentSlides, { ar: 'نص إعلاني جديد هنا ✨', en: 'New announcement text here ✨' }];
+                      updateField('announcementSlides', newSlides);
+                      showToast(lang === 'ar' ? 'تمت إضافة شريحة إعلانية جديدة' : 'Slide added');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-[#5A3E7A] text-white text-xs font-bold hover:bg-[#483162] flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{lang === 'ar' ? 'إضافة شريحة' : 'Add Slide'}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -1075,36 +1133,42 @@ export const AdminPanel: React.FC = () => {
 
             {/* 2. INFINITE BRAND TICKER (BOTTOM TICKER) */}
             <div className="p-6 rounded-2xl bg-amber-50/50 border border-amber-100 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-amber-800">
                   <Layers className="w-5 h-5" />
                   <h3 className="font-extrabold text-sm sm:text-base">
                     {lang === 'ar' ? '2. نصوص الشريط السفلي اللانهائي (Brand Ticker)' : '2. Infinite Brand Marquee Ticker'}
                   </h3>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentItems = activePreset.brandTickerItems || [];
-                    const newItems = [
-                      ...currentItems,
-                      {
-                        brandAr: activePreset.storeName.ar,
-                        brandEn: activePreset.storeName.en,
-                        sloganAr: 'عناية فائقة ونقاء 100%',
-                        sloganEn: 'Pure Botanical Care',
-                        tagAr: 'نتائج مثبتة',
-                        tagEn: 'Visible Results'
-                      }
-                    ];
-                    updateField('brandTickerItems', newItems);
-                    showToast(lang === 'ar' ? 'تمت إضافة جملة للشريط اللانهائي' : 'Ticker item added');
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{lang === 'ar' ? 'إضافة نص' : 'Add Item'}</span>
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-200/80 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-2xs">
+                    <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                    <span>{lang === 'ar' ? '📍 أسفل واجهة الهيرو مباشرة (شريط الماركات المتحرك)' : '📍 Below Hero Section (Marquee Strip)'}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentItems = activePreset.brandTickerItems || [];
+                      const newItems = [
+                        ...currentItems,
+                        {
+                          brandAr: activePreset.storeName.ar,
+                          brandEn: activePreset.storeName.en,
+                          sloganAr: 'عناية فائقة ونقاء 100%',
+                          sloganEn: 'Pure Botanical Care',
+                          tagAr: 'نتائج مثبتة',
+                          tagEn: 'Visible Results'
+                        }
+                      ];
+                      updateField('brandTickerItems', newItems);
+                      showToast(lang === 'ar' ? 'تمت إضافة جملة للشريط اللانهائي' : 'Ticker item added');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{lang === 'ar' ? 'إضافة نص' : 'Add Item'}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -1193,15 +1257,24 @@ export const AdminPanel: React.FC = () => {
 
             {/* 3. HERO SECTION TEXTS & IMAGERY */}
             <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
-              <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                {lang === 'ar' ? '3. واجهة الهيرو الرئيسية (Hero Section)' : '3. Main Hero Section'}
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                  {lang === 'ar' ? '3. واجهة الهيرو الرئيسية (Hero Section)' : '3. Main Hero Section'}
+                </h3>
+                <span className="text-[11px] font-bold text-slate-800 bg-slate-200/90 border border-slate-300 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-2xs w-fit">
+                  <MapPin className="w-3.5 h-3.5 text-slate-600" />
+                  <span>{lang === 'ar' ? '📍 واجهة الهيرو الكبرى بأعلى الصفحة - أول ما يراه الزائر' : '📍 Main Hero - First View Above the Fold'}</span>
+                </span>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">
-                    {lang === 'ar' ? 'العنوان الرئيسي (Hero Title بالعربية):' : 'Hero Title (Arabic):'}
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-slate-500 block">
+                      {lang === 'ar' ? 'العنوان الرئيسي (Hero Title بالعربية):' : 'Hero Title (Arabic):'}
+                    </label>
+                    <FieldResetBtn path="heroTitle.ar" descAr="عنوان الهيرو بالعربية" descEn="Hero Title (AR)" />
+                  </div>
                   <input
                     type="text"
                     value={activePreset.heroTitle?.ar || ''}
@@ -1210,9 +1283,12 @@ export const AdminPanel: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">
-                    {lang === 'ar' ? 'العنوان الرئيسي (Hero Title بالإنجليزية):' : 'Hero Title (English):'}
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-slate-500 block">
+                      {lang === 'ar' ? 'العنوان الرئيسي (Hero Title بالإنجليزية):' : 'Hero Title (English):'}
+                    </label>
+                    <FieldResetBtn path="heroTitle.en" descAr="عنوان الهيرو بالإنجليزية" descEn="Hero Title (EN)" />
+                  </div>
                   <input
                     type="text"
                     value={activePreset.heroTitle?.en || ''}
@@ -1222,9 +1298,12 @@ export const AdminPanel: React.FC = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">
-                    {lang === 'ar' ? 'الوصف الترحيبي (Subtitle بالعربية):' : 'Hero Subtitle (Arabic):'}
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-slate-500 block">
+                      {lang === 'ar' ? 'الوصف الترحيبي (Subtitle بالعربية):' : 'Hero Subtitle (Arabic):'}
+                    </label>
+                    <FieldResetBtn path="heroSubtitle.ar" descAr="العنوان الفرعي للهيرو" descEn="Hero Subtitle (AR)" />
+                  </div>
                   <textarea
                     rows={2}
                     value={activePreset.heroSubtitle?.ar || ''}
@@ -1238,9 +1317,12 @@ export const AdminPanel: React.FC = () => {
                     <label className="text-[11px] font-bold text-slate-700 block">
                       {lang === 'ar' ? 'صورة واجهة الهيرو الكبيرة (رفع مباشر أو رابط):' : 'Hero Main Image (Upload or URL):'}
                     </label>
-                    <span className="text-[10px] text-slate-400">
-                      {lang === 'ar' ? 'JPG, PNG, WEBP حتى 4MB' : 'JPG, PNG, WEBP up to 4MB'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <FieldResetBtn path="heroImage" descAr="صورة واجهة الهيرو" descEn="Hero Main Image" />
+                      <span className="text-[10px] text-slate-400">
+                        {lang === 'ar' ? 'JPG, PNG, WEBP حتى 4MB' : 'JPG, PNG, WEBP up to 4MB'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center gap-2.5">
@@ -1933,10 +2015,17 @@ export const AdminPanel: React.FC = () => {
 
               {/* 1. Hero Main Image */}
               <div className="p-6 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-4">
-                <h3 className="text-sm font-black text-purple-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-600" />
-                  <span>{lang === 'ar' ? '1. صورة واجهة الهيرو الكبيرة' : '1. Hero Main Visual Banner'}</span>
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h3 className="text-sm font-black text-purple-900 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-600" />
+                    <span>{lang === 'ar' ? '1. صورة واجهة الهيرو الكبيرة' : '1. Hero Main Visual Banner'}</span>
+                  </h3>
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-100/90 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
+                    <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                    <span>{lang === 'ar' ? '📍 مكان الظهور: أعلى الصفحة الرئيسية (أول ما يراه الزائر)' : '📍 Location: Storefront Top Hero (Above fold)'}</span>
+                  </span>
+                </div>
+
                 <div className="flex flex-col sm:flex-row items-center gap-3">
                   <button
                     type="button"
@@ -1954,16 +2043,26 @@ export const AdminPanel: React.FC = () => {
                     className="flex-1 w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-xs font-mono"
                   />
                   {activePreset.heroImage && (
-                    <img src={activePreset.heroImage} alt="Hero" className="w-14 h-11 rounded-xl object-cover border border-slate-200 shrink-0" />
+                    <div className="relative group shrink-0">
+                      <img src={activePreset.heroImage} alt="Hero" className="w-16 h-12 rounded-xl object-cover border border-purple-200 shadow-xs" />
+                      <span className="absolute -top-1 -end-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white" />
+                    </div>
                   )}
                 </div>
               </div>
 
               {/* 2. Dual Promotional Banner */}
               <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
-                <h3 className="text-sm font-black text-slate-900">
-                  {lang === 'ar' ? '2. بنر الحملات الترويجية المزدوج (Dual Campaign)' : '2. Dual Campaign Banner'}
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h3 className="text-sm font-black text-slate-900">
+                    {lang === 'ar' ? '2. بنر الحملات الترويجية المزدوج (Dual Campaign)' : '2. Dual Campaign Banner'}
+                  </h3>
+                  <span className="text-[11px] font-bold text-slate-700 bg-slate-200/80 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
+                    <MapPin className="w-3.5 h-3.5 text-slate-600" />
+                    <span>{lang === 'ar' ? '📍 مكان الظهور: منتصف المتجر أسفل كتالوج المنتجات' : '📍 Location: Mid-Storefront below Products Catalog'}</span>
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-3">
                     <span className="text-xs font-bold text-purple-800 block">{lang === 'ar' ? 'الصورة الأولى (بوكس 1)' : 'Promo Box 1'}</span>
@@ -1983,6 +2082,9 @@ export const AdminPanel: React.FC = () => {
                         placeholder="https://..."
                         className="flex-1 h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
                       />
+                      {activePreset.promoBanner?.image1 && (
+                        <img src={activePreset.promoBanner.image1} alt="Promo 1" className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0" />
+                      )}
                     </div>
                   </div>
 
@@ -2004,6 +2106,9 @@ export const AdminPanel: React.FC = () => {
                         placeholder="https://..."
                         className="flex-1 h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
                       />
+                      {activePreset.promoBanner?.image2 && (
+                        <img src={activePreset.promoBanner.image2} alt="Promo 2" className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0" />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2011,9 +2116,15 @@ export const AdminPanel: React.FC = () => {
 
               {/* 3. Before & After Media Proof */}
               <div className="p-6 rounded-2xl bg-amber-50/30 border border-amber-200/60 space-y-4">
-                <h3 className="text-sm font-black text-amber-950">
-                  {lang === 'ar' ? '3. صور تجربة ونتائج (قبل وبعد - Before & After)' : '3. Before & After Proof Showcase'}
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h3 className="text-sm font-black text-amber-950">
+                    {lang === 'ar' ? '3. صور تجربة ونتائج (قبل وبعد - Before & After)' : '3. Before & After Proof Showcase'}
+                  </h3>
+                  <span className="text-[11px] font-bold text-amber-800 bg-amber-100/90 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
+                    <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                    <span>{lang === 'ar' ? '📍 مكان الظهور: سلايدر المقارنة التفاعلي باللمس أسفل الحملات' : '📍 Location: Interactive touch slider section'}</span>
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-3">
                     <span className="text-xs font-bold text-slate-700 block">{lang === 'ar' ? 'صورة (قبل):' : 'Before Photo:'}</span>
@@ -2215,9 +2326,12 @@ export const AdminPanel: React.FC = () => {
             {/* Store Name & Slogan */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                  {lang === 'ar' ? 'اسم المتجر بالعربية:' : 'Store Name (Arabic):'}
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-slate-600 block">
+                    {lang === 'ar' ? 'اسم المتجر بالعربية:' : 'Store Name (Arabic):'}
+                  </label>
+                  <FieldResetBtn path="storeName.ar" descAr="اسم المتجر بالعربية" descEn="Store Name (AR)" />
+                </div>
                 <input
                   type="text"
                   value={activePreset.storeName.ar}
@@ -2227,9 +2341,12 @@ export const AdminPanel: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                  {lang === 'ar' ? 'اسم المتجر بالإنجليزية:' : 'Store Name (English):'}
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-slate-600 block">
+                    {lang === 'ar' ? 'اسم المتجر بالإنجليزية:' : 'Store Name (English):'}
+                  </label>
+                  <FieldResetBtn path="storeName.en" descAr="اسم المتجر بالإنجليزية" descEn="Store Name (EN)" />
+                </div>
                 <input
                   type="text"
                   value={activePreset.storeName.en}
@@ -2239,9 +2356,12 @@ export const AdminPanel: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                  {lang === 'ar' ? 'شعار المتجر اللفظي (Slogan بالعربية):' : 'Slogan (Arabic):'}
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-slate-600 block">
+                    {lang === 'ar' ? 'شعار المتجر اللفظي (Slogan بالعربية):' : 'Slogan (Arabic):'}
+                  </label>
+                  <FieldResetBtn path="storeSlogan.ar" descAr="شعار المتجر بالعربية" descEn="Slogan (AR)" />
+                </div>
                 <input
                   type="text"
                   value={activePreset.storeSlogan.ar}
@@ -2251,9 +2371,12 @@ export const AdminPanel: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                  {lang === 'ar' ? 'شعار المتجر اللفظي (Slogan بالإنجليزية):' : 'Slogan (English):'}
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-slate-600 block">
+                    {lang === 'ar' ? 'شعار المتجر اللفظي (Slogan بالإنجليزية):' : 'Slogan (English):'}
+                  </label>
+                  <FieldResetBtn path="storeSlogan.en" descAr="شعار المتجر بالإنجليزية" descEn="Slogan (EN)" />
+                </div>
                 <input
                   type="text"
                   value={activePreset.storeSlogan.en}
@@ -2269,18 +2392,21 @@ export const AdminPanel: React.FC = () => {
                 <label className="text-xs font-bold text-slate-700 block">
                   {lang === 'ar' ? 'شعار المتجر (رفع مباشر أو رابط URL):' : 'Store Logo (Upload or URL):'}
                 </label>
-                {activePreset.storeLogo && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateField('storeLogo', '');
-                      showToast(lang === 'ar' ? 'تم مسح الشعار والاعتماد على الاسم النصي' : 'Reverted to text logo');
-                    }}
-                    className="text-xs text-rose-600 hover:text-rose-700 font-bold cursor-pointer"
-                  >
-                    {lang === 'ar' ? 'مسح الشعار والعودة للاسم النصي' : 'Clear & Revert to Pure Text'}
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  <FieldResetBtn path="storeLogo" descAr="شعار المتجر الصوري" descEn="Store Logo" />
+                  {activePreset.storeLogo && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateField('storeLogo', '');
+                        showToast(lang === 'ar' ? 'تم مسح الشعار والاعتماد على الاسم النصي' : 'Reverted to text logo');
+                      }}
+                      className="text-xs text-rose-600 hover:text-rose-700 font-bold cursor-pointer"
+                    >
+                      {lang === 'ar' ? 'مسح الشعار والعودة للاسم النصي' : 'Clear & Revert to Text'}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-2.5">

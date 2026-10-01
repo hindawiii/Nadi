@@ -14,7 +14,7 @@ export const StorefrontView: React.FC = () => {
   const { 
     lang, activeData, setCurrentRoute, navigateTo, 
     openProductPDP, setIsReviewModalOpen, showToast, 
-    sectionsControl, activePresetId 
+    sectionsControl, activePresetId, clonedSections 
   } = useCommerce();
   const isRtl = lang === 'ar';
 
@@ -309,6 +309,49 @@ export const StorefrontView: React.FC = () => {
         </section>
       )}
 
+      {/* CLONED VALUE PROPOSITIONS INSTANCE */}
+      {sectionsControl.valueProps && clonedSections?.valueProps?.isCloned && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 animate-in fade-in duration-300">
+          <div className="bg-gradient-to-r from-purple-950/90 via-slate-900 to-purple-950/90 text-white p-6 sm:p-8 rounded-3xl border-2 border-purple-500/40 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 text-xs font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  {clonedSections.valueProps.badgeAr || 'نسخة إضافية مخصصة ✨'}
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-white">
+                  {lang === 'ar' ? (clonedSections.valueProps.titleAr || 'ضماناتنا وعروضنا الحصرية') : (clonedSections.valueProps.titleEn || 'Exclusive Guarantees')}
+                </h3>
+              </div>
+              <p className="text-xs text-purple-200/80 hidden sm:block">
+                {lang === 'ar' ? (clonedSections.valueProps.subtitleAr || 'مزايا إضافية لراحة عملائنا') : (clonedSections.valueProps.subtitleEn || 'Tailored perks')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 pt-2">
+              {activeData.valueProps.map((item, idx) => {
+                const Icon = iconMap[item.icon] || Sparkles;
+                return (
+                  <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-3 p-2 bg-slate-900/60 rounded-2xl border border-purple-900/40">
+                    <div className="w-11 h-11 rounded-xl bg-purple-600/30 text-purple-300 flex items-center justify-center shrink-0 border border-purple-500/40 shadow-xs">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <h4 className="font-extrabold text-xs sm:text-sm text-white">
+                        {item.title[lang]}
+                      </h4>
+                      <p className="text-[11px] text-slate-300 leading-tight">
+                        {item.desc[lang]}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 3. "اختاري بشرتك" / SKIN TYPE SOLUTIONS (Single-Row Smart Interactive 4-Card System) */}
       {sectionsControl.routineDiagnosis && activePresetId === 'cosmetics' && (
         <section id="categories-section" className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
@@ -435,6 +478,85 @@ export const StorefrontView: React.FC = () => {
           })}
         </div>
       </section>
+      )}
+
+      {/* 3.B CLONED SMART SKIN ROUTINE SECTION (When cloned by merchant/developer) */}
+      {sectionsControl.routineDiagnosis && clonedSections?.routineDiagnosis?.isCloned && activePresetId === 'cosmetics' && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6 pt-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-purple-200/60 pb-4">
+            <div className="space-y-1.5 text-start">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 border border-purple-300 text-purple-900 text-xs font-bold">
+                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                <span>{clonedSections.routineDiagnosis.badgeAr || (lang === 'ar' ? 'نسخة إضافية مخصصة ✨' : 'Custom Regimen Extra ✨')}</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-brand-ar">
+                {lang === 'ar' ? (clonedSections.routineDiagnosis.titleAr || 'قسم تشخيص العناية الإضافي') : (clonedSections.routineDiagnosis.titleEn || 'Tailored Care Regimen Extra')}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 max-w-xl">
+                {lang === 'ar' ? (clonedSections.routineDiagnosis.subtitleAr || 'باقة إضافية مخصصة لاختيار الروتين والمنتجات المتوافقة') : (clonedSections.routineDiagnosis.subtitleEn || 'Custom secondary regimen analysis with curated items')}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+            {effectiveSkinDiagnosis.map((type) => {
+              const Icon = type.icon;
+              const isSelected = activeSkinFilter === type.id;
+              return (
+                <div
+                  key={`cloned-${type.id}`}
+                  className={`group rounded-2xl sm:rounded-3xl border overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer flex flex-col justify-between bg-white relative ${
+                    isSelected 
+                      ? 'ring-2 ring-purple-600 shadow-lg border-purple-600 scale-[1.02]' 
+                      : `${type.bg} border-slate-200/80`
+                  }`}
+                  onClick={() => {
+                    if (isSelected) {
+                      setActiveSkinFilter(null);
+                      showToast(lang === 'ar' ? 'تمت العودة لجميع المنتجات' : 'Reset to all products');
+                    } else {
+                      setActiveSkinFilter(type.id);
+                      showToast(lang === 'ar' ? `تم تفعيل فلترة: ${type.title[lang]}` : `Filtered by: ${type.title[lang]}`);
+                      const prodSection = document.getElementById('products-section');
+                      if (prodSection) {
+                        prodSection.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }
+                  }}
+                >
+                  <div className="p-2.5 sm:p-4 lg:p-5 flex flex-col justify-between flex-1 space-y-2 sm:space-y-3 text-start">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-1 flex-wrap">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold shadow-2xs ${type.badgeColor}`}>
+                          <Icon className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+                          <span className="truncate">{type.badge[lang]}</span>
+                        </span>
+                        <span className="text-[9px] sm:text-[10px] font-medium text-slate-400 truncate">
+                          {type.ingredient[lang]}
+                        </span>
+                      </div>
+                      <h3 className="text-xs sm:text-base lg:text-lg font-extrabold text-slate-900 group-hover:text-purple-700 transition-colors leading-tight font-brand-ar truncate">
+                        {type.title[lang]}
+                      </h3>
+                      <p className="text-[10px] sm:text-xs text-slate-500 leading-relaxed font-normal line-clamp-2">
+                        {type.desc[lang]}
+                      </p>
+                    </div>
+
+                    <div className="pt-1.5 sm:pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs font-bold text-purple-700">
+                      <span className="truncate">
+                        {isSelected ? (lang === 'ar' ? '✓ تصفية مفعلة' : '✓ Regimen Active') : (lang === 'ar' ? 'تفعيل الروتين' : 'Activate Routine')}
+                      </span>
+                      <span className="w-5 h-5 sm:w-7 sm:h-7 shrink-0 rounded-full bg-purple-50 group-hover:bg-purple-700 group-hover:text-white flex items-center justify-center transition-all">
+                        {isRtl ? <ArrowLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* 4. PRODUCTS GRID (With Category Filter & Product Cards) */}
@@ -612,6 +734,72 @@ export const StorefrontView: React.FC = () => {
           </div>
         </div>
       </section>
+      )}
+
+      {/* CLONED PROMO CAMPAIGN BANNER INSTANCE */}
+      {sectionsControl.promoBanner && clonedSections?.promoBanner?.isCloned && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 animate-in fade-in duration-300">
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-purple-950 to-slate-950 text-white p-6 sm:p-10 lg:p-12 shadow-2xl border-2 border-purple-500/40">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-7 space-y-5 text-start">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-500/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider text-purple-200 border border-purple-400/30">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  {clonedSections.promoBanner.badgeAr || 'عرض إضافي خاص ✨'}
+                </span>
+                
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-relaxed sm:leading-tight tracking-tight">
+                  {lang === 'ar' ? (clonedSections.promoBanner.titleAr || 'باقة العناية الملكية المستنسخة') : (clonedSections.promoBanner.titleEn || 'Special Campaign Showcase')}
+                </h3>
+                
+                <p className="text-xs sm:text-base text-purple-100/90 leading-relaxed max-w-xl">
+                  {lang === 'ar' ? (clonedSections.promoBanner.subtitleAr || 'محتوى مخصص إضافي لعرض مجموعات حصرية وتخفيضات موسمية') : (clonedSections.promoBanner.subtitleEn || 'Tailored highlights with exclusive seasonal discounts')}
+                </p>
+
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => {
+                      const target = products.find((p) => p.bundle || p.id === 'sb-04') || products[0];
+                      openProductPDP(target);
+                    }}
+                    className="px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black rounded-full text-xs sm:text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 min-h-[44px] cursor-pointer"
+                  >
+                    <span>{lang === 'ar' ? 'تصفح العرض الخاص الآن' : 'Shop Special Offer'}</span>
+                    {isRtl ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                  </button>
+                  <div className="flex items-center gap-2 text-xs font-semibold text-purple-200">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>{lang === 'ar' ? 'شحن فوري + ضمان أصلي' : 'Express Delivery + Authentic'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 grid grid-cols-2 gap-3 sm:gap-4 relative">
+                <div className="relative rounded-2xl overflow-hidden shadow-xl border-2 border-purple-500/30 aspect-square group bg-purple-900/50">
+                  <img
+                    src={activeData.promoBanner?.image1 || "https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=700&q=80"}
+                    alt="Cloned Campaign"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+                  <span className="absolute bottom-2.5 start-2.5 end-2.5 text-center text-[10px] sm:text-xs font-extrabold text-white bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded-xl border border-purple-500/30">
+                    {lang === 'ar' ? 'تركيبات حصرية' : 'Exclusive Formulations'}
+                  </span>
+                </div>
+                <div className="relative rounded-2xl overflow-hidden shadow-xl border-2 border-purple-500/30 aspect-square group bg-purple-900/50">
+                  <img
+                    src={activeData.promoBanner?.image2 || "https://images.unsplash.com/photo-1526947425960-945c6e72858f?auto=format&fit=crop&w=700&q=80"}
+                    alt="Cloned Campaign 2"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+                  <span className="absolute bottom-2.5 start-2.5 end-2.5 text-center text-[10px] sm:text-xs font-extrabold text-amber-300 bg-purple-950/90 backdrop-blur-sm px-2 py-1 rounded-xl border border-amber-400/30">
+                    {lang === 'ar' ? 'نسخة مستنسخة خاصة' : 'Special Showcase'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       )}
 
       {/* 6. BEFORE & AFTER PROOF (Interactive Slider - Completely Dynamic) */}
@@ -884,6 +1072,87 @@ export const StorefrontView: React.FC = () => {
           </div>
         </div>
       </section>
+      )}
+
+      {/* 7.B CLONED CUSTOMER REVIEWS (When cloned by merchant/developer) */}
+      {sectionsControl.testimonials && clonedSections?.testimonials?.isCloned && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6 pt-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-purple-200/60 pb-4">
+            <div className="space-y-1.5 text-start">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 border border-purple-300 text-purple-900 text-xs font-bold">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                <span>{clonedSections.testimonials.badgeAr || (lang === 'ar' ? 'تجارب إضافية موثقة ✨' : 'Additional Highlights ✨')}</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-brand-ar">
+                {lang === 'ar' ? (clonedSections.testimonials.titleAr || 'قصص نجاح وتجارب عميلاتنا الإضافية') : (clonedSections.testimonials.titleEn || 'Additional Verified Testimonials')}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500">
+                {lang === 'ar' 
+                  ? (clonedSections.testimonials.subtitleAr || 'مجموعة إضافية من آراء وتجارب عميلاتنا الموثقة مع منتجاتنا الأصلية')
+                  : (clonedSections.testimonials.subtitleEn || 'Curated secondary insights from our happy community')}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+            {effectiveTestimonials.slice(0, 2).map((review) => (
+              <div
+                key={`cloned-review-${review.id}`}
+                className="bg-white rounded-3xl p-6 sm:p-7 border border-purple-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 text-start relative overflow-hidden"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-900 border border-purple-200">
+                      {review.badge[lang]}
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <Quote className="w-8 h-8 text-purple-100 absolute -top-3 -start-2 -z-0 opacity-80" />
+                    <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-medium relative z-10 italic">
+                      "{review.comment[lang]}"
+                    </p>
+                  </div>
+
+                  <div className="pt-2">
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-50 text-purple-900 text-xs font-bold border border-purple-200">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                      <span>{lang === 'ar' ? 'المنتج المقتنى:' : 'Purchased:'}</span>
+                      <span className="font-extrabold">{review.purchasedProduct[lang]}</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-purple-100 flex items-center justify-between text-start">
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={review.avatar} 
+                      alt={review.name[lang]} 
+                      className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-100 shadow-2xs"
+                    />
+                    <div>
+                      <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-tight">
+                        {review.name[lang]}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3 text-slate-400" />
+                        <span>{review.city[lang]}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {review.date[lang]}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
     </div>

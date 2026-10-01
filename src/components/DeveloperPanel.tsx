@@ -5,7 +5,7 @@ import {
   Smartphone, Watch, Shirt, Glasses, RotateCcw, Layers, Droplets, Star, ShoppingBag, Image,
   Copy, Trash2, CheckCircle2, ChevronRight, Plus, ExternalLink, Phone, Mail, MapPin, MessageCircle, ArrowUpRight,
   Download, Upload, Code2, Type, FileJson, CheckCircle, HelpCircle, Sparkle, ArrowUp,
-  Database, Cpu, HardDrive, Terminal, Activity
+  Database, Cpu, HardDrive, Terminal, Activity, Undo2
 } from 'lucide-react';
 import { useCommerce, SectionVisibilityMap } from '../context/CommerceContext';
 import { 
@@ -20,10 +20,13 @@ export const DeveloperPanel: React.FC = () => {
     activePresetId, setActivePresetId, dynamicConfig, setDynamicConfig, 
     isDeveloperModeLocked, toggleLockDeveloperMode, setCurrentRoute, navigateTo,
     showToast, sectionsControl, toggleSection, resetSections,
+    clonedSections, toggleCloneSection, updateClonedSectionConfig,
     activePaletteId, setActivePaletteId, customPalette, setCustomPalette,
     activeTypographyId, setActiveTypographyId, importTemplate, exportCurrentTemplate,
     savedCustomTemplates, saveCurrentAsTemplate, deleteSavedTemplate, loadSavedTemplate,
-    goldenSnapshot, saveGoldenSnapshot, rollbackToGoldenState
+    goldenSnapshot, saveGoldenSnapshot, rollbackToGoldenState,
+    historyStack, canUndo, undoLastChange, resetFieldToDefault, isFieldModified,
+    resetEntireSectionToDefault, recordHistorySnapshot
   } = useCommerce();
 
   const isRtl = lang === 'ar';
@@ -113,94 +116,145 @@ export const DeveloperPanel: React.FC = () => {
     desc: { ar: string; en: string };
     icon: any;
     tag: { ar: string; en: string };
+    locationHint: { ar: string; en: string };
+    previewImage: string;
   }[] = [
     {
       key: 'hero',
       title: { ar: 'البنر الرئيسي للهيرو', en: 'Hero Section' },
       desc: { ar: 'العنوان البارز، الشعار الترويجي، وأزرار توجيه العميل المباشرة.', en: 'Primary headline, slogan badge, and main call-to-action buttons.' },
       icon: Sparkles,
-      tag: { ar: 'رئيسي', en: 'Core' }
+      tag: { ar: 'رئيسي', en: 'Core' },
+      locationHint: { ar: '📍 أعلى الصفحة الرئيسية (قمة المتجر)', en: '📍 Top of Storefront (Above the Fold)' },
+      previewImage: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=600&q=80'
     },
     {
       key: 'brandTicker',
       title: { ar: 'شريط الماركات المتحرك', en: 'Brand & Slogan Ticker' },
       desc: { ar: 'شريط لامتناهي متحرك يعرض هوية المتجر والماركات المعتمدة.', en: 'Smooth infinite loop showcasing brand credentials & marquee slogans.' },
       icon: RefreshCw,
-      tag: { ar: 'هوية', en: 'Branding' }
+      tag: { ar: 'هوية', en: 'Branding' },
+      locationHint: { ar: '📍 أسفل بنر الهيرو مباشرة (شريط متحرك)', en: '📍 Directly below hero (Marquee strip)' },
+      previewImage: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80'
     },
     {
       key: 'valueProps',
       title: { ar: 'شريط المزايا والقيمة', en: 'Value Propositions Strip' },
       desc: { ar: 'شريط الضمانات الأربعة: نتائج فعالة، شحن سريع، أصلية 100%، دفع آمن.', en: '4-pillar trust badges: Proven Results, Fast Shipping, 100% Original, Secure COD.' },
       icon: Shield,
-      tag: { ar: 'ثقة', en: 'Trust' }
+      tag: { ar: 'ثقة', en: 'Trust' },
+      locationHint: { ar: '📍 شريط الضمانات والمزايا الأربعة للمصداقية', en: '📍 Trust & 4-Pillars Guarantee Strip' },
+      previewImage: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80'
     },
     {
       key: 'routineDiagnosis',
       title: { ar: 'تشخيص البشرة الذكي', en: 'Smart Skin Routine Diagnosis' },
       desc: { ar: 'بطاقات التصفية التفاعلية الأربعة لاختيار الروتين الملائم للبشرة.', en: '4 interactive solution cards filtering products by tailored skin needs.' },
       icon: Droplets,
-      tag: { ar: 'تفاعلي', en: 'Interactive' }
+      tag: { ar: 'تفاعلي', en: 'Interactive' },
+      locationHint: { ar: '📍 قسم اختيار وتشخيص روتين البشرة التفاعلي', en: '📍 Interactive Skin Routine Diagnosis' },
+      previewImage: 'https://images.unsplash.com/photo-1512290900672-1f41b2f6ef8d?auto=format&fit=crop&w=600&q=80'
     },
     {
       key: 'productsCatalog',
       title: { ar: 'كتالوج المنتجات وفلاتر التصنيف', en: 'Products Grid & Filters' },
       desc: { ar: 'شبكة المنتجات الرئيسية مع فلاتر التصنيف وشارات الخصم وأزرار الشراء.', en: 'Dynamic products catalog with live sorting, filter pills & discount badges.' },
       icon: ShoppingBag,
-      tag: { ar: 'تجارة', en: 'Commerce' }
+      tag: { ar: 'تجارة', en: 'Commerce' },
+      locationHint: { ar: '📍 شبكة المنتجات الرئيسية وفلاتر التصنيف', en: '📍 Main Products Catalog & Filter Grid' },
+      previewImage: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=600&q=80'
     },
     {
       key: 'hairDevices',
       title: { ar: 'أجهزة الشعر وبنرات الماركات', en: 'Hair Devices & Brand Spotlight' },
       desc: { ar: 'بنرات الماركات (سيل تك، أوكيما، كلارا) مع تبويبات الأجهزة وتصفحها.', en: 'Styling devices carousel with brand spotlight banners & tabbed categories.' },
       icon: Layers,
-      tag: { ar: 'تسويق', en: 'Spotlight' }
+      tag: { ar: 'تسويق', en: 'Spotlight' },
+      locationHint: { ar: '📍 أجهزة الشعر وبنرات الماركات المميزة', en: '📍 Hair Styling Devices & Brand Spotlight' },
+      previewImage: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80'
     },
     {
       key: 'promoBanner',
       title: { ar: 'البنر الترويجي للحملات', en: 'Promo Campaign Banner' },
       desc: { ar: 'بنر حملة المكونات الطبيعية والبوكسات مع نسبة الخصم والصور المميزة.', en: 'High-impact editorial campaign banner with gift boxes and special discounts.' },
       icon: Image,
-      tag: { ar: 'حملات', en: 'Campaign' }
+      tag: { ar: 'حملات', en: 'Campaign' },
+      locationHint: { ar: '📍 البنر الترويجي للحملات والخصومات الكبرى', en: '📍 Mid-Page Promotional Campaign Banner' },
+      previewImage: 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?auto=format&fit=crop&w=600&q=80'
     },
     {
       key: 'beforeAfter',
       title: { ar: 'مقارنة قبل وبعد التفاعلية', en: 'Before & After Transformation Slider' },
       desc: { ar: 'سلايدر السحب التفاعلي لمقارنة نضارة البشرة قبل وبعد 14 يوماً.', en: 'Interactive touch slider comparing real photographic results over 14 days.' },
       icon: Eye,
-      tag: { ar: 'مصداقية', en: 'Social Proof' }
+      tag: { ar: 'مصداقية', en: 'Social Proof' },
+      locationHint: { ar: '📍 سلايدر مقارنة قبل وبعد 14 يوماً باللمس', en: '📍 Interactive Before & After Touch Slider' },
+      previewImage: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80'
     },
     {
       key: 'testimonials',
       title: { ar: 'شهادات وتقييمات العميلات', en: 'Customer Reviews Carousel' },
       desc: { ar: 'شهادات موثقة مع تقييم 5 نجوم وتفاصيل المنتجات المقتناة وزر المشاركة.', en: 'Verified buyer testimonials with product tags, helpful voting & modal submit.' },
       icon: Star,
-      tag: { ar: 'تقييمات', en: 'Reviews' }
+      tag: { ar: 'تقييمات', en: 'Reviews' },
+      locationHint: { ar: '📍 شهادات وتقييمات العميلات الموثقة 5 نجوم', en: '📍 Customer Testimonials & Reviews Carousel' },
+      previewImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80'
     },
     {
       key: 'scrollToTop',
       title: { ar: 'زر الصعود للأعلى بحلقة الامتلاء الذكية', en: 'Circular Progress Scroll-to-Top' },
       desc: { ar: 'زر عائم ذكي بحلقة دائرية تمتلئ تدريجياً بنسبة نزول الزائر في الصفحة وتصعد به بنعومة.', en: 'Floating smart button with circular progress ring filling proportionally to scroll depth.' },
       icon: ArrowUp,
-      tag: { ar: 'ملاحة ذكية', en: 'Navigation' }
+      tag: { ar: 'ملاحة ذكية', en: 'Navigation' },
+      locationHint: { ar: '📍 زر الصعود للأعلى الدائري الذكي العائم', en: '📍 Floating Circular Scroll-To-Top Button' },
+      previewImage: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=600&q=80'
     },
     {
       key: 'floatingWhatsApp',
       title: { ar: 'زر الدعم والواتساب العائم المتطور', en: 'Floating WhatsApp & Call Speed-Dial' },
       desc: { ar: 'زر الاتصال والمحادثة السريعة الفوري مع دعم السحب والنافذة الذكية لمطابقة الهاتف.', en: 'Speed-dial floating actions for instant WhatsApp consultation and direct verified phone calls.' },
       icon: MessageCircle,
-      tag: { ar: 'دعم العملاء', en: 'Support' }
+      tag: { ar: 'دعم العملاء', en: 'Support' },
+      locationHint: { ar: '📍 زر التواصل والواتساب وسرعة الاتصال العائم', en: '📍 Floating WhatsApp & Speed-Dial Hub' },
+      previewImage: 'https://images.unsplash.com/photo-1616469829941-c7200edec809?auto=format&fit=crop&w=600&q=80'
     },
   ];
+
+  // Field-level Reset to Default Button Component
+  const FieldResetBtn: React.FC<{
+    path: string;
+    descAr: string;
+    descEn: string;
+  }> = ({ path, descAr, descEn }) => {
+    const modified = isFieldModified(path);
+    return (
+      <button
+        type="button"
+        onClick={() => resetFieldToDefault(path, descAr, descEn)}
+        title={lang === 'ar' ? `استعادة القيمة الافتراضية لـ (${descAr})` : `Reset (${descEn}) to factory default`}
+        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+          modified
+            ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 shadow-xs'
+            : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 border border-transparent'
+        }`}
+      >
+        <RotateCcw className="w-3 h-3" />
+        <span>{lang === 'ar' ? (modified ? 'استعادة الافتراضي ↺' : 'افتراضي') : (modified ? 'Reset ↺' : 'Default')}</span>
+      </button>
+    );
+  };
 
   // Safeguard currentPresetData against missing preset or corrupted storage
   const fallbackPreset = siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics;
   const currentPresetData = dynamicConfig?.presets?.[activePresetId] || fallbackPreset;
 
-  const [clonedSections, setClonedSections] = useState<Record<string, boolean>>({});
-
   // Inline content updater with safety guards
   const handleUpdateText = (field: string, subfield: string, val: string) => {
+    recordHistorySnapshot(
+      `تعديل ${field}.${subfield}`,
+      `Edit ${field}.${subfield}`,
+      `${field}.${subfield}`
+    );
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev || siteConfig));
       if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
@@ -216,6 +270,11 @@ export const DeveloperPanel: React.FC = () => {
   };
 
   const handleUpdateDirect = (field: string, val: string) => {
+    recordHistorySnapshot(
+      `تعديل ${field}`,
+      `Edit ${field}`,
+      field
+    );
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev || siteConfig));
       if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
@@ -228,6 +287,11 @@ export const DeveloperPanel: React.FC = () => {
   };
 
   const handleUpdateContact = (field: string, val: string) => {
+    recordHistorySnapshot(
+      `تعديل بيانات التواصل (${field})`,
+      `Edit contact (${field})`,
+      `contactInfo.${field}`
+    );
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev || siteConfig));
       if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
@@ -248,6 +312,11 @@ export const DeveloperPanel: React.FC = () => {
   };
 
   const handleUpdateLogo = (val: string) => {
+    recordHistorySnapshot(
+      'تعديل شعار المتجر',
+      'Edit store logo',
+      'storeLogo'
+    );
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev || siteConfig));
       if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
@@ -260,6 +329,11 @@ export const DeveloperPanel: React.FC = () => {
   };
 
   const handleUpdateSkinDiagnosis = (cardId: string, field: string, val: string, subfield?: string) => {
+    recordHistorySnapshot(
+      `تعديل بطاقة تشخيص البشرة (${cardId})`,
+      `Edit skin diagnosis (${cardId})`,
+      'skinDiagnosisCards'
+    );
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev || siteConfig));
       if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
@@ -283,6 +357,11 @@ export const DeveloperPanel: React.FC = () => {
   };
 
   const handleUpdateTestimonial = (testId: number, field: string, val: string, subfield?: string) => {
+    recordHistorySnapshot(
+      `تعديل شهادة عميلة (${testId})`,
+      `Edit testimonial (${testId})`,
+      'testimonials'
+    );
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev || siteConfig));
       if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
@@ -306,14 +385,7 @@ export const DeveloperPanel: React.FC = () => {
   };
 
   const handleToggleClone = (key: string, title: string) => {
-    setClonedSections((prev) => {
-      const nextState = !prev[key];
-      showToast(lang === 'ar' 
-        ? (nextState ? `تم استنساخ قسم: ${title} وإدراجه كنسخة ثانية` : `تم إزالة النسخة المستنسخة من قسم: ${title}`)
-        : (nextState ? `Cloned extra instance of: ${title}` : `Removed duplicate instance of: ${title}`)
-      );
-      return { ...prev, [key]: nextState };
-    });
+    toggleCloneSection(key, title);
   };
 
   const handleDeleteSection = (key: keyof SectionVisibilityMap, title: string) => {
@@ -500,6 +572,27 @@ export const DeveloperPanel: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Smart Undo Button */}
+            <button
+              type="button"
+              onClick={undoLastChange}
+              disabled={!canUndo}
+              title={lang === 'ar' ? 'تراجع عن آخر تعديل (Undo)' : 'Undo last modification'}
+              className={`h-11 px-4 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs active:scale-95 ${
+                canUndo 
+                  ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 shadow-sm' 
+                  : 'bg-slate-800/40 text-slate-500 border border-slate-800 cursor-not-allowed opacity-50'
+              }`}
+            >
+              <Undo2 className="w-4 h-4" />
+              <span>{lang === 'ar' ? 'تراجع (Undo)' : 'Undo'}</span>
+              {historyStack.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black">
+                  {historyStack.length}
+                </span>
+              )}
+            </button>
+
             <button
               onClick={() => navigateTo('store')}
               className="h-11 px-5 rounded-2xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
@@ -1507,107 +1600,210 @@ export const DeveloperPanel: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sectionsList.map((sec) => {
                 const isVisible = sectionsControl[sec.key];
-                const isCloned = !!clonedSections[sec.key];
+                const cloneConfig = clonedSections[sec.key];
+                const isCloned = !!cloneConfig?.isCloned;
                 const Icon = sec.icon;
 
                 return (
                   <div
                     key={sec.key}
-                    className={`p-5 rounded-2xl border-2 transition-all flex flex-col justify-between gap-4 ${
+                    className={`rounded-3xl border-2 transition-all flex flex-col justify-between overflow-hidden ${
                       isVisible 
-                        ? 'bg-slate-900 border-slate-700/80 shadow-lg' 
-                        : 'bg-slate-900/40 border-slate-800/80 opacity-60'
+                        ? 'bg-slate-900 border-slate-700/80 shadow-xl' 
+                        : 'bg-slate-900/50 border-slate-800/80 opacity-70'
                     }`}
                   >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                            isVisible ? 'bg-amber-400/20 text-amber-400' : 'bg-slate-800 text-slate-500'
-                          }`}>
-                            <Icon className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <span className="text-xs font-bold text-white block">
-                              {sec.title[lang]}
-                            </span>
-                            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">
-                              {sec.key}
-                            </span>
-                          </div>
-                        </div>
+                    {/* Visual Preview Image Header with Location Hint Badge */}
+                    <div className="relative h-32 w-full overflow-hidden bg-slate-950 group">
+                      <img 
+                        src={sec.previewImage} 
+                        alt={sec.title[lang]} 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-75 group-hover:opacity-90"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/30 to-transparent" />
 
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                      {/* Location Pin Badge */}
+                      <div className="absolute top-2.5 start-2.5 px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-black text-amber-300 flex items-center gap-1.5 shadow-lg">
+                        <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="truncate max-w-[210px]">{sec.locationHint[lang]}</span>
+                      </div>
+
+                      {/* Live Visibility Status Badge */}
+                      <div className="absolute top-2.5 end-2.5">
+                        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black backdrop-blur-md shadow-md ${
                           isVisible 
-                            ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/60' 
-                            : 'bg-rose-950/80 text-rose-400 border border-rose-800/60'
+                            ? 'bg-emerald-950/90 text-emerald-400 border border-emerald-600/80' 
+                            : 'bg-rose-950/90 text-rose-400 border border-rose-600/80'
                         }`}>
-                          {isVisible ? (lang === 'ar' ? 'معروض' : 'ACTIVE') : (lang === 'ar' ? 'مخفي' : 'HIDDEN')}
+                          {isVisible ? (lang === 'ar' ? 'معروض بالمتجر ✓' : 'ACTIVE') : (lang === 'ar' ? 'مخفي ✕' : 'HIDDEN')}
                         </span>
                       </div>
 
-                      <p className="text-[11px] text-slate-400 leading-relaxed min-h-[32px]">
-                        {sec.desc[lang]}
-                      </p>
-
-                      {isCloned && (
-                        <div className="px-2.5 py-1 bg-purple-950/60 border border-purple-800/60 rounded-lg text-[10px] text-purple-300 font-bold flex items-center gap-1.5">
-                          <Copy className="w-3 h-3 text-purple-400" />
-                          <span>{lang === 'ar' ? 'مفعل بنسخة مستنسخة إضافية في الواجهة' : 'Duplicate instance activated'}</span>
+                      {/* Key Indicator & Icon Badge */}
+                      <div className="absolute bottom-2.5 start-2.5 flex items-center gap-2">
+                        <div className={`w-7 h-7 rounded-xl flex items-center justify-center shadow-md ${
+                          isVisible ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          <Icon className="w-4 h-4" />
                         </div>
-                      )}
+                        <span className="text-[10px] font-mono text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded-lg border border-slate-800 backdrop-blur-xs">
+                          {sec.key}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
-                      {/* Visibility Toggle Button */}
-                      <button
-                        type="button"
-                        onClick={() => toggleSection(sec.key)}
-                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                          isVisible 
-                            ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30' 
-                            : 'bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold'
-                        }`}
-                      >
-                        {isVisible ? (
-                          <>
-                            <EyeOff className="w-3.5 h-3.5" />
-                            <span>{lang === 'ar' ? 'إخفاء القسم' : 'Hide'}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>{lang === 'ar' ? 'إظهار القسم' : 'Show'}</span>
-                          </>
+                    {/* Section Body */}
+                    <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-extrabold text-white">
+                          {sec.title[lang]}
+                        </h3>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          {sec.desc[lang]}
+                        </p>
+
+                        {/* Cloned Instance Notice */}
+                        {isCloned && (
+                          <div className="p-2.5 bg-purple-950/70 border border-purple-700/60 rounded-xl text-[11px] text-purple-200 font-bold flex items-center justify-between gap-2 shadow-inner">
+                            <div className="flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                              <span>{lang === 'ar' ? 'مفعل بنسخة مستنسخة إضافية مخصصة' : 'Custom duplicate instance active'}</span>
+                            </div>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-800 text-purple-100 font-extrabold">
+                              {cloneConfig?.badgeAr || 'نسخة إضافية'}
+                            </span>
+                          </div>
                         )}
-                      </button>
+                      </div>
 
-                      {/* Clone / Duplicate Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleClone(sec.key, sec.title[lang])}
-                        title={lang === 'ar' ? 'استنساخ هذا القسم' : 'Clone section'}
-                        className={`p-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                          isCloned
-                            ? 'bg-purple-600 text-white border-purple-500'
-                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                        }`}
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
+                      {/* Action Controls Bar */}
+                      <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                        {/* Visibility Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => toggleSection(sec.key)}
+                          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            isVisible 
+                              ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30' 
+                              : 'bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-md'
+                          }`}
+                        >
+                          {isVisible ? (
+                            <>
+                              <EyeOff className="w-3.5 h-3.5" />
+                              <span>{lang === 'ar' ? 'إخفاء القسم' : 'Hide'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>{lang === 'ar' ? 'إظهار القسم' : 'Show'}</span>
+                            </>
+                          )}
+                        </button>
 
-                      {/* Delete Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteSection(sec.key, sec.title[lang])}
-                        title={lang === 'ar' ? 'حذف القسم من المتجر' : 'Remove section'}
-                        className="p-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-white border border-rose-800/40 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        {/* Clone / Duplicate Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleClone(sec.key, sec.title[lang])}
+                          title={lang === 'ar' ? 'استنساخ هذا القسم وتخصيصه' : 'Clone and customize section'}
+                          className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                            isCloned
+                              ? 'bg-purple-600 hover:bg-purple-700 text-white border-purple-500 shadow-md'
+                              : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                          }`}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>{isCloned ? (lang === 'ar' ? 'مستنسخ ✓' : 'Cloned') : (lang === 'ar' ? 'استنساخ' : 'Clone')}</span>
+                        </button>
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSection(sec.key, sec.title[lang])}
+                          title={lang === 'ar' ? 'حذف القسم من المتجر' : 'Remove section'}
+                          className="p-2.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-white border border-rose-800/40 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Interactive Section Clone Customizer Suite */}
+                      {isCloned && (
+                        <div className="mt-3 p-3.5 bg-slate-950/90 border border-purple-500/40 rounded-2xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                          <div className="flex items-center justify-between pb-1.5 border-b border-purple-900/50">
+                            <span className="text-[11px] font-black text-purple-300 flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                              <span>{lang === 'ar' ? 'تخصيص نصوص وعناوين النسخة المستنسخة' : 'Customize Cloned Copy Content'}</span>
+                            </span>
+                            <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-900/80 text-purple-200 border border-purple-600 font-mono">
+                              2nd Instance
+                            </span>
+                          </div>
+
+                          <div className="space-y-2 text-[11px]">
+                            {/* Cloned Title (AR & EN) */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                                  {lang === 'ar' ? 'العنوان الجديد للنسخة (عربي):' : 'Custom Title (Arabic):'}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={cloneConfig?.titleAr || ''}
+                                  onChange={(e) => updateClonedSectionConfig(sec.key, { titleAr: e.target.value })}
+                                  placeholder={sec.title.ar}
+                                  className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                                  {lang === 'ar' ? 'العنوان الجديد (إنجليزي):' : 'Custom Title (English):'}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={cloneConfig?.titleEn || ''}
+                                  onChange={(e) => updateClonedSectionConfig(sec.key, { titleEn: e.target.value })}
+                                  placeholder={sec.title.en}
+                                  className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Cloned Subtitle (AR) */}
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                                {lang === 'ar' ? 'الوصف والنصوص الترويجية المخصصة:' : 'Custom Description / Slogan:'}
+                              </label>
+                              <input
+                                type="text"
+                                value={lang === 'ar' ? (cloneConfig?.subtitleAr || '') : (cloneConfig?.subtitleEn || '')}
+                                onChange={(e) => updateClonedSectionConfig(sec.key, lang === 'ar' ? { subtitleAr: e.target.value } : { subtitleEn: e.target.value })}
+                                placeholder={lang === 'ar' ? 'مثال: تشكيلة خاصة إضافية للعناية الفائقة' : 'Custom promotional highlight'}
+                                className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-400"
+                              />
+                            </div>
+
+                            {/* Cloned Badge */}
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                                {lang === 'ar' ? 'شارة التمييز (Badge):' : 'Badge Tag:'}
+                              </label>
+                              <input
+                                type="text"
+                                value={cloneConfig?.badgeAr || ''}
+                                onChange={(e) => updateClonedSectionConfig(sec.key, { badgeAr: e.target.value, badgeEn: e.target.value })}
+                                placeholder="عرض حصري ✨"
+                                className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-bold text-purple-300 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -1640,9 +1836,12 @@ export const DeveloperPanel: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Store Name */}
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'اسم المتجر (بالعربية):' : 'Store Name (Arabic):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'اسم المتجر (بالعربية):' : 'Store Name (Arabic):'}
+                    </label>
+                    <FieldResetBtn path="storeName.ar" descAr="اسم المتجر بالعربية" descEn="Store Name (AR)" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.storeName?.ar || ''}
@@ -1652,9 +1851,12 @@ export const DeveloperPanel: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'اسم المتجر (بالإنجليزية):' : 'Store Name (English):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'اسم المتجر (بالإنجليزية):' : 'Store Name (English):'}
+                    </label>
+                    <FieldResetBtn path="storeName.en" descAr="اسم المتجر بالإنجليزية" descEn="Store Name (EN)" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.storeName?.en || ''}
@@ -1665,9 +1867,12 @@ export const DeveloperPanel: React.FC = () => {
 
                 {/* Slogan */}
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'شعار المتجر اللفظي (Slogan بالعربية):' : 'Store Slogan (Arabic):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'شعار المتجر اللفظي (Slogan بالعربية):' : 'Store Slogan (Arabic):'}
+                    </label>
+                    <FieldResetBtn path="storeSlogan.ar" descAr="شعار المتجر بالعربية" descEn="Store Slogan (AR)" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.storeSlogan ? currentPresetData.storeSlogan.ar : ''}
@@ -1677,9 +1882,12 @@ export const DeveloperPanel: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'شعار المتجر اللفظي (Slogan بالإنجليزية):' : 'Store Slogan (English):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'شعار المتجر اللفظي (Slogan بالإنجليزية):' : 'Store Slogan (English):'}
+                    </label>
+                    <FieldResetBtn path="storeSlogan.en" descAr="شعار المتجر بالإنجليزية" descEn="Store Slogan (EN)" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.storeSlogan ? currentPresetData.storeSlogan.en : ''}
@@ -1690,9 +1898,12 @@ export const DeveloperPanel: React.FC = () => {
 
                 {/* Announcement Bar */}
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'شريط الإعلانات العلوي (Announcement بالعربية):' : 'Top Announcement (Arabic):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'شريط الإعلانات العلوي (Announcement بالعربية):' : 'Top Announcement (Arabic):'}
+                    </label>
+                    <FieldResetBtn path="topAnnouncement.ar" descAr="الشريط الإعلاني بالعربية" descEn="Top Announcement (AR)" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.topAnnouncement ? currentPresetData.topAnnouncement.ar : ''}
@@ -1702,9 +1913,12 @@ export const DeveloperPanel: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'شريط الإعلانات العلوي (Announcement بالإنجليزية):' : 'Top Announcement (English):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'شريط الإعلانات العلوي (Announcement بالإنجليزية):' : 'Top Announcement (English):'}
+                    </label>
+                    <FieldResetBtn path="topAnnouncement.en" descAr="الشريط الإعلاني بالإنجليزية" descEn="Top Announcement (EN)" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.topAnnouncement ? currentPresetData.topAnnouncement.en : ''}
@@ -1719,15 +1933,18 @@ export const DeveloperPanel: React.FC = () => {
                     <label className="text-xs font-bold text-slate-300 block">
                       {lang === 'ar' ? 'رابط صورة الشعار (Store Logo Image URL):' : 'Store Logo Image URL:'}
                     </label>
-                    {currentPresetData?.storeLogo && (
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateLogo('')}
-                        className="text-[11px] text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
-                      >
-                        {lang === 'ar' ? 'مسح الشعار والعودة للاسم النصي' : 'Clear & Revert to Pure Text'}
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <FieldResetBtn path="storeLogo" descAr="شعار المتجر الصوري" descEn="Store Logo" />
+                      {currentPresetData?.storeLogo && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateLogo('')}
+                          className="text-[11px] text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
+                        >
+                          {lang === 'ar' ? 'مسح الشعار والعودة للاسم النصي' : 'Clear & Revert to Pure Text'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <input
                     type="url"
@@ -1747,16 +1964,33 @@ export const DeveloperPanel: React.FC = () => {
 
             {/* Section 2: Hero Section & Banners */}
             <div className="space-y-4 pt-4 border-t border-slate-800">
-              <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider border-b border-slate-800 pb-2">
-                🌟 {lang === 'ar' ? '٢. نصوص وبنر الهيرو الرئيسي (Hero Banner & Headlines)' : '2. Hero Banner & Headlines'}
-              </h3>
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
+                  🌟 {lang === 'ar' ? '٢. نصوص وبنر الهيرو الرئيسي (Hero Banner & Headlines)' : '2. Hero Banner & Headlines'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetFieldToDefault('heroTitle', 'عنوان الهيرو', 'Hero Title');
+                    resetFieldToDefault('heroSubtitle', 'العنوان الفرعي للهيرو', 'Hero Subtitle');
+                    resetFieldToDefault('heroImage', 'صورة الهيرو', 'Hero Image');
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>{lang === 'ar' ? 'استعادة قسم الهيرو بالكامل ↺' : 'Reset Entire Hero ↺'}</span>
+                </button>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Hero Title */}
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'العنوان الرئيسي للهيرو (بالعربية):' : 'Hero Title (Arabic):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'العنوان الرئيسي للهيرو (بالعربية):' : 'Hero Title (Arabic):'}
+                    </label>
+                    <FieldResetBtn path="heroTitle.ar" descAr="عنوان الهيرو بالعربية" descEn="Hero Title (AR)" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.heroTitle?.ar || ''}
@@ -1766,9 +2000,12 @@ export const DeveloperPanel: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'العنوان الرئيسي للهيرو (بالإنجليزية):' : 'Hero Title (English):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'العنوان الرئيسي للهيرو (بالإنجليزية):' : 'Hero Title (English):'}
+                    </label>
+                    <FieldResetBtn path="heroTitle.en" descAr="عنوان الهيرو بالإنجليزية" descEn="Hero Title (EN)" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.heroTitle?.en || ''}
@@ -1779,9 +2016,12 @@ export const DeveloperPanel: React.FC = () => {
 
                 {/* Hero Subtitle */}
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'العنوان الفرعي للهيرو (بالعربية):' : 'Hero Subtitle (Arabic):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'العنوان الفرعي للهيرو (بالعربية):' : 'Hero Subtitle (Arabic):'}
+                    </label>
+                    <FieldResetBtn path="heroSubtitle.ar" descAr="العنوان الفرعي بالعربية" descEn="Hero Subtitle (AR)" />
+                  </div>
                   <textarea
                     rows={2}
                     value={currentPresetData?.heroSubtitle?.ar || ''}
@@ -1791,9 +2031,12 @@ export const DeveloperPanel: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'العنوان الفرعي للهيرو (بالإنجليزية):' : 'Hero Subtitle (English):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'العنوان الفرعي للهيرو (بالإنجليزية):' : 'Hero Subtitle (English):'}
+                    </label>
+                    <FieldResetBtn path="heroSubtitle.en" descAr="العنوان الفرعي بالإنجليزية" descEn="Hero Subtitle (EN)" />
+                  </div>
                   <textarea
                     rows={2}
                     value={currentPresetData?.heroSubtitle?.en || ''}
@@ -1804,9 +2047,12 @@ export const DeveloperPanel: React.FC = () => {
 
                 {/* CTA Buttons */}
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'زر الشراء الرئيسي (Primary CTA بالعربية):' : 'Primary CTA Button (Arabic):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'زر الشراء الرئيسي (Primary CTA بالعربية):' : 'Primary CTA Button (Arabic):'}
+                    </label>
+                    <FieldResetBtn path="heroCtaPrimary.ar" descAr="زر الشراء بالعربية" descEn="Primary CTA (AR)" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.heroCtaPrimary ? currentPresetData.heroCtaPrimary.ar : ''}
@@ -1816,9 +2062,12 @@ export const DeveloperPanel: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'زر الشراء الرئيسي (Primary CTA بالإنجليزية):' : 'Primary CTA Button (English):'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'زر الشراء الرئيسي (Primary CTA بالإنجليزية):' : 'Primary CTA Button (English):'}
+                    </label>
+                    <FieldResetBtn path="heroCtaPrimary.en" descAr="زر الشراء بالإنجليزية" descEn="Primary CTA (EN)" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.heroCtaPrimary ? currentPresetData.heroCtaPrimary.en : ''}
@@ -1829,9 +2078,12 @@ export const DeveloperPanel: React.FC = () => {
 
                 {/* Hero Image */}
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-300 block">
-                    {lang === 'ar' ? 'رابط صورة بنر الهيرو الرئيسي (Hero Image URL):' : 'Hero Image URL:'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 block">
+                      {lang === 'ar' ? 'رابط صورة بنر الهيرو الرئيسي (Hero Image URL):' : 'Hero Image URL:'}
+                    </label>
+                    <FieldResetBtn path="heroImage" descAr="صورة واجهة الهيرو" descEn="Hero Image" />
+                  </div>
                   <div className="flex gap-3 items-center">
                     <input
                       type="url"
@@ -1858,10 +2110,13 @@ export const DeveloperPanel: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* WhatsApp */}
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                    <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{lang === 'ar' ? 'رقم الواتساب الرسمي (مع رمز الدولة):' : 'Official WhatsApp Number:'}</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{lang === 'ar' ? 'رقم الواتساب الرسمي (مع رمز الدولة):' : 'Official WhatsApp Number:'}</span>
+                    </label>
+                    <FieldResetBtn path="contactInfo.whatsapp" descAr="رقم الواتساب" descEn="WhatsApp Number" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.contactInfo?.whatsapp || ''}
@@ -1874,10 +2129,13 @@ export const DeveloperPanel: React.FC = () => {
 
                 {/* Phone */}
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{lang === 'ar' ? 'رقم الهاتف للاتصال المباشر:' : 'Direct Phone Number:'}</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{lang === 'ar' ? 'رقم الهاتف للاتصال المباشر:' : 'Direct Phone Number:'}</span>
+                    </label>
+                    <FieldResetBtn path="contactInfo.phone" descAr="رقم الهاتف" descEn="Phone Number" />
+                  </div>
                   <input
                     type="text"
                     value={currentPresetData?.contactInfo?.phone || ''}
@@ -1890,10 +2148,13 @@ export const DeveloperPanel: React.FC = () => {
 
                 {/* Email */}
                 <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-amber-400" />
-                    <span>{lang === 'ar' ? 'البريد الإلكتروني الرسمي:' : 'Official Email Address:'}</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{lang === 'ar' ? 'البريد الإلكتروني الرسمي:' : 'Official Email Address:'}</span>
+                    </label>
+                    <FieldResetBtn path="contactInfo.email" descAr="البريد الإلكتروني" descEn="Official Email" />
+                  </div>
                   <input
                     type="email"
                     value={currentPresetData?.contactInfo?.email || ''}

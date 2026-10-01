@@ -361,6 +361,19 @@ export const HairDevicesSpotlight: React.FC = () => {
     isDraggingRef.current = false;
   };
 
+  // Carousel arrow scroll navigation for desktop & tablet
+  const scrollCarousel = (direction: 'prev' | 'next') => {
+    if (!scrollContainerRef.current) return;
+    const cardWidth = scrollContainerRef.current.clientWidth * 0.75;
+    const scrollAmount = direction === 'next' 
+      ? (isRtl ? -cardWidth : cardWidth) 
+      : (isRtl ? cardWidth : -cardWidth);
+    scrollContainerRef.current.scrollBy({
+      left: scrollAmount,
+      behavior: 'smooth'
+    });
+  };
+
   return (
     <section 
       id="hair-devices-section"
@@ -477,15 +490,32 @@ export const HairDevicesSpotlight: React.FC = () => {
       </div>
 
       {/* 4. HORIZONTAL SMOOTH CAROUSEL (3 UNIFIED SMART CARDS DEFAULT ON DESKTOP, TOUCH & MOUSE SWIPE) */}
-      <div className="relative">
+      <div className="relative group/carousel">
+        {/* Previous Button (Desktop / Tablet) */}
+        <button
+          type="button"
+          onClick={() => scrollCarousel('prev')}
+          aria-label={lang === 'ar' ? 'السابق' : 'Previous devices'}
+          className="hidden md:flex absolute -start-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#2B827A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
+        >
+          {isRtl ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+        </button>
+
+        {/* Carousel Scroll Container (With fluid vertical page scroll and horizontal device swipe) */}
         <div
           ref={scrollContainerRef}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
-          className="flex gap-5 sm:gap-6 overflow-x-auto pb-6 pt-2 px-1 scroll-smooth snap-x snap-mandatory scrollbar-none cursor-grab active:cursor-grabbing touch-pan-x"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex gap-5 sm:gap-6 overflow-x-auto pb-6 pt-2 px-1 scroll-smooth snap-x snap-mandatory scrollbar-none cursor-grab active:cursor-grabbing touch-manipulation"
+          style={{ 
+            scrollbarWidth: 'none', 
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehaviorX: 'contain',
+            touchAction: 'pan-x pan-y'
+          }}
         >
           {filteredProducts.map((product) => (
             <ProductCard 
@@ -495,6 +525,16 @@ export const HairDevicesSpotlight: React.FC = () => {
             />
           ))}
         </div>
+
+        {/* Next Button (Desktop / Tablet) */}
+        <button
+          type="button"
+          onClick={() => scrollCarousel('next')}
+          aria-label={lang === 'ar' ? 'التالي' : 'Next devices'}
+          className="hidden md:flex absolute -end-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#2B827A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
+        >
+          {isRtl ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+        </button>
 
         {/* Subtle Swipe Hint for Users (Mobile & Desktop) */}
         <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-medium pt-1">

@@ -143,6 +143,11 @@ interface CommerceContextType {
   toggleSection: (id: keyof SectionVisibilityMap) => void;
   resetSections: () => void;
 
+  // Section Cloning & Customization Suite
+  clonedSections: Record<string, ClonedSectionConfig>;
+  toggleCloneSection: (key: string, title?: string) => void;
+  updateClonedSectionConfig: (key: string, updates: Partial<ClonedSectionConfig>) => void;
+
   // Harmonious Color Palette System
   activePaletteId: string;
   setActivePaletteId: (id: string) => void;
@@ -165,6 +170,24 @@ interface CommerceContextType {
   goldenSnapshot: GoldenSnapshotMeta | null;
   saveGoldenSnapshot: () => void;
   rollbackToGoldenState: () => void;
+
+  // Granular Reset to Default & Smart Targeted Undo Engine
+  historyStack: HistorySnapshot[];
+  canUndo: boolean;
+  undoLastChange: () => boolean;
+  recordHistorySnapshot: (descAr: string, descEn: string, fieldPath?: string) => void;
+  resetFieldToDefault: (fieldPath: string, descAr?: string, descEn?: string) => void;
+  isFieldModified: (fieldPath: string) => boolean;
+  resetEntireSectionToDefault: (sectionKey: string, descAr?: string, descEn?: string) => void;
+}
+
+export interface HistorySnapshot {
+  id: string;
+  timestamp: number;
+  descriptionAr: string;
+  descriptionEn: string;
+  fieldPath?: string;
+  configSnapshot: SiteConfig;
 }
 
 export interface SavedCustomTemplate {
@@ -175,6 +198,16 @@ export interface SavedCustomTemplate {
   typographyId: string;
   customPalette: { primary: string; accent: string; surface: string } | null;
   presetData: PresetNiche;
+}
+
+export interface ClonedSectionConfig {
+  isCloned: boolean;
+  titleAr?: string;
+  titleEn?: string;
+  subtitleAr?: string;
+  subtitleEn?: string;
+  badgeAr?: string;
+  badgeEn?: string;
 }
 
 export interface SectionVisibilityMap {
@@ -507,6 +540,59 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       safeStorage.setItem('so_beauty_sections_v1', JSON.stringify(defaultSections));
     } catch (e) {}
     showToast(lang === 'ar' ? 'تمت إعادة ضبط جميع الأقسام' : 'All sections restored to default');
+  };
+
+  // Section Cloning & Customization Suite State
+  const STORAGE_KEY_CLONED = 'so_beauty_cloned_sections_v2';
+  const [clonedSections, setClonedSections] = useState<Record<string, ClonedSectionConfig>>(() => {
+    try {
+      const saved = safeStorage.getItem(STORAGE_KEY_CLONED);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {};
+  });
+
+  const toggleCloneSection = (key: string, title?: string) => {
+    setClonedSections(prev => {
+      const current = prev[key] || { isCloned: false };
+      const nextCloned = !current.isCloned;
+      const updated = {
+        ...prev,
+        [key]: {
+          ...current,
+          isCloned: nextCloned,
+          titleAr: current.titleAr || (title ? `نسخة مستنسخة: ${title}` : 'قسم مخصص إضافي'),
+          titleEn: current.titleEn || (title ? `Cloned: ${title}` : 'Custom Cloned Section'),
+          subtitleAr: current.subtitleAr || 'محتوى مخصص إضافي لعرض مميزات وعروض حصرية للعملاء',
+          subtitleEn: current.subtitleEn || 'Custom secondary showcase with tailored highlights',
+          badgeAr: current.badgeAr || 'نسخة إضافية ✨',
+          badgeEn: current.badgeEn || 'Featured Extra ✨',
+        }
+      };
+      try {
+        safeStorage.setItem(STORAGE_KEY_CLONED, JSON.stringify(updated));
+      } catch (e) {}
+      showToast(lang === 'ar'
+        ? (nextCloned ? `تم استنساخ وتفعيل نسخة إضافية من (${title || key})` : `تم إزالة النسخة المستنسخة من (${title || key})`)
+        : (nextCloned ? `Cloned extra instance of (${title || key})` : `Removed cloned instance of (${title || key})`)
+      );
+      return updated;
+    });
+  };
+
+  const updateClonedSectionConfig = (key: string, updates: Partial<ClonedSectionConfig>) => {
+    setClonedSections(prev => {
+      const current = prev[key] || { isCloned: true };
+      const updated = {
+        ...prev,
+        [key]: { ...current, ...updates }
+      };
+      try {
+        safeStorage.setItem(STORAGE_KEY_CLONED, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    showToast(lang === 'ar' ? 'تم حفظ التعديلات على القسم المستنسخ بنجاح' : 'Cloned section customized successfully');
   };
 
   // Harmonious Color Palette State
@@ -923,6 +1009,159 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, 3800);
   };
 
+  // Granular Reset to Default & Smart Targeted Undo Engine State
+  const [historyStack, setHistoryStack] = useState<HistorySnapshot[]>([]);
+
+  const recordHistorySnapshot = (descAr: string, descEn: string, fieldPath?: string) => {
+    setHistoryStack((prev) => [
+      {
+        id: `snap-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        timestamp: Date.now(),
+        descriptionAr: descAr,
+        descriptionEn: descEn,
+        fieldPath,
+        configSnapshot: JSON.parse(JSON.stringify(dynamicConfig)),
+      },
+      ...prev.slice(0, 29), // Keep last 30 snapshots
+    ]);
+  };
+
+  const undoLastChange = (): boolean => {
+    if (historyStack.length === 0) {
+      showToast(lang === 'ar' ? 'لا توجد تعديلات سابقة للتراجع عنها' : 'No previous edits to undo');
+      return false;
+    }
+
+    const [lastSnapshot, ...remaining] = historyStack;
+    setHistoryStack(remaining);
+    setDynamicConfig(lastSnapshot.configSnapshot);
+    try {
+      safeStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(lastSnapshot.configSnapshot));
+    } catch (_) {}
+
+    showToast({
+      type: 'info',
+      message: lang === 'ar' 
+        ? `تم التراجع عن: ${lastSnapshot.descriptionAr} ↩` 
+        : `Undone: ${lastSnapshot.descriptionEn} ↩`,
+    });
+    return true;
+  };
+
+  const canUndo = historyStack.length > 0;
+
+  const isFieldModified = (fieldPath: string): boolean => {
+    try {
+      const parts = fieldPath.split('.');
+      let currentVal: any = dynamicConfig.presets[activePresetId];
+      let defaultVal: any = siteConfig.presets[activePresetId];
+
+      for (const p of parts) {
+        if (currentVal === undefined || defaultVal === undefined) return false;
+        currentVal = currentVal[p];
+        defaultVal = defaultVal[p];
+      }
+
+      if (currentVal === undefined && defaultVal === undefined) return false;
+      return JSON.stringify(currentVal) !== JSON.stringify(defaultVal);
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const resetFieldToDefault = (fieldPath: string, descAr?: string, descEn?: string) => {
+    try {
+      const parts = fieldPath.split('.');
+      let defaultVal: any = siteConfig.presets[activePresetId];
+      for (const p of parts) {
+        if (defaultVal === undefined) break;
+        defaultVal = defaultVal[p];
+      }
+
+      if (defaultVal === undefined) {
+        showToast(lang === 'ar' ? 'القيمة الافتراضية غير متوفرة لهذا الحقل' : 'Default value not found');
+        return;
+      }
+
+      // Record snapshot first so the reset itself can be undone!
+      recordHistorySnapshot(
+        descAr ? `استعادة افتراضي ${descAr}` : `استعادة افتراضي ${fieldPath}`,
+        descEn ? `Reset ${descEn} to default` : `Reset ${fieldPath} to default`,
+        fieldPath
+      );
+
+      setDynamicConfig((prev) => {
+        const clone = JSON.parse(JSON.stringify(prev));
+        if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
+        if (!clone.presets[activePresetId]) {
+          clone.presets[activePresetId] = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics));
+        }
+
+        let cur = clone.presets[activePresetId];
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (!cur[parts[i]]) cur[parts[i]] = {};
+          cur = cur[parts[i]];
+        }
+        cur[parts[parts.length - 1]] = JSON.parse(JSON.stringify(defaultVal));
+        try {
+          safeStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
+        } catch (_) {}
+        return clone;
+      });
+
+      showToast({
+        type: 'success',
+        message: lang === 'ar' 
+          ? `تمت استعادة القيمة الافتراضية لـ (${descAr || fieldPath}) ↺` 
+          : `Restored default for (${descEn || fieldPath}) ↺`,
+        actionText: lang === 'ar' ? 'تراجع ↩' : 'Undo ↩',
+        onAction: () => undoLastChange()
+      });
+    } catch (e) {
+      console.error('Failed to reset field to default', e);
+    }
+  };
+
+  const resetEntireSectionToDefault = (sectionKey: string, descAr?: string, descEn?: string) => {
+    try {
+      const defaultSectionData = (siteConfig.presets[activePresetId] as any)[sectionKey];
+      if (defaultSectionData === undefined) {
+        showToast(lang === 'ar' ? 'القسم غير متوفر في الإعدادات الأصلية' : 'Section not found in default presets');
+        return;
+      }
+
+      recordHistorySnapshot(
+        descAr ? `استعادة قسم: ${descAr}` : `استعادة قسم ${sectionKey}`,
+        descEn ? `Reset section: ${descEn}` : `Reset section ${sectionKey}`,
+        sectionKey
+      );
+
+      setDynamicConfig((prev) => {
+        const clone = JSON.parse(JSON.stringify(prev));
+        if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
+        if (!clone.presets[activePresetId]) {
+          clone.presets[activePresetId] = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId] || siteConfig.presets.cosmetics));
+        }
+        clone.presets[activePresetId][sectionKey] = JSON.parse(JSON.stringify(defaultSectionData));
+        try {
+          safeStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
+        } catch (_) {}
+        return clone;
+      });
+
+      showToast({
+        type: 'success',
+        message: lang === 'ar' 
+          ? `تمت استعادة كافة إعدادات (${descAr || sectionKey}) للوضع الافتراضي المصنعي ↺` 
+          : `Restored (${descEn || sectionKey}) to factory defaults ↺`,
+        actionText: lang === 'ar' ? 'تراجع ↩' : 'Undo ↩',
+        onAction: () => undoLastChange()
+      });
+    } catch (e) {
+      console.error('Failed to reset entire section', e);
+    }
+  };
+
   const addToCart = (product: Product, quantity = 1) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
@@ -1288,6 +1527,9 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         sectionsControl,
         toggleSection,
         resetSections,
+        clonedSections,
+        toggleCloneSection,
+        updateClonedSectionConfig,
         activePaletteId,
         setActivePaletteId,
         customPalette,
@@ -1303,6 +1545,13 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         goldenSnapshot,
         saveGoldenSnapshot,
         rollbackToGoldenState,
+        historyStack,
+        canUndo,
+        undoLastChange,
+        recordHistorySnapshot,
+        resetFieldToDefault,
+        isFieldModified,
+        resetEntireSectionToDefault,
       }}
     >
       {children}

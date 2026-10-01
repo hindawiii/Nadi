@@ -60,7 +60,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const justSwipedRef = useRef(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!hasMultipleImages) return;
+    // When the card is an item in a horizontal carousel, do not intercept swipe gestures
+    // so the carousel itself and vertical page scroll work with 100% fluid native responsiveness
+    if (isCarouselItem || !hasMultipleImages) return;
     const touch = e.touches[0];
     touchStartRef.current = {
       x: touch.clientX,
@@ -70,7 +72,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!hasMultipleImages) return;
+    if (isCarouselItem || !hasMultipleImages) return;
     const touch = e.changedTouches[0];
     const diffX = touch.clientX - touchStartRef.current.x;
     const diffY = touch.clientY - touchStartRef.current.y;
@@ -209,7 +211,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div 
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="relative aspect-square w-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-4 touch-pan-y"
+          className="relative aspect-square w-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-4"
         >
           {/* Main Product Image - Fills the Frame Professionally */}
           <img
