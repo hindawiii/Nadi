@@ -13,6 +13,7 @@ import { useCommerce } from '../context/CommerceContext';
 import { Product, siteConfig } from '../data/siteConfig';
 import { SmartAuthPortal } from './common/SmartAuthPortal';
 import { hairStylingDevices } from './HairDevicesSpotlight';
+import { UnifiedStoreCustomizer } from './UnifiedStoreCustomizer';
 
 export const AdminPanel: React.FC = () => {
   const { 
@@ -26,8 +27,8 @@ export const AdminPanel: React.FC = () => {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
 
-  // Active Admin Tabs: 'orders' | 'products' | 'devices' | 'banners' | 'content' | 'branding'
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'devices' | 'banners' | 'content' | 'branding'>('orders');
+  // Active Admin Tabs: 'customizer' | 'orders' | 'products' | 'devices' | 'banners' | 'content' | 'branding'
+  const [activeTab, setActiveTab] = useState<'customizer' | 'orders' | 'products' | 'devices' | 'banners' | 'content' | 'branding'>('customizer');
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -775,18 +776,19 @@ export const AdminPanel: React.FC = () => {
 
         {/* Tab Switcher - Luxe Pro Navigation */}
         <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-200/60 rounded-2xl border border-slate-300/50 text-xs font-bold">
+          {/* Flagship Unified Store Customizer Tab */}
           <button
-            onClick={() => setActiveTab('orders')}
-            className={`h-11 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'orders' 
-                ? 'bg-white text-slate-950 shadow-sm' 
-                : 'text-slate-600 hover:text-slate-900'
+            onClick={() => setActiveTab('customizer')}
+            className={`h-11 px-5 rounded-xl transition-all cursor-pointer flex items-center gap-2.5 ${
+              activeTab === 'customizer' || activeTab === 'banners' || activeTab === 'content' || activeTab === 'branding' || activeTab === 'devices'
+                ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20 font-black' 
+                : 'text-slate-600 hover:text-slate-900 bg-white/50 hover:bg-white'
             }`}
           >
-            <Package className="w-4 h-4 text-purple-600" />
-            <span>{lang === 'ar' ? 'الطلبات' : 'Orders'}</span>
-            <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-mono">
-              {orders.length}
+            <Sparkles className="w-4 h-4 text-amber-300" />
+            <span>{lang === 'ar' ? '🎨 ركن التعديل الموحد (كامل المتجر)' : '🎨 Store Customizer (All-in-One)'}</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${activeTab === 'customizer' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'}`}>
+              13 {lang === 'ar' ? 'ركناً' : 'corners'}
             </span>
           </button>
 
@@ -806,56 +808,27 @@ export const AdminPanel: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('devices')}
+            onClick={() => setActiveTab('orders')}
             className={`h-11 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'devices' 
+              activeTab === 'orders' 
                 ? 'bg-white text-slate-950 shadow-sm' 
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>{lang === 'ar' ? 'ماركات وتشكيلات الأجهزة' : 'Brand Collections'}</span>
-            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">
-              {trioBannersList.length}
+            <Package className="w-4 h-4 text-purple-600" />
+            <span>{lang === 'ar' ? 'الطلبات' : 'Orders'}</span>
+            <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-mono">
+              {orders.length}
             </span>
           </button>
-
-          <button
-            onClick={() => setActiveTab('banners')}
-            className={`h-11 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'banners' 
-                ? 'bg-white text-slate-950 shadow-sm' 
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Layers className="w-4 h-4 text-rose-500" />
-            <span>{lang === 'ar' ? 'العروض وقبل/بعد' : 'Promos & Visuals'}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('content')}
-            className={`h-11 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'content' 
-                ? 'bg-white text-slate-950 shadow-sm' 
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <FileText className="w-4 h-4 text-indigo-600" />
-            <span>{lang === 'ar' ? 'الأشرطة المتحركة' : 'Tickers & Texts'}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('branding')}
-            className={`h-11 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'branding' 
-                ? 'bg-white text-slate-950 shadow-sm' 
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <ImageIcon className="w-4 h-4 text-blue-600" />
-            <span>{lang === 'ar' ? 'الهوية والشعار' : 'Branding & Info'}</span>
-          </button>
         </div>
+
+        {/* ======================================================== */}
+        {/* UNIFIED STORE CUSTOMIZER (13 CORNERS TOP-TO-BOTTOM)      */}
+        {/* ======================================================== */}
+        {activeTab === 'customizer' && (
+          <UnifiedStoreCustomizer onNavigateToProducts={() => setActiveTab('products')} />
+        )}
 
         {/* ======================================================== */}
         {/* TAB 1: ORDERS & INCOMING SALES                           */}
