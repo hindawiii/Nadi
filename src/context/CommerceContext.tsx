@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { 
   siteConfig, SiteConfig, Product, PresetNiche, 
   ColorPalette, TypographyPair, ImportableTemplate, 
@@ -102,6 +102,7 @@ interface CommerceContextType {
   // PDP
   activeProduct: Product | null;
   openProductPDP: (p: Product) => void;
+  returnFromPDPToStore: () => void;
 
   // Product Comparison System
   comparisonList: string[]; // List of product IDs
@@ -179,6 +180,7 @@ interface CommerceContextType {
   resetFieldToDefault: (fieldPath: string, descAr?: string, descEn?: string) => void;
   isFieldModified: (fieldPath: string) => boolean;
   resetEntireSectionToDefault: (sectionKey: string, descAr?: string, descEn?: string) => void;
+  resetPresetToFactoryDefault: (targetPresetId?: 'cosmetics' | 'fashion' | 'eyewear' | 'electronics') => void;
 }
 
 export interface HistorySnapshot {
@@ -370,6 +372,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   const [currentRoute, setCurrentRouteState] = useState<RouteName>('store');
+  // Smart Scroll Memory for Seamless Product and Storefront Return
+  const lastScrollPosRef = useRef<{ scrollY: number; productId?: string }>({ scrollY: 0 });
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     return safeStorage.getItem('luxe_admin_auth_saved') === 'true';
   });
@@ -840,8 +844,12 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const navigateTo = (r: RouteName) => {
+    if (r === 'store' && currentRoute === 'pdp') {
+      returnFromPDPToStore();
+      return;
+    }
     setCurrentRouteState(r);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
     try {
       if (r === 'store') {
         window.history.replaceState(null, '', '/');
@@ -1162,6 +1170,46 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const resetPresetToFactoryDefault = (targetPresetId?: 'cosmetics' | 'fashion' | 'eyewear' | 'electronics') => {
+    try {
+      const presetKey = targetPresetId || activePresetId;
+      const defaultPresetData = siteConfig.presets[presetKey];
+      if (!defaultPresetData) {
+        showToast(lang === 'ar' ? 'النظام غير متوفر في الإعدادات الأصلية' : 'Preset not found in factory defaults');
+        return;
+      }
+
+      const presetName = defaultPresetData.nicheLabel?.[lang] || presetKey;
+
+      recordHistorySnapshot(
+        `استعادة ضبط المصنع لنظام: ${defaultPresetData.nicheLabel?.ar || presetKey}`,
+        `Factory Reset system: ${defaultPresetData.nicheLabel?.en || presetKey}`,
+        `presets.${presetKey}`
+      );
+
+      setDynamicConfig((prev) => {
+        const clone = JSON.parse(JSON.stringify(prev));
+        if (!clone.presets) clone.presets = JSON.parse(JSON.stringify(siteConfig.presets));
+        clone.presets[presetKey] = JSON.parse(JSON.stringify(defaultPresetData));
+        try {
+          safeStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
+        } catch (_) {}
+        return clone;
+      });
+
+      showToast({
+        type: 'success',
+        message: lang === 'ar' 
+          ? `تمت استعادة القالب الافتراضي المصنعي بالكامل لـ (${presetName}) بنجاح ↺` 
+          : `Fully restored factory default template for (${presetName}) ↺`,
+        actionText: lang === 'ar' ? 'تراجع ↩' : 'Undo ↩',
+        onAction: () => undoLastChange()
+      });
+    } catch (e) {
+      console.error('Failed to reset preset to factory default', e);
+    }
+  };
+
   const addToCart = (product: Product, quantity = 1) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
@@ -1286,15 +1334,39 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const openProductPDP = (p: Product) => {
+    // Record current scroll position before jumping to PDP
+    lastScrollPosRef.current = {
+      scrollY: window.scrollY || window.pageYOffset || 0,
+      productId: p.id
+    };
     setActiveProduct(p);
-    setCurrentRoute('pdp');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setCurrentRouteState('pdp');
+    // Instant open without slow dragging/scrolling delay
+    window.scrollTo({ top: 0, behavior: 'instant' });
     try {
-      window.history.pushState({ productId: p.id }, '', `/product/${p.id}`);
+      window.history.pushState({ productId: p.id, fromScrollY: lastScrollPosRef.current.scrollY }, '', `/product/${p.id}`);
       window.location.hash = `product-${p.id}`;
     } catch {
       window.location.hash = `product-${p.id}`;
     }
+  };
+
+  const returnFromPDPToStore = () => {
+    const targetScrollY = lastScrollPosRef.current.scrollY || 0;
+
+    setCurrentRouteState('store');
+    try {
+      window.history.replaceState(null, '', '/');
+      if (window.location.hash) {
+        window.location.hash = '';
+      }
+    } catch (_) {}
+
+    // Immediate instant restoration of exact scroll position with zero delay and no animation
+    window.scrollTo({ top: targetScrollY, behavior: 'instant' });
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: targetScrollY, behavior: 'instant' });
+    });
   };
 
   const loginAdmin = (pin: string, rememberLogin: boolean = false, rememberPin: boolean = false) => {
@@ -1502,6 +1574,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addAllWishlistToCart,
         activeProduct,
         openProductPDP,
+        returnFromPDPToStore,
         comparisonList,
         toggleCompare,
         removeFromCompare,
@@ -1552,6 +1625,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         resetFieldToDefault,
         isFieldModified,
         resetEntireSectionToDefault,
+        resetPresetToFactoryDefault,
       }}
     >
       {children}

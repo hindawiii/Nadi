@@ -274,7 +274,7 @@ export const HairDevicesSpotlight: React.FC = () => {
       title: { ar: 'مكواة التمويج الثلاثية', en: 'Triple Barrel Waver' },
       subtitle: { ar: 'تمويجات عريضة تدوم طويلاً', en: 'Long-lasting Deep Waves' },
       targetTab: 'waving' as SubCategoryKey,
-      bgGradient: 'from-[#0b2923] via-[#123830] to-[#081a17]',
+      bgGradient: 'from-[#0b2a23] via-[#0e372e] to-[#071f1a]',
       accentColor: '#2B827A',
       image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
     },
@@ -284,9 +284,9 @@ export const HairDevicesSpotlight: React.FC = () => {
       title: { ar: 'المصفف الذكي متعدد الرؤوس', en: 'Multi-Styler Air Brush' },
       subtitle: { ar: 'تصفيف وتجفيف متكامل 6 في 1', en: '6-in-1 Complete Styling' },
       targetTab: 'dryer' as SubCategoryKey,
-      bgGradient: 'from-[#e4ded6] via-[#dfd7cc] to-[#cfc4b5]',
+      bgGradient: 'from-[#fbf8f5] via-[#f5ede3] to-[#ede4d7]',
       isDarkText: true,
-      accentColor: '#b48a58',
+      accentColor: '#b45309',
       image: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=600&q=80',
     },
     {
@@ -295,9 +295,9 @@ export const HairDevicesSpotlight: React.FC = () => {
       title: { ar: 'مكواة التمليس والأيونات', en: 'Ceramic Ion Flat Iron' },
       subtitle: { ar: 'شعر حريري فائق النعومة', en: 'Silk Sleek Results' },
       targetTab: 'straightener' as SubCategoryKey,
-      bgGradient: 'from-[#f5e6e8] via-[#eedbe0] to-[#e4ccd3]',
+      bgGradient: 'from-[#fdf5f7] via-[#f9e9ed] to-[#f4dde3]',
       isDarkText: true,
-      accentColor: '#cf7588',
+      accentColor: '#be185d',
       image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=600&q=80',
     },
   ];
@@ -384,6 +384,15 @@ export const HairDevicesSpotlight: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {trioBanners.map((banner) => {
           const isActive = activeSubCategory === banner.targetTab;
+          const isLightBg = banner.id === 'okema-banner' || banner.id === 'clara-banner' || banner.bgGradient?.includes('#f') || Boolean((banner as any).isDarkText);
+          const brandColorClass = banner.id === 'okema-banner'
+            ? 'text-[#b45309]'
+            : banner.id === 'clara-banner'
+            ? 'text-[#be185d]'
+            : isLightBg
+            ? 'text-slate-900'
+            : 'text-[#fde047]';
+
           return (
             <div
               key={banner.id}
@@ -394,64 +403,80 @@ export const HairDevicesSpotlight: React.FC = () => {
                     ? `تم عرض تشكيلة: ${banner.brand}` 
                     : `Filtered by ${banner.brand}`
                 );
+                // Smooth glide automatically to the devices section/carousel
+                setTimeout(() => {
+                  const targetSection = document.getElementById('hair-devices-carousel') || document.getElementById('hair-devices-section');
+                  if (targetSection) {
+                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }, 40);
               }}
               className={`relative overflow-hidden rounded-3xl p-5 sm:p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br ${banner.bgGradient} border ${
-                isActive ? 'ring-2 ring-[#2B827A] shadow-md border-[#2B827A]' : 'border-slate-200/60 shadow-xs'
+                isActive 
+                  ? 'ring-2 ring-amber-400 shadow-lg border-amber-400/80 scale-[1.01]' 
+                  : isLightBg 
+                  ? 'border-slate-200/90 shadow-xs hover:border-slate-300' 
+                  : 'border-white/10 shadow-sm hover:border-white/20'
               } min-h-[190px] flex flex-col justify-between group`}
             >
               {/* Brand Logo Watermark / Top Header */}
               <div className="flex items-center justify-between z-10">
                 <span 
-                  className={`text-lg sm:text-xl font-black tracking-widest uppercase font-serif ${
-                    banner.isDarkText ? 'text-slate-900' : 'text-amber-200'
-                  }`}
+                  className={`text-lg sm:text-xl font-black tracking-widest uppercase font-serif drop-shadow-xs ${brandColorClass}`}
                 >
                   {banner.brand}
                 </span>
 
                 <span 
-                  className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border backdrop-blur-xs transition-colors ${
-                    banner.isDarkText 
+                  className={`text-[11px] font-bold px-3 py-1 rounded-full border backdrop-blur-md transition-all ${
+                    isLightBg 
                       ? 'bg-black/5 text-slate-800 border-black/10 group-hover:bg-black/10' 
-                      : 'bg-white/10 text-white border-white/20 group-hover:bg-white/20'
+                      : 'bg-white/15 text-white border-white/25 group-hover:bg-white/25 shadow-xs'
                   }`}
                 >
                   {lang === 'ar' ? 'عرض التشكيلة' : 'Explore'}
                 </span>
               </div>
 
-              {/* Central / Background Visual Device Photo */}
-              <div className="absolute inset-y-0 end-0 w-1/2 overflow-hidden opacity-90 group-hover:opacity-100 transition-opacity">
+              {/* Central / Background Visual Device Photo: Clean, Natural, 100% Bright */}
+              <div className="absolute inset-y-0 end-0 w-[46%] overflow-hidden rounded-e-3xl pointer-events-none">
                 <img
                   src={banner.image}
                   alt={banner.title[lang]}
-                  className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700 mix-blend-multiply"
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
                   loading="lazy"
                 />
+                {/* Natural soft edge blend: keeps photo 100% clear and pure without darkening */}
                 <div 
                   className={`absolute inset-0 bg-gradient-to-r ${
                     isRtl 
-                      ? 'from-transparent via-transparent to-current' 
-                      : 'from-current via-transparent to-transparent'
-                  } opacity-20 pointer-events-none`} 
+                      ? (isLightBg ? 'from-transparent via-transparent to-[#f5ede3]/60' : 'from-transparent via-transparent to-[#071f1a]/70') 
+                      : (isLightBg ? 'from-[#f5ede3]/60 via-transparent to-transparent' : 'from-[#071f1a]/70 via-transparent to-transparent')
+                  } pointer-events-none`} 
                 />
               </div>
 
-              {/* Banner Text Content */}
-              <div className="relative z-10 max-w-[65%] space-y-1 pt-6 text-start">
+              {/* Banner Text Content with Safe Breathing Room */}
+              <div className="relative z-10 max-w-[58%] sm:max-w-[60%] space-y-1.5 pt-3 sm:pt-5 text-start">
                 <h3 
-                  className={`font-black text-base sm:text-lg leading-snug ${
-                    banner.isDarkText ? 'text-slate-950' : 'text-white'
+                  className={`font-black text-sm sm:text-base leading-snug tracking-tight ${
+                    isLightBg ? 'text-[#0f172a]' : 'text-white'
                   }`}
                 >
                   {banner.title[lang]}
                 </h3>
                 <p 
-                  className={`text-xs font-medium leading-relaxed ${
-                    banner.isDarkText ? 'text-slate-700' : 'text-slate-300'
+                  className={`text-xs font-semibold leading-relaxed ${
+                    isLightBg ? 'text-[#475569]' : 'text-emerald-100/90'
                   }`}
                 >
-                  {banner.subtitle[lang]}
+                  {banner.id === 'okema-banner' && lang === 'ar' ? (
+                    <span>
+                      تصفيف وتجفيف متكامل <span className="whitespace-nowrap font-bold text-slate-800">6 في 1</span>
+                    </span>
+                  ) : (
+                    banner.subtitle[lang]
+                  )}
                 </p>
               </div>
             </div>
@@ -460,7 +485,7 @@ export const HairDevicesSpotlight: React.FC = () => {
       </div>
 
       {/* 2. SECTION HEADER WITH DECORATIVE ACCENT LINES (—— اجهزة الشعر ——) */}
-      <div className="flex items-center justify-center gap-3 sm:gap-4 pt-4">
+      <div id="hair-devices-carousel" className="flex items-center justify-center gap-3 sm:gap-4 pt-4 scroll-mt-20">
         <div className="w-12 sm:w-20 h-0.5 bg-[#2B827A] rounded-full" />
         <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-brand-ar">
           {lang === 'ar' ? 'اجهزة الشعر' : 'Hair Styling Devices'}

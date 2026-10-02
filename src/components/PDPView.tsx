@@ -13,7 +13,8 @@ export const PDPView: React.FC = () => {
   const { 
     lang, convertPrice, addToCart, wishlist, toggleWishlist, 
     activeProduct, setCurrentRoute, activeData, showToast, navigateTo,
-    comparisonList, toggleCompare, setIsCompareModalOpen 
+    comparisonList, toggleCompare, setIsCompareModalOpen,
+    returnFromPDPToStore
   } = useCommerce();
 
   const isRtl = lang === 'ar';
@@ -48,8 +49,8 @@ export const PDPView: React.FC = () => {
       <div className="py-20 text-center max-w-lg mx-auto px-4">
         <p className="text-slate-500 mb-4">{lang === 'ar' ? 'لم يتم العثور على المنتج المطلوب' : 'Product not found'}</p>
         <button
-          onClick={() => setCurrentRoute('store')}
-          className="bg-[#5A3E7A] text-white px-6 py-2.5 rounded-full font-bold"
+          onClick={() => returnFromPDPToStore()}
+          className="bg-[#5A3E7A] text-white px-6 py-2.5 rounded-full font-bold cursor-pointer"
         >
           {lang === 'ar' ? 'العودة للمتجر' : 'Return to store'}
         </button>
@@ -269,12 +270,9 @@ export const PDPView: React.FC = () => {
         <div className="mb-6 flex items-center justify-between">
           <button
             onClick={() => {
-              if (window.location.hash) {
-                window.history.pushState(null, '', window.location.pathname);
-              }
-              navigateTo('store');
+              returnFromPDPToStore();
             }}
-            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#5A3E7A] transition-colors py-2.5 px-4 rounded-2xl bg-white border border-slate-200 shadow-xs min-h-[44px] hover:border-purple-200"
+            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#5A3E7A] transition-colors py-2.5 px-4 rounded-2xl bg-white border border-slate-200 shadow-xs min-h-[44px] hover:border-purple-200 cursor-pointer"
           >
             {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
             <span>{lang === 'ar' ? 'العودة لجميع المنتجات' : 'Back to Store'}</span>

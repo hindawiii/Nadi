@@ -196,6 +196,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <div 
+      id={`product-${product.id}`}
       onClick={() => {
         if (justSwipedRef.current) return;
         openProductPDP(product);

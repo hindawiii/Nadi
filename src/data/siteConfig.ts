@@ -306,7 +306,7 @@ export const siteConfig: SiteConfig = {
           title: { ar: 'مكواة التمويج الثلاثية', en: 'Triple Barrel Waver' },
           subtitle: { ar: 'تمويجات عريضة تدوم طويلاً', en: 'Long-lasting Deep Waves' },
           targetTab: 'waving',
-          bgGradient: 'from-[#0b2923] via-[#123830] to-[#081a17]',
+          bgGradient: 'from-[#0b2a23] via-[#0e372e] to-[#071f1a]',
           accentColor: '#2B827A',
           image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
         },
@@ -316,8 +316,8 @@ export const siteConfig: SiteConfig = {
           title: { ar: 'المصفف الذكي متعدد الرؤوس', en: 'Multi-Styler Air Brush' },
           subtitle: { ar: 'تصفيف وتجفيف متكامل 6 في 1', en: '6-in-1 Complete Styling' },
           targetTab: 'dryer',
-          bgGradient: 'from-[#e4ded6] via-[#dfd7cc] to-[#cfc4b5]',
-          accentColor: '#b48a58',
+          bgGradient: 'from-[#fbf8f5] via-[#f5ede3] to-[#ede4d7]',
+          accentColor: '#b45309',
           image: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=600&q=80',
         },
         {
@@ -326,9 +326,9 @@ export const siteConfig: SiteConfig = {
           title: { ar: 'مكواة التمليس والأيونات', en: 'Ceramic Ion Flat Iron' },
           subtitle: { ar: 'شعر حريري فائق النعومة', en: 'Silk Sleek Results' },
           targetTab: 'straightener',
-          bgGradient: 'from-[#f5e6e8] via-[#eedbe0] to-[#e4ccd3]',
-          accentColor: '#cf7588',
-          image: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=600&q=80',
+          bgGradient: 'from-[#fdf5f7] via-[#f9e9ed] to-[#f4dde3]',
+          accentColor: '#be185d',
+          image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=600&q=80',
         }
       ],
       footerAbout: {

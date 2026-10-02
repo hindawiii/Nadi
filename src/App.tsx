@@ -30,6 +30,7 @@ const AppContent: React.FC = () => {
     isDeveloperModeLocked, 
     activeData, 
     openProductPDP, 
+    returnFromPDPToStore,
     sectionsControl,
     comparisonList,
     setIsCompareModalOpen,
@@ -121,10 +122,14 @@ const AppContent: React.FC = () => {
         }
       } else {
         // Default everything else to store homepage
-        if (prevRouteRef.current && prevRouteRef.current !== 'store' && !window.location.hash.startsWith('#product')) {
-          window.scrollTo({ top: 0, behavior: 'instant' });
+        if (prevRouteRef.current === 'pdp') {
+          returnFromPDPToStore();
+        } else {
+          if (prevRouteRef.current && prevRouteRef.current !== 'store' && !window.location.hash.startsWith('#product')) {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+          }
+          setCurrentRoute('store');
         }
-        setCurrentRoute('store');
       }
       prevRouteRef.current = route || 'store';
     };
@@ -135,7 +140,7 @@ const AppContent: React.FC = () => {
       window.removeEventListener('hashchange', handleLocationChange);
       window.removeEventListener('popstate', handleLocationChange);
     };
-  }, [activeData.products, hairStylingDevices, isDeveloperModeLocked, openProductPDP, setCurrentRoute]);
+  }, [activeData.products, hairStylingDevices, isDeveloperModeLocked, openProductPDP, returnFromPDPToStore, setCurrentRoute]);
 
   const isControlPanelRoute = currentRoute === 'admin' || currentRoute === 'developer';
 

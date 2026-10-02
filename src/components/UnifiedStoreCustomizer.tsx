@@ -10,18 +10,26 @@ import {
 import { useCommerce } from '../context/CommerceContext';
 import { siteConfig, Product } from '../data/siteConfig';
 
-export const UnifiedStoreCustomizer: React.FC<{
+export interface UnifiedStoreCustomizerProps {
   onNavigateToProducts?: () => void;
-}> = ({ onNavigateToProducts }) => {
+  presetId?: 'cosmetics' | 'fashion' | 'eyewear' | 'electronics';
+}
+
+export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({ 
+  onNavigateToProducts,
+  presetId 
+}) => {
   const { 
-    lang, dynamicConfig, setDynamicConfig, activePresetId, 
+    lang, dynamicConfig, setDynamicConfig, activePresetId, setActivePresetId,
     showToast, navigateTo, canUndo, undoLastChange, 
     resetFieldToDefault, isFieldModified, recordHistorySnapshot,
-    historyStack
+    historyStack, resetPresetToFactoryDefault
   } = useCommerce();
 
   const isRtl = lang === 'ar';
-  const activePreset = dynamicConfig.presets[activePresetId] || dynamicConfig.presets.cosmetics;
+  const effectivePresetId = presetId || activePresetId;
+  const isCurrentActive = effectivePresetId === activePresetId;
+  const activePreset = dynamicConfig.presets[effectivePresetId] || dynamicConfig.presets.cosmetics;
   const preset = activePreset as any;
   const [activeCornerId, setActiveCornerId] = useState<string>('corner-1');
 
@@ -55,10 +63,10 @@ export const UnifiedStoreCustomizer: React.FC<{
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev));
       const parts = path.split('.');
-      let cur = clone.presets[activePresetId];
+      let cur = clone.presets[effectivePresetId];
       if (!cur) {
-        clone.presets[activePresetId] = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics));
-        cur = clone.presets[activePresetId];
+        clone.presets[effectivePresetId] = JSON.parse(JSON.stringify(siteConfig.presets[effectivePresetId] || siteConfig.presets.cosmetics));
+        cur = clone.presets[effectivePresetId];
       }
       for (let i = 0; i < parts.length - 1; i++) {
         if (!cur[parts[i]]) cur[parts[i]] = {};
@@ -127,18 +135,106 @@ export const UnifiedStoreCustomizer: React.FC<{
     }
   };
 
-  // The 13 Sequential Corners Definition
+  // Adaptive niche-specific helpers for 100% Context-Aware Customizer
+  const getCorner6Info = () => {
+    switch (effectivePresetId) {
+      case 'fashion':
+        return {
+          name: { ar: 'كتالوج الإطلالات وتنسيق الأزياء', en: 'Lookbook & Outfit Styling' },
+          desc: { ar: 'تنسيق أزياء الموسم، تفاصيل الأقمشة، ومجموعات الموديل التحريرية', en: 'Curated seasonal outfits, fabric composition & editorial looks' },
+          icon: Sparkles
+        };
+      case 'electronics':
+        return {
+          name: { ar: 'جدول المواصفات والخصائص الذكية', en: 'Tech Specs & Matrix' },
+          desc: { ar: 'مصفوفة المعالجات، قدرات الشاشات، سعة البطاريات، ومقاييس الأداء', en: 'Chipset benchmarks, display refresh rate & battery specs' },
+          icon: Sliders
+        };
+      case 'eyewear':
+        return {
+          name: { ar: 'أبعاد الإطارات وعدسات الحماية (AR)', en: 'Frame Specs & AR Optics' },
+          desc: { ar: 'مقاسات الإطارات التيتانيوم، حماية الأشعة فوق البنفسجية، وتجربة الـ AR', en: 'Titanium frame sizing, UV400 lens grades & AR try-on' },
+          icon: Star
+        };
+      default:
+        return {
+          name: { ar: 'تشخيص الروتين والعناية الذكية', en: 'Skin Routine Diagnosis' },
+          desc: { ar: 'بطاقات خطوات الروتين الأربعة (الغسول، السيروم، المرطب، الحماية)', en: '4-step skincare routine cards with botanical ingredients' },
+          icon: Droplets
+        };
+    }
+  };
+
+  const getCorner9Info = () => {
+    switch (effectivePresetId) {
+      case 'fashion':
+        return {
+          name: { ar: 'دور الأزياء وبكجات تسوق الإطلالة', en: 'Fashion Houses & Shop The Look' },
+          desc: { ar: 'بنرات دور الأزياء الإيطالية وبكجات تسوق الإطلالة الكاملة المنسقة', en: 'Italian couture banners and complete bundle look packages' },
+          tag: { ar: '📍 قسم أزياء الموسم', en: '📍 Season Outfits' }
+        };
+      case 'electronics':
+        return {
+          name: { ar: 'أجهزة المستقبل وبنرات العتاد الذكي', en: 'Flagship Tech & Gadget Trio' },
+          desc: { ar: 'بنرات أحدث المعالجات والأجهزة الذكية وملحقات الأداء العالي', en: 'Next-gen silicon hardware and flagship gadget spotlight' },
+          tag: { ar: '📍 قسم الأجهزة التقنية', en: '📍 Tech Spotlight' }
+        };
+      case 'eyewear':
+        return {
+          name: { ar: 'إطارات التيتانيوم وماركات البصريات', en: 'Titanium Frames & Designer Trio' },
+          desc: { ar: 'بنرات تشكيلات المصممين الحصرية وإطارات التيتانيوم خفيفة الوزن', en: 'Ultra-lightweight titanium collections and designer optics' },
+          tag: { ar: '📍 قسم النظارات المميزة', en: '📍 Eyewear Spotlight' }
+        };
+      default:
+        return {
+          name: { ar: 'أجهزة الشعر وبنرات الماركات (Trio)', en: 'Hair Devices & Trio Banners' },
+          desc: { ar: 'بنرات الماركات الثلاث (سيل تك، أوكيما، كلارا) وسلايدر أجهزة الشعر', en: '3 Brand spotlight banners and smooth horizontal devices carousel' },
+          tag: { ar: '📍 قسم أجهزة الشعر', en: '📍 Hair Devices Section' }
+        };
+    }
+  };
+
+  const getCorner10Info = () => {
+    switch (effectivePresetId) {
+      case 'fashion':
+        return {
+          name: { ar: 'مقارنة التنسيق (نهاري vs مسائي)', en: 'Styling (Day vs Night)' },
+          desc: { ar: 'مقارنة مرئية تفاعلية لتنسيق القطعة للإطلالة النهارية والرسمية المسائية', en: 'Interactive split-screen proof: Casual Daywear vs Evening Gala look' }
+        };
+      case 'electronics':
+        return {
+          name: { ar: 'مقارنة الأداء والسرعة (Benchmark)', en: 'Speed & Benchmarks Proof' },
+          desc: { ar: 'مقارنة بصرية حية لمعدل الإطارات وسرعة المعالجة بين الجيل السابق والجديد', en: 'Live visual comparison: Next-gen refresh rate vs legacy performance' }
+        };
+      case 'eyewear':
+        return {
+          name: { ar: 'وضوح الرؤية مع العدسات المستقطبة', en: 'Polarized Vision Proof' },
+          desc: { ar: 'محاكاة حية لتأثير العدسات المستقطبة وعزل التوهج الشمسي المباشر', en: 'Split-screen proof: Raw harsh glare vs polarized HD visual clarity' }
+        };
+      default:
+        return {
+          name: { ar: 'قبل وبعد (Visual Proof Slider)', en: 'Before & After Proof Slider' },
+          desc: { ar: 'شريط المقارنة التفاعلي لنتائج العناية الفورية قبل وبعد الاستخدام', en: 'Interactive before & after slider proving visible skincare results' }
+        };
+    }
+  };
+
+  const c6Info = getCorner6Info();
+  const c9Info = getCorner9Info();
+  const c10Info = getCorner10Info();
+
+  // The 13 Sequential Corners Definition (Context-Aware for all 4 global niches)
   const cornersList = [
     { id: 'corner-1', num: 1, name: { ar: 'شريط الإعلانات العلوي', en: 'Top Announcement Bar' }, icon: Sparkles },
     { id: 'corner-2', num: 2, name: { ar: 'الهيدر وشعار وهوية المتجر', en: 'Header & Store Branding' }, icon: Award },
     { id: 'corner-3', num: 3, name: { ar: 'البنر الترحيبي الرئيسي', en: 'Hero Banner Section' }, icon: Layers },
     { id: 'corner-4', num: 4, name: { ar: 'شريط الماركات المتحرك', en: 'Infinite Brand Ticker' }, icon: Sliders },
     { id: 'corner-5', num: 5, name: { ar: 'تصنيفات وتبويبات المتجر', en: 'Categories Navigation' }, icon: ShoppingBag },
-    { id: 'corner-6', num: 6, name: { ar: 'تشخيص الروتين والعناية الذكية', en: 'Skin Routine Diagnosis' }, icon: Droplets },
+    { id: 'corner-6', num: 6, name: c6Info.name, icon: c6Info.icon },
     { id: 'corner-7', num: 7, name: { ar: 'كتالوج المنتجات والمخزون', en: 'Products Catalog & Pricing' }, icon: ShoppingBag },
     { id: 'corner-8', num: 8, name: { ar: 'بنرات العروض المزدوجة', en: 'Dual Campaign Banners' }, icon: ImageIcon },
-    { id: 'corner-9', num: 9, name: { ar: 'أجهزة الشعر وبنرات الماركات', en: 'Hair Devices & Trio' }, icon: Sparkles },
-    { id: 'corner-10', num: 10, name: { ar: 'قبل وبعد (Visual Proof)', en: 'Before & After Slider' }, icon: Star },
+    { id: 'corner-9', num: 9, name: c9Info.name, icon: Sparkles },
+    { id: 'corner-10', num: 10, name: c10Info.name, icon: Star },
     { id: 'corner-11', num: 11, name: { ar: 'آراء وتقييمات العملاء', en: 'Customer Testimonials' }, icon: Star },
     { id: 'corner-12', num: 12, name: { ar: 'شريط مزايا المتجر والثقة', en: 'Store Value Props' }, icon: ShieldCheck },
     { id: 'corner-13', num: 13, name: { ar: 'التذييل ومعلومات التواصل', en: 'Footer & WhatsApp' }, icon: Phone },
@@ -268,23 +364,85 @@ export const UnifiedStoreCustomizer: React.FC<{
         <div className="absolute top-0 end-0 -mt-10 -me-10 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-amber-300">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{lang === 'ar' ? 'ركن التعديل الموحد والمتسلسل (13 ركناً)' : 'Unified Sequential Customizer (13 Corners)'}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-amber-300">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{activePreset.nicheLabel?.[lang] || activePreset.storeName?.[lang] || effectivePresetId}</span>
+              </div>
+              {isCurrentActive ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>{lang === 'ar' ? '🟢 مفعل بالمتجر الحي' : '🟢 Active on Store'}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-slate-300 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-slate-400" />
+                  <span>{lang === 'ar' ? '⚪ كامن – جاهز للتفعيل' : '⚪ Inactive Hub'}</span>
+                </span>
+              )}
             </div>
             <h1 className="text-xl sm:text-2xl font-black tracking-tight">
               {lang === 'ar' 
-                ? 'تخصيص المتجر من القمة وحتى التذييل (Top-to-Bottom Flow)' 
-                : 'Linear Visual Customizer (Top-to-Bottom Flow)'}
+                ? `ركن إدارة وتخصيص: ${activePreset.nicheLabel?.[lang] || effectivePresetId}` 
+                : `Store Customizer: ${activePreset.nicheLabel?.[lang] || effectivePresetId}`}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
               {lang === 'ar'
-                ? 'ركن موحد واحد مرتب بدقة متطابقة 1:1 مع الترتيب البصري الحقيقي للمتجر. يمكنك التعديل المباشر، استعادة الافتراضي لأي حقل، والتنقل الفوري لأي ركن.'
-                : 'A single unified customizer sequentially ordered 1:1 with the live store layout. Direct edits, granular resets, and instant corner jumps.'}
+                ? 'ركن موحد متكامل مرتب بدقة متطابقة 1:1 مع الترتيب البصري الحقيقي للمتجر. يمكنك التعديل المباشر، استعادة الافتراضي، أو تمكين هذا النظام بالمتجر الحي بنقرة زر واحدة.'
+                : '1:1 Linear store customizer. Edit content, reset factory defaults, and activate this system on the live storefront.'}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Activate Storefront Button (when not currently active) */}
+            {!isCurrentActive ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePresetId(effectivePresetId);
+                  showToast({
+                    type: 'success',
+                    message: lang === 'ar' 
+                      ? `تم تمكين قالب (${activePreset.nicheLabel?.[lang] || effectivePresetId}) بالمتجر الحي بنجاح! ⚡` 
+                      : `Activated (${effectivePresetId}) on live storefront! ⚡`
+                  });
+                }}
+                className="h-11 px-5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
+              >
+                <Sparkles className="w-4 h-4 text-purple-900" />
+                <span>{lang === 'ar' ? 'تمكين القالب بالمتجر الحي ⚡' : 'Activate On Storefront ⚡'}</span>
+              </button>
+            ) : effectivePresetId !== 'cosmetics' ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePresetId('cosmetics');
+                  showToast({
+                    type: 'info',
+                    message: lang === 'ar'
+                      ? 'تم إلغاء التمكين والعودة للمتجر الافتراضي بنجاح! ↩'
+                      : 'Deactivated preset and reverted to default store! ↩'
+                  });
+                }}
+                className="h-11 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/40 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+                title={lang === 'ar' ? 'إلغاء التمكين والعودة للمتجر الافتراضي' : 'Deactivate and return to default'}
+              >
+                <RotateCcw className="w-4 h-4 text-amber-400" />
+                <span>{lang === 'ar' ? 'إلغاء التمكين الافتراضي ↩' : 'Disable / Revert Default ↩'}</span>
+              </button>
+            ) : null}
+
+            {/* Factory Reset Preset Button */}
+            <button
+              type="button"
+              onClick={() => resetPresetToFactoryDefault(effectivePresetId)}
+              className="h-11 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-200 border border-rose-500/40 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+              title={lang === 'ar' ? 'استعادة ضبط المصنع بالكامل لهذا النظام' : 'Factory Reset this preset'}
+            >
+              <RotateCcw className="w-4 h-4 text-rose-400" />
+              <span>{lang === 'ar' ? 'استعادة ضبط المصنع للقالب ↺' : 'Factory Reset Store ↺'}</span>
+            </button>
+
             {/* Global Undo Button */}
             <button
               type="button"
@@ -919,10 +1077,10 @@ export const UnifiedStoreCustomizer: React.FC<{
               <div>
                 <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
                   <Droplets className="w-4 h-4 text-purple-600" />
-                  <span>{lang === 'ar' ? 'الركن السادس: قسم تشخيص الروتين والعناية الذكية' : 'Corner 6: Smart Routine Diagnosis'}</span>
+                  <span>{lang === 'ar' ? `الركن السادس: ${c6Info.name.ar}` : `Corner 6: ${c6Info.name.en}`}</span>
                 </h2>
                 <p className="text-xs text-slate-500">
-                  {lang === 'ar' ? 'بطاقات خطوات الروتين الأربعة (الغسول، السيروم، المرطب، الحماية)' : '4 interactive smart routine steps cards with ingredients and badges'}
+                  {c6Info.desc[lang]}
                 </p>
               </div>
             </div>
@@ -1140,10 +1298,10 @@ export const UnifiedStoreCustomizer: React.FC<{
               <div>
                 <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>{lang === 'ar' ? 'الركن التاسع: قسم أجهزة الشعر وبنرات الماركات (Trio Banners)' : 'Corner 9: Hair Devices & Trio Banners'}</span>
+                  <span>{lang === 'ar' ? `الركن التاسع: ${c9Info.name.ar}` : `Corner 9: ${c9Info.name.en}`}</span>
                 </h2>
                 <p className="text-xs text-slate-500">
-                  {lang === 'ar' ? 'بنرات الماركات الثلاث (سيل تك، أوكيما، كلارا) وسلايدر كروت أجهزة الشعر' : '3 Brand spotlight banners and smooth horizontal devices carousel'}
+                  {c9Info.desc[lang]}
                 </p>
               </div>
             </div>
@@ -1151,7 +1309,7 @@ export const UnifiedStoreCustomizer: React.FC<{
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
                 <MapPin className="w-3.5 h-3.5 text-amber-600" />
-                <span>{lang === 'ar' ? '📍 قسم أجهزة الشعر' : '📍 Hair Devices Section'}</span>
+                <span>{c9Info.tag[lang]}</span>
               </span>
               <FieldResetBtn path="trioBanners" descAr="بنرات الماركات الثلاثية" descEn="Brand Trio Banners" />
             </div>
@@ -1172,8 +1330,8 @@ export const UnifiedStoreCustomizer: React.FC<{
                   </div>
 
                   {banner.image && (
-                    <div className="absolute inset-y-0 end-0 w-1/2 overflow-hidden opacity-90">
-                      <img src={banner.image} alt={banner.brand} className="w-full h-full object-cover mix-blend-multiply" />
+                    <div className="absolute inset-y-0 end-0 w-1/2 overflow-hidden opacity-95">
+                      <img src={banner.image} alt={banner.brand} className="w-full h-full object-cover" />
                     </div>
                   )}
 
@@ -1260,10 +1418,10 @@ export const UnifiedStoreCustomizer: React.FC<{
               <div>
                 <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
                   <Star className="w-4 h-4 text-purple-600" />
-                  <span>{lang === 'ar' ? 'الركن العاشر: سلايدر المقارنة التفاعلية قبل وبعد (Visual Proof)' : 'Corner 10: Before & After Proof Slider'}</span>
+                  <span>{lang === 'ar' ? `الركن العاشر: ${c10Info.name.ar}` : `Corner 10: ${c10Info.name.en}`}</span>
                 </h2>
                 <p className="text-xs text-slate-500">
-                  {lang === 'ar' ? 'صور نتائج العناية قبل وبعد التفاعلية باللمس لمضاعفة ثقة العميلات' : 'Interactive touch before/after slider comparing real results'}
+                  {c10Info.desc[lang]}
                 </p>
               </div>
             </div>
