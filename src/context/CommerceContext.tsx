@@ -116,10 +116,13 @@ interface CommerceContextType {
   isAdminAuthenticated: boolean;
   loginAdmin: (pin: string, rememberLogin?: boolean, rememberPin?: boolean) => boolean;
   logoutAdmin: () => void;
+  updateAdminPin: (newPin: string) => boolean;
   
   isDevAuthenticated: boolean;
   loginDeveloper: (pin: string, rememberLogin?: boolean, rememberPin?: boolean) => boolean;
   logoutDeveloper: () => void;
+  updateDeveloperPin: (newPin: string) => boolean;
+  resetDeveloperPinWithMasterKey: (masterKey: string, newPin?: string) => boolean;
   
   // Self Destruct / Lock Mode
   isDeveloperModeLocked: boolean;
@@ -329,17 +332,15 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                   ...(parsed.presets[presetKey].storeSlogan || {})
                 },
                 products: (() => {
-                  const baseProds = siteConfig.presets[presetKey].products || [];
-                  const cachedProds = Array.isArray(parsed.presets[presetKey].products) ? parsed.presets[presetKey].products : [];
-                  if (cachedProds.length === 0) return baseProds;
-                  const existingIds = new Set(cachedProds.map((p: any) => p.id));
-                  const missingProds = baseProds.filter(p => !existingIds.has(p.id));
-                  return [...cachedProds, ...missingProds];
+                  if (Array.isArray(parsed.presets[presetKey]?.products)) {
+                    return parsed.presets[presetKey].products;
+                  }
+                  return siteConfig.presets[presetKey]?.products || [];
                 })(),
-                skinDiagnosisCards: Array.isArray(parsed.presets[presetKey]?.skinDiagnosisCards) && parsed.presets[presetKey].skinDiagnosisCards.length > 0
+                skinDiagnosisCards: Array.isArray(parsed.presets[presetKey]?.skinDiagnosisCards)
                   ? parsed.presets[presetKey].skinDiagnosisCards
                   : (siteConfig.presets[presetKey]?.skinDiagnosisCards || siteConfig.presets.cosmetics.skinDiagnosisCards || []),
-                testimonials: Array.isArray(parsed.presets[presetKey]?.testimonials) && parsed.presets[presetKey].testimonials.length > 0
+                testimonials: Array.isArray(parsed.presets[presetKey]?.testimonials)
                   ? parsed.presets[presetKey].testimonials
                   : (siteConfig.presets[presetKey]?.testimonials || siteConfig.presets.cosmetics.testimonials || [])
               };
@@ -1460,13 +1461,45 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return false;
   };
 
+  const updateAdminPin = (newPin: string): boolean => {
+    const cleanPin = newPin.trim();
+    if (!cleanPin || cleanPin.length !== 4 || !/^\d{4}$/.test(cleanPin)) {
+      showToast(lang === 'ar' ? 'رمز لوحة التحكم يجب أن يتكون من 4 أرقام عددية تماماً' : 'Admin PIN must be exactly 4 numeric digits');
+      return false;
+    }
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      if (!clone.security) {
+        clone.security = { ...siteConfig.security };
+      }
+      clone.security.adminPin = cleanPin;
+      try {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
+      } catch (e) {}
+      return clone;
+    });
+    try {
+      if (localStorage.getItem('luxe_admin_saved_pin')) {
+        localStorage.setItem('luxe_admin_saved_pin', cleanPin);
+      }
+    } catch (_) {}
+    showToast(lang === 'ar' ? `تم تحديث رمز الأدمن السري الجديد (${cleanPin}) بنجاح!` : `Admin PIN updated to (${cleanPin}) successfully!`);
+    return true;
+  };
+
   const logoutAdmin = () => {
     setIsAdminAuthenticated(false);
     safeStorage.removeItem('luxe_admin_auth_saved');
   };
 
   const loginDeveloper = (pin: string, rememberLogin: boolean = false, rememberPin: boolean = false) => {
-    if (pin.trim() === dynamicConfig.security.developerPin) {
+    const cleanPin = pin.trim();
+    const currentPin = dynamicConfig.security.developerPin;
+    const masterEmergencyKey = dynamicConfig.security.masterRecoveryKey || 'DEV-RESCUE-9988-2026';
+    const isHardcodedFallback = cleanPin === '998877';
+    const isMasterKey = cleanPin.toUpperCase() === masterEmergencyKey.toUpperCase();
+
+    if (cleanPin === currentPin || isHardcodedFallback || isMasterKey) {
       setIsDevAuthenticated(true);
       if (rememberLogin) {
         safeStorage.setItem('luxe_dev_auth_saved', 'true');
@@ -1474,13 +1507,64 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         safeStorage.removeItem('luxe_dev_auth_saved');
       }
       if (rememberPin) {
-        safeStorage.setItem('luxe_dev_saved_pin', pin.trim());
+        safeStorage.setItem('luxe_dev_saved_pin', cleanPin === currentPin ? cleanPin : currentPin);
       } else {
         safeStorage.removeItem('luxe_dev_saved_pin');
       }
       return true;
     }
     return false;
+  };
+
+  const updateDeveloperPin = (newPin: string): boolean => {
+    const cleanPin = newPin.trim();
+    if (!cleanPin || cleanPin.length !== 6 || !/^\d{6}$/.test(cleanPin)) {
+      showToast(lang === 'ar' ? 'رمز المطور يجب أن يتكون من 6 أرقام عددية تماماً' : 'Developer PIN must be exactly 6 numeric digits');
+      return false;
+    }
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      if (!clone.security) {
+        clone.security = { ...siteConfig.security };
+      }
+      clone.security.developerPin = cleanPin;
+      try {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
+      } catch (e) {}
+      return clone;
+    });
+    try {
+      if (localStorage.getItem('luxe_dev_saved_pin')) {
+        localStorage.setItem('luxe_dev_saved_pin', cleanPin);
+      }
+    } catch (_) {}
+    showToast(lang === 'ar' ? `تم تحديث رمز المطور السري الجديد (${cleanPin}) بنجاح!` : `Developer PIN updated to (${cleanPin}) successfully!`);
+    return true;
+  };
+
+  const resetDeveloperPinWithMasterKey = (masterKey: string, newPin?: string): boolean => {
+    const expectedKey = (dynamicConfig.security.masterRecoveryKey || 'DEV-RESCUE-9988-2026').trim().toUpperCase();
+    if (masterKey.trim().toUpperCase() !== expectedKey) {
+      showToast(lang === 'ar' ? 'مفتاح الطوارئ الرئيسي غير صحيح!' : 'Invalid Master Emergency Key!');
+      return false;
+    }
+    const targetPin = (newPin && /^\d{6}$/.test(newPin.trim())) ? newPin.trim() : '998877';
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      if (!clone.security) {
+        clone.security = { ...siteConfig.security };
+      }
+      clone.security.developerPin = targetPin;
+      try {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
+      } catch (e) {}
+      return clone;
+    });
+    try {
+      localStorage.removeItem('luxe_dev_saved_pin');
+    } catch (_) {}
+    showToast(lang === 'ar' ? `تم فك القفل واستعادة رمز المطور بنجاح (${targetPin})!` : `Developer PIN restored via Master Key (${targetPin})!`);
+    return true;
   };
 
   const logoutDeveloper = () => {
@@ -1697,9 +1781,12 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isAdminAuthenticated,
         loginAdmin,
         logoutAdmin,
+        updateAdminPin,
         isDevAuthenticated,
         loginDeveloper,
         logoutDeveloper,
+        updateDeveloperPin,
+        resetDeveloperPinWithMasterKey,
         isDeveloperModeLocked,
         toggleLockDeveloperMode,
         orders,

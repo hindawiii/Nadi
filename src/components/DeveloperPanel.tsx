@@ -20,6 +20,7 @@ export const DeveloperPanel: React.FC = () => {
     lang, isDevAuthenticated, loginDeveloper, logoutDeveloper, 
     activePresetId, setActivePresetId, dynamicConfig, setDynamicConfig, 
     clearAllOrders, restoreDefaultOrders,
+    updateDeveloperPin, updateAdminPin, resetDeveloperPinWithMasterKey,
     isDeveloperModeLocked, toggleLockDeveloperMode, setCurrentRoute, navigateTo,
     showToast, sectionsControl, toggleSection, resetSections,
     clonedSections, toggleCloneSection, updateClonedSectionConfig,
@@ -38,6 +39,49 @@ export const DeveloperPanel: React.FC = () => {
     'cosmetics' | 'fashion' | 'eyewear' | 'electronics' | 'golden' | 'templates' | 'security' | 'colors' | 'typography' | 'sections' | 'content'
   >(activePresetId);
   const [isConfirmingRollback, setIsConfirmingRollback] = useState(false);
+
+  // Developer & Admin PIN Security States
+  const [newDevPin, setNewDevPin] = useState('');
+  const [confirmDevPin, setConfirmDevPin] = useState('');
+  const [newAdminPin, setNewAdminPin] = useState('');
+  const [devPhoneInput, setDevPhoneInput] = useState(dynamicConfig?.security?.developerRecoveryPhone || '+966 50 889 9772');
+  const [devEmailInput, setDevEmailInput] = useState(dynamicConfig?.security?.developerRecoveryEmail || 'dev.core@luxe-ecommerce.pro');
+
+  const handleUpdateDevPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newDevPin !== confirmDevPin) {
+      showToast(lang === 'ar' ? 'رمزا المطور غير متطابقين!' : 'Developer PINs do not match!');
+      return;
+    }
+    const success = updateDeveloperPin(newDevPin);
+    if (success) {
+      setNewDevPin('');
+      setConfirmDevPin('');
+    }
+  };
+
+  const handleUpdateAdminPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const success = updateAdminPin(newAdminPin);
+    if (success) {
+      setNewAdminPin('');
+    }
+  };
+
+  const handleUpdateDevRecoveryContacts = (e: React.FormEvent) => {
+    e.preventDefault();
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      if (!clone.security) clone.security = { ...siteConfig.security };
+      clone.security.developerRecoveryPhone = devPhoneInput.trim();
+      clone.security.developerRecoveryEmail = devEmailInput.trim();
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+    showToast(lang === 'ar' ? 'تم تحديث بيانات الاتصال المعتمدة لمطور النظام بنجاح!' : 'Developer 2FA contact info saved successfully!');
+  };
 
   // Custom template import/export state
   const [customCodeInput, setCustomCodeInput] = useState('');
@@ -2980,6 +3024,258 @@ export const DeveloperPanel: React.FC = () => {
                     {lang === 'ar' ? 'استرجاع المنتجات النموذجية للمعاينة في أي وقت' : 'Restore default demo items anytime for demo'}
                   </p>
                 </button>
+              </div>
+            </div>
+
+            {/* SECTION 2: PIN MANAGEMENT (DEVELOPER & ADMIN) */}
+            <div className="bg-slate-950 p-6 rounded-3xl border border-amber-500/30 space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-amber-500/20 text-amber-400 rounded-2xl shrink-0">
+                  <KeyRound className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {lang === 'ar' ? 'تأمين الصلاحيات' : 'Credentials Security'}
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-extrabold text-white">
+                    {lang === 'ar' ? 'إدارة الرموز السرية (Developer & Admin PINs)' : 'Developer & Admin PIN Management'}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
+                    {lang === 'ar'
+                      ? 'يمكنك هنا تعيين رمز سري جديد للوحة المطور (6 أرقام) وتعيين رمز سري جديد للوحة تحكم الأدمن (4 أرقام) بكل أمان.'
+                      : 'Set a new 6-digit PIN for Supreme Developer Console and a 4-digit PIN for Merchant Admin Panel.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+                {/* 1. Developer PIN Card */}
+                <form onSubmit={handleUpdateDevPin} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                      <Terminal className="w-4 h-4 text-amber-400" />
+                      <span>{lang === 'ar' ? 'رمز لوحة المطور (6 أرقام)' : 'Developer Console PIN (6 Digits)'}</span>
+                    </span>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      {lang === 'ar' ? 'الرمز مفعّل' : 'Active'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        {lang === 'ar' ? 'الرمز الجديد (6 أرقام عددية):' : 'New 6-Digit PIN:'}
+                      </label>
+                      <input
+                        type="password"
+                        maxLength={6}
+                        inputMode="numeric"
+                        value={newDevPin}
+                        onChange={(e) => setNewDevPin(e.target.value.replace(/\D/g, ''))}
+                        placeholder="••••••"
+                        className="w-full h-11 px-3 text-center font-mono text-base font-bold rounded-xl bg-slate-950 border border-slate-800 focus:border-amber-500 text-white outline-none"
+                        dir="ltr"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        {lang === 'ar' ? 'تأكيد الرمز الجديد:' : 'Confirm New PIN:'}
+                      </label>
+                      <input
+                        type="password"
+                        maxLength={6}
+                        inputMode="numeric"
+                        value={confirmDevPin}
+                        onChange={(e) => setConfirmDevPin(e.target.value.replace(/\D/g, ''))}
+                        placeholder="••••••"
+                        className="w-full h-11 px-3 text-center font-mono text-base font-bold rounded-xl bg-slate-950 border border-slate-800 focus:border-amber-500 text-white outline-none"
+                        dir="ltr"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={newDevPin.length !== 6 || confirmDevPin.length !== 6}
+                    className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all min-h-[44px]"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{lang === 'ar' ? 'حفظ وتحديث رمز المطور' : 'Update Developer PIN'}</span>
+                  </button>
+                </form>
+
+                {/* 2. Admin PIN Card */}
+                <form onSubmit={handleUpdateAdminPin} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-purple-300 flex items-center gap-1.5">
+                      <Shield className="w-4 h-4 text-purple-400" />
+                      <span>{lang === 'ar' ? 'رمز لوحة الأدمن (4 أرقام)' : 'Admin Panel PIN (4 Digits)'}</span>
+                    </span>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      {lang === 'ar' ? 'الرمز مفعّل' : 'Active'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        {lang === 'ar' ? 'الرمز الجديد للوحة التحكم (4 أرقام):' : 'New 4-Digit Admin PIN:'}
+                      </label>
+                      <input
+                        type="password"
+                        maxLength={4}
+                        inputMode="numeric"
+                        value={newAdminPin}
+                        onChange={(e) => setNewAdminPin(e.target.value.replace(/\D/g, ''))}
+                        placeholder="••••"
+                        className="w-full h-11 px-3 text-center font-mono text-base font-bold rounded-xl bg-slate-950 border border-slate-800 focus:border-purple-500 text-white outline-none"
+                        dir="ltr"
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 leading-relaxed pt-2">
+                      {lang === 'ar'
+                        ? 'يستخدم هذا الرمز لحماية مسار (/admin) الخاص بالتاجر لإدارة المنتجات والطلبات.'
+                        : 'Used to protect the merchant dashboard (/admin) for catalog and orders.'}
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={newAdminPin.length !== 4}
+                    className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all min-h-[44px]"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{lang === 'ar' ? 'حفظ وتحديث رمز الأدمن' : 'Update Admin PIN'}</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* SECTION 3: DEVELOPER 2FA & RECOVERY CONTACTS */}
+            <form onSubmit={handleUpdateDevRecoveryContacts} className="bg-slate-950 p-6 rounded-3xl border border-sky-900/60 space-y-5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-sky-500/20 text-sky-400 rounded-2xl shrink-0">
+                  <Phone className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                      {lang === 'ar' ? 'قناة التحقق الحصرية' : '2FA Channel'}
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-extrabold text-white">
+                    {lang === 'ar' ? 'بيانات التحقق المزدوج (2FA) لمطور النظام' : 'Developer 2FA Identity Contacts'}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
+                    {lang === 'ar'
+                      ? 'هذه البيانات خاصة بك أنت كمطور المتجر وليست للعميل التاجر، حيث يتم إرسال كود التحقق السري إليها عند استعادة كلمة المرور.'
+                      : 'Exclusive contact endpoints for the developer (not the merchant). Verification OTPs are sent here for authentication.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-sky-400" />
+                    <span>{lang === 'ar' ? 'رقم هاتف المطور (لاستقبال كود التحقق):' : 'Developer Mobile (OTP receiver):'}</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={devPhoneInput}
+                    onChange={(e) => setDevPhoneInput(e.target.value)}
+                    placeholder="+966 50 889 9772"
+                    className="w-full h-11 px-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-white outline-none focus:border-sky-500"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-sky-400" />
+                    <span>{lang === 'ar' ? 'البريد الإلكتروني المعتمد للمطور:' : 'Developer Email:'}</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={devEmailInput}
+                    onChange={(e) => setDevEmailInput(e.target.value)}
+                    placeholder="dev.core@luxe-ecommerce.pro"
+                    className="w-full h-11 px-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-white outline-none focus:border-sky-500"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all min-h-[44px]"
+              >
+                <Check className="w-4 h-4" />
+                <span>{lang === 'ar' ? 'حفظ وتحديث بيانات الاتصال' : 'Save 2FA Contacts'}</span>
+              </button>
+            </form>
+
+            {/* SECTION 4: HARDCODED MASTER EMERGENCY RECOVERY KEY (احتياطي الاحتياطي) */}
+            <div className="bg-slate-950 p-6 rounded-3xl border border-rose-900/60 space-y-5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-rose-500/20 text-rose-400 rounded-2xl shrink-0">
+                  <Cpu className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      {lang === 'ar' ? 'خطة الطوارئ القصوى (Plan C)' : 'Extreme Emergency Plan C'}
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-extrabold text-white">
+                    {lang === 'ar' ? 'مفتاح الطوارئ البرمجي الصلب (Master Recovery Key)' : 'Hardcoded Offline Master Recovery Key'}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
+                    {lang === 'ar'
+                      ? 'إذا فقدت هاتفك وإيميلك معاً، يمكنك استخدام هذا المفتاح البرمجي الصلب لفك القفل واستعادة رمز المطور فورياً دون الحاجة للإنترنت أو استقبال رسائل.'
+                      : 'If you ever lose access to both phone and email, enter this offline Master Key in the rescue window to override any lock.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900 border border-rose-950 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-300">
+                    {lang === 'ar' ? 'المفتاح البرمجي الرئيسي الصلب:' : 'Master Hardcoded Emergency Key:'}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-black text-rose-300 bg-rose-950/60 px-3 py-1.5 rounded-xl border border-rose-800/60 tracking-wider" dir="ltr">
+                      {dynamicConfig?.security?.masterRecoveryKey || 'DEV-RESCUE-9988-2026'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(dynamicConfig?.security?.masterRecoveryKey || 'DEV-RESCUE-9988-2026');
+                        showToast(lang === 'ar' ? 'تم نسخ مفتاح الطوارئ الرئيسي للحافظة' : 'Master Key copied to clipboard');
+                      }}
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      title={lang === 'ar' ? 'نسخ المفتاح' : 'Copy Key'}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+                  <p className="font-bold text-slate-300">
+                    {lang === 'ar' ? '📍 أين تجد هذا المفتاح وكلمة السر في الكود المصدري؟' : '📍 Where to find this key and credentials in code?'}
+                  </p>
+                  <p className="font-mono text-amber-400/90 text-[11px]" dir="ltr">
+                    File: src/data/siteConfig.ts &rarr; line 215: developerPin: "998877"
+                  </p>
+                  <p className="font-mono text-amber-400/90 text-[11px]" dir="ltr">
+                    File: src/context/CommerceContext.tsx &rarr; loginDeveloper & masterRecoveryKey
+                  </p>
+                </div>
               </div>
             </div>
           </div>

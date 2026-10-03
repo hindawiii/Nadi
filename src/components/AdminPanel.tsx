@@ -147,7 +147,7 @@ export const AdminPanel: React.FC = () => {
       }
       cur[parts[parts.length - 1]] = value;
       try {
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
       } catch (e) {}
       return clone;
     });
@@ -162,7 +162,7 @@ export const AdminPanel: React.FC = () => {
         target.stock = Math.max(0, newStock);
       }
       try {
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
       } catch (e) {}
       return clone;
     });
@@ -177,7 +177,7 @@ export const AdminPanel: React.FC = () => {
         target.basePriceUSD = Math.max(0.5, newUSD);
       }
       try {
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
       } catch (e) {}
       return clone;
     });
@@ -196,7 +196,7 @@ export const AdminPanel: React.FC = () => {
         }
       }
       try {
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
       } catch (e) {}
       return clone;
     });
@@ -252,7 +252,7 @@ export const AdminPanel: React.FC = () => {
           target.images.push(dataUrl);
         }
         try {
-          localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+          localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
         } catch (err) {}
         return clone;
       });
@@ -315,7 +315,7 @@ export const AdminPanel: React.FC = () => {
         }
       }
       try {
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
       } catch (err) {}
       return clone;
     });
@@ -415,7 +415,7 @@ export const AdminPanel: React.FC = () => {
         }
       }
       try {
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
       } catch (err) {}
       return clone;
     });
@@ -748,7 +748,7 @@ export const AdminPanel: React.FC = () => {
       const clone = JSON.parse(JSON.stringify(prev));
       clone.presets[activePresetId].products = [newProd, ...(clone.presets[activePresetId].products || [])];
       try {
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
       } catch (e) {}
       return clone;
     });
@@ -773,7 +773,7 @@ export const AdminPanel: React.FC = () => {
         const clone = JSON.parse(JSON.stringify(prev));
         clone.presets[activePresetId].products = (clone.presets[activePresetId].products || []).filter((p: any) => p.id !== productId);
         try {
-          localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+          localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
         } catch (e) {}
         return clone;
       });
@@ -794,7 +794,7 @@ export const AdminPanel: React.FC = () => {
         target.images.push(url.trim());
       }
       try {
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
       } catch (e) {}
       return clone;
     });
@@ -809,7 +809,7 @@ export const AdminPanel: React.FC = () => {
         target.images.splice(imgIdx, 1);
       }
       try {
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
       } catch (e) {}
       return clone;
     });

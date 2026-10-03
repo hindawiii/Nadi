@@ -74,7 +74,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
       }
       cur[parts[parts.length - 1]] = value;
       try {
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
       } catch (e) {}
       return clone;
     });

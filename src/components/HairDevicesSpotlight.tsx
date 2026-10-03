@@ -307,9 +307,14 @@ export const HairDevicesSpotlight: React.FC = () => {
     ? presetData.trioBanners
     : defaultTrioBanners;
 
-  // Source devices either dynamically from active catalog or fallback to hairStylingDevices
+  // Source devices dynamically from active catalog
   const availableDevices = (presetData?.products || []).filter(p => p.id.startsWith('hd-'));
-  const effectiveDevices = availableDevices.length > 0 ? availableDevices : hairStylingDevices;
+  
+  // If catalog has been wiped for client handover or has no hair devices, hide spotlight section cleanly
+  if (availableDevices.length === 0) {
+    return null;
+  }
+  const effectiveDevices = availableDevices;
 
   // Filter products based on sub-category
   const filteredProducts = effectiveDevices.filter((item) => {

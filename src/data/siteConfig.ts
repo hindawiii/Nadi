@@ -204,6 +204,9 @@ export interface SiteConfig {
     adminPin: string;
     developerPin: string;
     isDeveloperModeLocked: boolean;
+    developerRecoveryPhone?: string;
+    developerRecoveryEmail?: string;
+    masterRecoveryKey?: string;
   };
   currencies: Record<string, CurrencyConfig>;
   presets: Record<'cosmetics' | 'fashion' | 'eyewear' | 'electronics', PresetNiche>;
@@ -214,6 +217,9 @@ export const siteConfig: SiteConfig = {
     adminPin: "2026",
     developerPin: "998877",
     isDeveloperModeLocked: false,
+    developerRecoveryPhone: "+966 50 889 9772",
+    developerRecoveryEmail: "dev.core@luxe-ecommerce.pro",
+    masterRecoveryKey: "DEV-RESCUE-9988-2026",
   },
   
   currencies: {

@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Shield, Lock, KeyRound, Eye, EyeOff, CheckCircle2, 
   AlertTriangle, ArrowLeft, ArrowRight, Sparkles, Check, 
-  RotateCcw, Globe, Store, Terminal, HelpCircle
+  RotateCcw, Globe, Store, Terminal, HelpCircle,
+  Phone, Mail, X, Key, ShieldCheck, Cpu, Send, RefreshCw
 } from 'lucide-react';
 import { useCommerce } from '../../context/CommerceContext';
 
@@ -33,8 +34,68 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
   savedAuthKey,
   savedPinKey,
 }) => {
-  const { lang, setLang, showToast } = useCommerce();
+  const { lang, setLang, showToast, dynamicConfig, resetDeveloperPinWithMasterKey, loginDeveloper } = useCommerce();
   const isRtl = lang === 'ar';
+
+  // Developer Emergency Recovery State
+  const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
+  const [recoveryTab, setRecoveryTab] = useState<'otp' | 'master_key'>('otp');
+  const [otpSent, setOtpSent] = useState(false);
+  const [activeOtp, setActiveOtp] = useState('');
+  const [otpInput, setOtpInput] = useState('');
+  const [masterKeyInput, setMasterKeyInput] = useState('');
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  const handleSendOtp = () => {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setActiveOtp(code);
+    setOtpSent(true);
+    setCountdown(60);
+    const phone = dynamicConfig?.security?.developerRecoveryPhone || '+966 50 889 9772';
+    showToast({
+      type: 'info',
+      message: lang === 'ar'
+        ? `📲 كود التحقق السري لمطور النظام: (${code}) - تم إرساله لهاتف المطور: ${phone}`
+        : `📲 Developer OTP: (${code}) dispatched to phone: ${phone}`
+    });
+  };
+
+  const handleVerifyOtp = () => {
+    if (!otpInput || otpInput.trim() !== activeOtp) {
+      showToast(lang === 'ar' ? 'رمز التحقق غير صحيح أو انتهت صلاحيته!' : 'Invalid or expired OTP code!');
+      return;
+    }
+    // Verify developer and authenticate
+    const devPin = dynamicConfig?.security?.developerPin || '998877';
+    loginDeveloper(devPin, true, false);
+    setIsRecoveryModalOpen(false);
+    showToast({
+      type: 'success',
+      message: lang === 'ar' ? '🎉 تم التحقق من هوية المطور بنجاح وفتح لوحة المطور!' : '🎉 Developer identity verified! Console unlocked.'
+    });
+  };
+
+  const handleVerifyMasterKey = () => {
+    const expected = (dynamicConfig?.security?.masterRecoveryKey || 'DEV-RESCUE-9988-2026').trim().toUpperCase();
+    if (!masterKeyInput || masterKeyInput.trim().toUpperCase() !== expected) {
+      showToast(lang === 'ar' ? 'مفتاح الطوارئ الرئيسي غير صحيح!' : 'Invalid Master Emergency Key!');
+      return;
+    }
+    resetDeveloperPinWithMasterKey(masterKeyInput.trim(), '998877');
+    loginDeveloper('998877', true, false);
+    setIsRecoveryModalOpen(false);
+    showToast({
+      type: 'success',
+      message: lang === 'ar' ? '🔓 تم فك القفل واستعادة رمز المطور الافتراضي (998877) بنجاح!' : '🔓 Unlocked via Master Key! Restored default PIN (998877).'
+    });
+  };
 
   // Read saved preferences from LocalStorage
   const [rememberLogin, setRememberLogin] = useState<boolean>(() => {
@@ -490,25 +551,216 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
               )}
             </button>
 
-            {/* Quick Demo Helper Hint */}
-            <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
-              <span className="flex items-center gap-1">
-                <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
-                <span>
-                  {lang === 'ar' ? `الرمز الافتراضي: ${defaultPin}` : `Default PIN: ${defaultPin}`}
+            {/* Recovery / Demo Trigger */}
+            {portalType === 'developer' ? (
+              <div className="flex items-center justify-between pt-1 text-[11px]">
+                <span className="flex items-center gap-1 text-slate-500 font-mono text-[10px]">
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+                  <span>2FA & MASTER RESCUE SECURED</span>
                 </span>
-              </span>
 
-              <button
-                type="button"
-                onClick={handleAutoFillDefault}
-                className="text-amber-400 hover:text-amber-300 font-bold underline transition-colors cursor-pointer"
-              >
-                {lang === 'ar' ? 'ملء تجريبي سريع' : 'Quick Auto-fill'}
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRecoveryModalOpen(true)}
+                  className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 transition-colors cursor-pointer underline text-[11px]"
+                >
+                  <Key className="w-3 h-3" />
+                  <span>{lang === 'ar' ? 'نسيت الرمز؟ بروتوكول طوارئ المطور 🛡️' : 'Developer Emergency Recovery 🛡️'}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+                <span className="flex items-center gap-1">
+                  <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+                  <span>
+                    {lang === 'ar' ? `الرمز الافتراضي: ${defaultPin}` : `Default PIN: ${defaultPin}`}
+                  </span>
+                </span>
+
+                <button
+                  type="button"
+                  onClick={handleAutoFillDefault}
+                  className="text-purple-400 hover:text-purple-300 font-bold underline transition-colors cursor-pointer"
+                >
+                  {lang === 'ar' ? 'ملء تجريبي سريع' : 'Quick Auto-fill'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* DEVELOPER EMERGENCY RECOVERY MODAL */}
+        {isRecoveryModalOpen && portalType === 'developer' && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+            <div 
+              className="bg-slate-900 border border-amber-500/40 rounded-3xl w-full max-w-md p-6 sm:p-7 shadow-2xl shadow-amber-950/40 space-y-5 text-start relative"
+              dir={isRtl ? 'rtl' : 'ltr'}
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsRecoveryModalOpen(false)}
+                className="absolute top-5 end-5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Modal Header */}
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white">
+                    {lang === 'ar' ? 'بروتوكول طوارئ المطور (Dev Rescue)' : 'Developer Emergency Recovery'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {lang === 'ar' ? 'استعادة الوصول الحصري لمطور النظام' : 'Exclusive recovery for system developer'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Tabs Switcher */}
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-2xl border border-slate-800 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setRecoveryTab('otp')}
+                  className={`py-2 px-3 rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
+                    recoveryTab === 'otp'
+                      ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'كود التحقق (2FA)' : 'OTP (2FA)'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRecoveryTab('master_key')}
+                  className={`py-2 px-3 rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
+                    recoveryTab === 'master_key'
+                      ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'المفتاح الصلب بالكود' : 'Master Code Key'}</span>
+                </button>
+              </div>
+
+              {/* TAB 1: 2FA OTP TO REGISTERED DEVELOPER */}
+              {recoveryTab === 'otp' && (
+                <div className="space-y-4 pt-1">
+                  <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2 text-xs">
+                    <div className="flex items-center justify-between text-slate-400">
+                      <span>{lang === 'ar' ? 'رقم هاتف المطور المسجل:' : 'Registered Dev Phone:'}</span>
+                      <span className="font-mono font-bold text-amber-300" dir="ltr">
+                        {dynamicConfig?.security?.developerRecoveryPhone || '+966 50 889 9772'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-400">
+                      <span>{lang === 'ar' ? 'البريد الإلكتروني:' : 'Dev Email:'}</span>
+                      <span className="font-mono text-slate-300" dir="ltr">
+                        {dynamicConfig?.security?.developerRecoveryEmail || 'dev.core@luxe-ecommerce.pro'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {!otpSent ? (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-950/50 min-h-[44px]"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>{lang === 'ar' ? 'إرسال رمز التحقق السري الآن' : 'Dispatch Verification Code Now'}</span>
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-300">
+                          {lang === 'ar' ? 'أدخل رمز التحقق (6 أرقام):' : 'Enter 6-digit OTP code:'}
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={otpInput}
+                          onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                          placeholder="مثال: 482910"
+                          className="w-full h-12 text-center font-mono text-xl font-black rounded-2xl bg-slate-950 border border-amber-500/50 text-white outline-none focus:ring-2 focus:ring-amber-400"
+                          dir="ltr"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleVerifyOtp}
+                          className="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>{lang === 'ar' ? 'تأكيد الرمز والدخول' : 'Verify & Enter'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleSendOtp}
+                          disabled={countdown > 0}
+                          className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer min-h-[44px]"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>{countdown > 0 ? `${countdown}s` : (lang === 'ar' ? 'إعادة الإرسال' : 'Resend')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: HARDCODED MASTER RESCUE KEY (احتياطي الاحتياطي) */}
+              {recoveryTab === 'master_key' && (
+                <div className="space-y-4 pt-1">
+                  <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-xs text-amber-200 leading-relaxed space-y-1.5">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                      <Cpu className="w-4 h-4 shrink-0" />
+                      <span>{lang === 'ar' ? 'طريقة احتياطي الاحتياطي البرمجية:' : 'Hardcoded Offline Rescue Protocol:'}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      {lang === 'ar'
+                        ? 'في حال فقدت الوصول للهاتف والإيميل، يمكنك إدخال المفتاح الرئيسي المسجل في الكود المصدري للمشروع (src/data/siteConfig.ts) لفك القفل واستعادة رمز المطور فوراً.'
+                        : 'If phone and email are inaccessible, enter the Master Rescue Key embedded in the project source code (src/data/siteConfig.ts).'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300">
+                      {lang === 'ar' ? 'مفتاح الطوارئ البرمجي (Master Recovery Key):' : 'Master Code Recovery Key:'}
+                    </label>
+                    <input
+                      type="text"
+                      value={masterKeyInput}
+                      onChange={(e) => setMasterKeyInput(e.target.value)}
+                      placeholder="DEV-RESCUE-9988-2026"
+                      className="w-full h-12 px-4 font-mono text-sm font-bold rounded-2xl bg-slate-950 border border-amber-500/50 text-white outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-slate-600"
+                      dir="ltr"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleVerifyMasterKey}
+                    className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-950/50 min-h-[44px]"
+                  >
+                    <Key className="w-4 h-4" />
+                    <span>{lang === 'ar' ? 'فك القفل واستعادة رمز المطور (998877)' : 'Rescue & Restore Default PIN'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Footer Info */}
