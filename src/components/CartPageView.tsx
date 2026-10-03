@@ -137,8 +137,9 @@ export const CartPageView: React.FC = () => {
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 mb-6">
           <button 
+            type="button"
             onClick={() => navigateTo('store')} 
-            className="hover:text-[#5A3E7A] transition-colors font-medium flex items-center gap-1"
+            className="hover:text-[#5A3E7A] transition-colors font-medium flex items-center gap-1 cursor-pointer active:scale-95"
           >
             <span>{lang === 'ar' ? 'الرئيسية' : 'Home'}</span>
             {isRtl ? <ArrowLeft className="w-3.5 h-3.5" /> : <ArrowRight className="w-3.5 h-3.5" />}
@@ -168,8 +169,9 @@ export const CartPageView: React.FC = () => {
           {cart.length > 0 && (
             <div className="flex items-center gap-3 self-start sm:self-center">
               <button
+                type="button"
                 onClick={() => navigateTo('store')}
-                className="text-xs font-bold text-[#5A3E7A] hover:text-[#483162] bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl border border-purple-200 transition-colors flex items-center gap-1.5"
+                className="text-xs font-bold text-[#5A3E7A] hover:text-[#483162] bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl border border-purple-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 {isRtl ? <ArrowRight className="w-3.5 h-3.5" /> : <ArrowLeft className="w-3.5 h-3.5" />}
                 <span>{lang === 'ar' ? 'متابعة التسوق' : 'Continue Shopping'}</span>

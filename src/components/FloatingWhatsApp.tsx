@@ -84,8 +84,10 @@ export const FloatingWhatsApp: React.FC = () => {
     return () => clearTimeout(timer);
   }, [isDismissed]);
 
-  // Smart Scroll Dismissal: When user scrolls, gracefully collapse tooltip
+  // Smart Scroll Dismissal: When user scrolls, gracefully collapse tooltip once and remove listener
   useEffect(() => {
+    if (isDismissed) return;
+
     const handleScroll = () => {
       if (window.scrollY > 40) {
         setIsAutoVisible(false);
@@ -93,12 +95,13 @@ export const FloatingWhatsApp: React.FC = () => {
         try {
           sessionStorage.setItem('so_beauty_wa_note_dismissed', 'true');
         } catch {}
+        window.removeEventListener('scroll', handleScroll);
       }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [isDismissed]);
 
   // Close speed-dial menu or phone modal on ESC key
   useEffect(() => {

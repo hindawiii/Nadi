@@ -60,8 +60,9 @@ export const AboutView: React.FC = () => {
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
             <button 
+              type="button"
               onClick={() => navigateTo('store')} 
-              className="hover:text-[#5A3E7A] flex items-center gap-1 transition-colors"
+              className="hover:text-[#5A3E7A] flex items-center gap-1 transition-colors cursor-pointer active:scale-95"
             >
               <Home className="w-3.5 h-3.5" />
               <span>{lang === 'ar' ? 'الرئيسية' : 'Home'}</span>

@@ -141,8 +141,9 @@ export const LoginPageView: React.FC = () => {
       {/* Top Bar: Return to Store Navigation */}
       <div className="w-full max-w-lg mb-6 flex items-center justify-between z-10">
         <button
+          type="button"
           onClick={() => navigateTo('store')}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-[#5A3E7A] font-bold text-xs sm:text-sm border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all min-h-[44px] group"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-[#5A3E7A] font-bold text-xs sm:text-sm border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all min-h-[44px] cursor-pointer active:scale-95 group"
         >
           {isRtl ? (
             <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-[#5A3E7A] group-hover:translate-x-0.5 transition-transform" />

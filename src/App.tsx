@@ -39,6 +39,19 @@ const AppContent: React.FC = () => {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const prevRouteRef = useRef<string>('');
   const hasInitializedRef = useRef<boolean>(false);
+  const isNavigatingRef = useRef<boolean>(false);
+
+  // Stable references to prevent effect thrashing and recursive loops
+  const currentRouteRef = useRef(currentRoute);
+  currentRouteRef.current = currentRoute;
+  const activeProductsRef = useRef(activeData.products);
+  activeProductsRef.current = activeData.products;
+  const openProductPDPRef = useRef(openProductPDP);
+  openProductPDPRef.current = openProductPDP;
+  const returnFromPDPToStoreRef = useRef(returnFromPDPToStore);
+  returnFromPDPToStoreRef.current = returnFromPDPToStore;
+  const setCurrentRouteRef = useRef(setCurrentRoute);
+  setCurrentRouteRef.current = setCurrentRoute;
 
   // Enforce manual scroll restoration so reloading starts at the top of the store
   useEffect(() => {
@@ -60,7 +73,6 @@ const AppContent: React.FC = () => {
       if (initialHash === 'products-section' || initialHash === 'categories-section' || initialHash === 'campaign-section') {
         try {
           window.history.replaceState(null, '', window.location.pathname || '/');
-          window.location.hash = '';
         } catch (_) {}
       }
       setCurrentRoute('store');
@@ -70,77 +82,74 @@ const AppContent: React.FC = () => {
     hasInitializedRef.current = true;
   }, []);
 
-  // Listen to user URL hash/popstate changes for explicit navigation
+  // Listen to user URL popstate changes with loop-guard protection
   useEffect(() => {
     const handleLocationChange = () => {
-      const hash = (window.location.hash || '').replace('#', '').trim();
-      const pathname = (window.location.pathname || '').replace(/^\//, '').trim();
-      const route = pathname || hash;
+      if (isNavigatingRef.current) return;
+      isNavigatingRef.current = true;
 
-      // Clean internal section anchors so refresh never jumps down to products
-      if (hash === 'products-section' || hash === 'categories-section' || hash === 'campaign-section') {
-        try {
-          window.history.replaceState(null, '', window.location.pathname || '/');
-        } catch (_) {}
-        setCurrentRoute('store');
-        return;
-      }
+      try {
+        const hash = (window.location.hash || '').replace('#', '').trim();
+        const pathname = (window.location.pathname || '').replace(/^\//, '').trim();
+        const route = pathname || hash;
 
-      if (route.startsWith('product/') || hash.startsWith('product-')) {
-        const prodId = route.startsWith('product/') 
-          ? route.replace('product/', '') 
-          : hash.replace('product-', '');
-        
-        // Search in both skincare products and hair styling devices
-        const allProducts = [...activeData.products, ...hairStylingDevices];
-        const target = allProducts.find((p) => p.id === prodId);
-        if (target) {
-          openProductPDP(target);
-          prevRouteRef.current = 'pdp';
+        // Clean internal section anchors
+        if (hash === 'products-section' || hash === 'categories-section' || hash === 'campaign-section') {
+          try {
+            window.history.replaceState(null, '', window.location.pathname || '/');
+          } catch (_) {}
+          setCurrentRouteRef.current('store');
           return;
         }
-      }
 
-      if (route === 'admin') {
-        setCurrentRoute('admin');
-      } else if (route === 'developer') {
-        setCurrentRoute('developer');
-      } else if (route === 'about') {
-        setCurrentRoute('about');
-      } else if (route === 'wishlist') {
-        setCurrentRoute('wishlist');
-      } else if (route === 'cart') {
-        setCurrentRoute('cart');
-      } else if (route === 'tracker') {
-        setCurrentRoute('tracker');
-      } else if (route === 'login' || route === 'auth') {
-        // Only set login if explicitly triggered and app has already completed initial mount
-        if (hasInitializedRef.current) {
-          setCurrentRoute('login');
-        } else {
-          setCurrentRoute('store');
-        }
-      } else {
-        // Default everything else to store homepage
-        if (prevRouteRef.current === 'pdp') {
-          returnFromPDPToStore();
-        } else {
-          if (prevRouteRef.current && prevRouteRef.current !== 'store' && !window.location.hash.startsWith('#product')) {
-            window.scrollTo({ top: 0, behavior: 'instant' });
+        if (route.startsWith('product/') || hash.startsWith('product-')) {
+          const prodId = route.startsWith('product/') 
+            ? route.replace('product/', '') 
+            : hash.replace('product-', '');
+          
+          const allProducts = [...activeProductsRef.current, ...hairStylingDevices];
+          const target = allProducts.find((p) => p.id === prodId);
+          if (target) {
+            // Skip pushing history when already handling a popstate navigation
+            openProductPDPRef.current(target, false);
+            prevRouteRef.current = 'pdp';
+            return;
           }
-          setCurrentRoute('store');
         }
+
+        if (route === 'admin') {
+          setCurrentRouteRef.current('admin');
+        } else if (route === 'developer') {
+          setCurrentRouteRef.current('developer');
+        } else if (route === 'about') {
+          setCurrentRouteRef.current('about');
+        } else if (route === 'wishlist') {
+          setCurrentRouteRef.current('wishlist');
+        } else if (route === 'cart') {
+          setCurrentRouteRef.current('cart');
+        } else if (route === 'tracker') {
+          setCurrentRouteRef.current('tracker');
+        } else if (route === 'login' || route === 'auth') {
+          if (hasInitializedRef.current) {
+            setCurrentRouteRef.current('login');
+          } else {
+            setCurrentRouteRef.current('store');
+          }
+        } else {
+          // Returning to store cleanly via popstate without mutating history
+          returnFromPDPToStoreRef.current(true);
+        }
+        prevRouteRef.current = route || 'store';
+      } finally {
+        isNavigatingRef.current = false;
       }
-      prevRouteRef.current = route || 'store';
     };
 
-    window.addEventListener('hashchange', handleLocationChange);
     window.addEventListener('popstate', handleLocationChange);
     return () => {
-      window.removeEventListener('hashchange', handleLocationChange);
       window.removeEventListener('popstate', handleLocationChange);
     };
-  }, [activeData.products, hairStylingDevices, isDeveloperModeLocked, openProductPDP, returnFromPDPToStore, setCurrentRoute]);
+  }, []);
 
   const isControlPanelRoute = currentRoute === 'admin' || currentRoute === 'developer';
 

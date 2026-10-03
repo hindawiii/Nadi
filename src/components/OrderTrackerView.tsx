@@ -51,8 +51,9 @@ export const OrderTrackerView: React.FC = () => {
         {/* Navigation */}
         <div className="flex items-center justify-between">
           <button
+            type="button"
             onClick={() => navigateTo('store')}
-            className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-[#5A3E7A] bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm transition-colors min-h-[44px]"
+            className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-[#5A3E7A] bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm transition-all min-h-[44px] cursor-pointer active:scale-95"
           >
             {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
             <span>{lang === 'ar' ? 'الرجوع للمتجر' : 'Back to Store'}</span>

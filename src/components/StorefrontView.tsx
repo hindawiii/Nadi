@@ -18,12 +18,6 @@ export const StorefrontView: React.FC = () => {
   } = useCommerce();
   const isRtl = lang === 'ar';
 
-  // Always ensure page starts at the top when entering or reloading the store
-  useEffect(() => {
-    if (!window.location.hash.startsWith('#product')) {
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    }
-  }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeSkinFilter, setActiveSkinFilter] = useState<string | null>(null);

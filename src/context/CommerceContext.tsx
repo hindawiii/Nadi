@@ -101,8 +101,8 @@ interface CommerceContextType {
   
   // PDP
   activeProduct: Product | null;
-  openProductPDP: (p: Product) => void;
-  returnFromPDPToStore: () => void;
+  openProductPDP: (p: Product, pushHistory?: boolean) => void;
+  returnFromPDPToStore: (fromPopstate?: boolean) => void;
 
   // Product Comparison System
   comparisonList: string[]; // List of product IDs
@@ -372,8 +372,9 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   const [currentRoute, setCurrentRouteState] = useState<RouteName>('store');
-  // Smart Scroll Memory for Seamless Product and Storefront Return
-  const lastScrollPosRef = useRef<{ scrollY: number; productId?: string }>({ scrollY: 0 });
+  // Universal Storefront Scroll Memory for Zero-Delay Return from ANY page
+  const lastStoreScrollYRef = useRef<number>(0);
+  const lastViewedProductIdRef = useRef<string | undefined>(undefined);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     return safeStorage.getItem('luxe_admin_auth_saved') === 'true';
   });
@@ -843,34 +844,74 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setCurrentRouteState(r);
   };
 
+  // Dedicated Frame-Synchronized Scroll Restoration Engine
+  const restoreStoreScroll = () => {
+    const targetY = lastStoreScrollYRef.current || 0;
+    // Immediate instant reset
+    window.scrollTo({ top: targetY, behavior: 'instant' });
+
+    // Double frame buffer ensuring React has rendered StorefrontView fully in the DOM
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: targetY, behavior: 'instant' });
+      setTimeout(() => {
+        const currentY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+        if (targetY > 0 && Math.abs(currentY - targetY) > 40) {
+          window.scrollTo({ top: targetY, behavior: 'instant' });
+        }
+      }, 40);
+    });
+  };
+
+  // Continuously maintain accurate lastStoreScrollY while browsing the storefront
+  useEffect(() => {
+    if (currentRoute !== 'store') return;
+
+    let ticking = false;
+    const handleStoreScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+          if (currentY > 0) {
+            lastStoreScrollYRef.current = currentY;
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleStoreScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleStoreScroll);
+  }, [currentRoute]);
+
   const navigateTo = (r: RouteName) => {
-    if (r === 'store' && currentRoute === 'pdp') {
-      returnFromPDPToStore();
+    // If currently on store and navigating away, record scroll position
+    if (currentRoute === 'store' && r !== 'store') {
+      lastStoreScrollYRef.current = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
+
+    if (r === 'store') {
+      if (currentRoute === 'pdp') {
+        returnFromPDPToStore();
+        return;
+      }
+      setCurrentRouteState('store');
+      try {
+        window.history.replaceState(null, '', '/');
+      } catch (_) {}
+      restoreStoreScroll();
       return;
     }
+
     setCurrentRouteState(r);
     window.scrollTo({ top: 0, behavior: 'instant' });
     try {
-      if (r === 'store') {
+      if (r === 'login') {
         window.history.replaceState(null, '', '/');
-        if (window.location.hash) {
-          window.location.hash = '';
-        }
-      } else if (r === 'login') {
-        // Do not pollute the URL bar with persistent #login so refresh never gets trapped
-        window.history.replaceState(null, '', '/');
-        if (window.location.hash) {
-          window.location.hash = '';
-        }
       } else {
         window.history.pushState(null, '', `/${r}`);
-        window.location.hash = r;
       }
-    } catch (e) {
-      if (r !== 'store' && r !== 'login') {
-        window.location.hash = r;
-      }
-    }
+    } catch (_) {}
   };
 
   const addReview = (review: { name: string; city: string; comment: string; rating: number }) => {
@@ -1333,40 +1374,32 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     showToast(lang === 'ar' ? `تمت إضافة ${itemsToAdd.length} منتجات من المفضلة إلى السلة!` : `Added ${itemsToAdd.length} items from wishlist to bag!`);
   };
 
-  const openProductPDP = (p: Product) => {
-    // Record current scroll position before jumping to PDP
-    lastScrollPosRef.current = {
-      scrollY: window.scrollY || window.pageYOffset || 0,
-      productId: p.id
-    };
+  const openProductPDP = (p: Product, pushHistory: boolean = true) => {
+    // Record storefront scroll position before jumping to PDP
+    if (currentRoute === 'store') {
+      lastStoreScrollYRef.current = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
+    lastViewedProductIdRef.current = p.id;
+
     setActiveProduct(p);
     setCurrentRouteState('pdp');
     // Instant open without slow dragging/scrolling delay
     window.scrollTo({ top: 0, behavior: 'instant' });
-    try {
-      window.history.pushState({ productId: p.id, fromScrollY: lastScrollPosRef.current.scrollY }, '', `/product/${p.id}`);
-      window.location.hash = `product-${p.id}`;
-    } catch {
-      window.location.hash = `product-${p.id}`;
+    if (pushHistory) {
+      try {
+        window.history.pushState({ productId: p.id }, '', `/product/${p.id}`);
+      } catch (_) {}
     }
   };
 
-  const returnFromPDPToStore = () => {
-    const targetScrollY = lastScrollPosRef.current.scrollY || 0;
-
+  const returnFromPDPToStore = (fromPopstate: boolean = false) => {
     setCurrentRouteState('store');
-    try {
-      window.history.replaceState(null, '', '/');
-      if (window.location.hash) {
-        window.location.hash = '';
-      }
-    } catch (_) {}
-
-    // Immediate instant restoration of exact scroll position with zero delay and no animation
-    window.scrollTo({ top: targetScrollY, behavior: 'instant' });
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: targetScrollY, behavior: 'instant' });
-    });
+    if (!fromPopstate) {
+      try {
+        window.history.replaceState(null, '', '/');
+      } catch (_) {}
+    }
+    restoreStoreScroll();
   };
 
   const loginAdmin = (pin: string, rememberLogin: boolean = false, rememberPin: boolean = false) => {

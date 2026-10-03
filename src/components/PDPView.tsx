@@ -269,10 +269,13 @@ export const PDPView: React.FC = () => {
         {/* Breadcrumb & Navigation */}
         <div className="mb-6 flex items-center justify-between">
           <button
-            onClick={() => {
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               returnFromPDPToStore();
             }}
-            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#5A3E7A] transition-colors py-2.5 px-4 rounded-2xl bg-white border border-slate-200 shadow-xs min-h-[44px] hover:border-purple-200 cursor-pointer"
+            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#5A3E7A] active:scale-95 transition-all py-2.5 px-4 rounded-2xl bg-white border border-slate-200 shadow-xs min-h-[44px] hover:border-purple-200 cursor-pointer"
           >
             {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
             <span>{lang === 'ar' ? 'العودة لجميع المنتجات' : 'Back to Store'}</span>
@@ -708,6 +711,30 @@ export const PDPView: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Bottom Return to Store Navigation Banner */}
+        <div className="mt-12 pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/70 backdrop-blur-xs p-6 rounded-3xl border border-slate-200/80 shadow-xs">
+          <div>
+            <h4 className="text-base font-black text-slate-900">
+              {lang === 'ar' ? 'هل ترغبين في استكشاف المزيد؟' : 'Looking for more curated items?'}
+            </h4>
+            <p className="text-xs text-slate-500 mt-1">
+              {lang === 'ar' ? 'عُودي إلى موضعك السابق في المتجر لمتابعة استكشاف باقي التشكيلات والعروض' : 'Return directly to where you were and explore our full collection'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              returnFromPDPToStore();
+            }}
+            className="flex items-center gap-2 px-6 py-3 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-full font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
+          >
+            {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+            <span>{lang === 'ar' ? 'الرجوع للمتجر ومتابعة التسوق' : 'Back to Store & Continue'}</span>
+          </button>
         </div>
 
       </div>
