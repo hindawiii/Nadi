@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <!-- Homepage & Core Storefront -->
+  <url>
+    <loc>https://nadi-market.vercel.app/</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Skincare & Cosmetics Catalog Products -->
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=sb-01</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>سيروم النضارة العشبي النباتي - نَـــــدِي NADI</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=sb-02</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>مرطب الندى العميق بخلاصة الصبار الطبيعي</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=sb-03</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>غسول الوجه الرغوي المنقي والمهدئ</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=sb-04</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1608248597359-007cb5b5c9dc?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>واقي الشمس النباتي الشفاف SPF 50+</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=sb-05</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>زيت الورد الجبلي العضوي للإشراقة الفورية</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=sb-06</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1567928815117-ac77b3b9b4f9?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>ماسك الطين الوردي الأسترالي لتنقية المسام</image:title>
+    </image:image>
+  </url>
+
+  <!-- Hair Styling & Devices Catalog -->
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=hd-01</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&amp;fit=crop&amp;w=700&amp;q=80</image:loc>
+      <image:title>جهاز تجعيد الشعر من سل تيك SLTK-12</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=hd-02</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=hd-03</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=hd-04</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=hd-05</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://nadi-market.vercel.app/?product=hd-06</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- Information & Brand Pages -->
+  <url>
+    <loc>https://nadi-market.vercel.app/?route=about</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>

@@ -1,0 +1,10 @@
+# robots.txt for NADI Cosmetics & Skincare (https://nadi-market.vercel.app/)
+User-agent: *
+Allow: /
+
+# Disallow private management and developer consoles
+Disallow: /admin
+Disallow: /developer
+
+# Official Sitemap for Search Engines
+Sitemap: https://nadi-market.vercel.app/sitemap.xml
