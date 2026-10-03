@@ -5,7 +5,7 @@ import {
   Smartphone, Watch, Shirt, Glasses, RotateCcw, Layers, Droplets, Star, ShoppingBag, Image,
   Copy, Trash2, CheckCircle2, ChevronRight, Plus, ExternalLink, Phone, Mail, MapPin, MessageCircle, ArrowUpRight,
   Download, Upload, Code2, Type, FileJson, CheckCircle, HelpCircle, Sparkle, ArrowUp,
-  Database, Cpu, HardDrive, Terminal, Activity, Undo2
+  Database, Cpu, HardDrive, Terminal, Activity, Undo2, Rocket
 } from 'lucide-react';
 import { useCommerce, SectionVisibilityMap } from '../context/CommerceContext';
 import { 
@@ -19,6 +19,7 @@ export const DeveloperPanel: React.FC = () => {
   const { 
     lang, isDevAuthenticated, loginDeveloper, logoutDeveloper, 
     activePresetId, setActivePresetId, dynamicConfig, setDynamicConfig, 
+    clearAllOrders, restoreDefaultOrders,
     isDeveloperModeLocked, toggleLockDeveloperMode, setCurrentRoute, navigateTo,
     showToast, sectionsControl, toggleSection, resetSections,
     clonedSections, toggleCloneSection, updateClonedSectionConfig,
@@ -409,6 +410,78 @@ export const DeveloperPanel: React.FC = () => {
       }
     });
     showToast(lang === 'ar' ? 'تم تفعيل وإظهار كافة الأقسام بنجاح' : 'All sections enabled successfully');
+  };
+
+  // One-Click Catalog Wipe for Client Handover
+  const handleWipeCatalogForPreset = (presetKey: string) => {
+    if (!window.confirm(lang === 'ar' 
+      ? `تحذير المطور: هل ترغب في تفريغ كتالوج منتجات نظام (${presetKey}) بالكامل لتسليم المتجر لعميل جديد؟`
+      : `Developer Warning: Wipe all products for preset (${presetKey}) to prepare for client handover?`)) {
+      return;
+    }
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      if (clone.presets && clone.presets[presetKey]) {
+        clone.presets[presetKey].products = [];
+      }
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+    showToast(
+      lang === 'ar'
+        ? `تم تفريغ كتالوج منتجات (${presetKey}) بنجاح! المتجر جاهز لإضافة منتجات العميل.`
+        : `Catalog for (${presetKey}) wiped successfully! Ready for client inventory.`
+    );
+  };
+
+  const handleRestoreCatalogForPreset = (presetKey: string) => {
+    if (!window.confirm(lang === 'ar' 
+      ? `هل ترغب في استرجاع المنتجات النموذجية الافتراضية لنظام (${presetKey})؟`
+      : `Restore default demo products for preset (${presetKey})?`)) {
+      return;
+    }
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      const defaultProducts = siteConfig.presets[presetKey as keyof typeof siteConfig.presets]?.products || siteConfig.presets.cosmetics.products;
+      if (clone.presets && clone.presets[presetKey]) {
+        clone.presets[presetKey].products = JSON.parse(JSON.stringify(defaultProducts));
+      }
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+    showToast(
+      lang === 'ar'
+        ? `تمت استعادة المنتجات النموذجية لنظام (${presetKey}) بنجاح!`
+        : `Default demo products for (${presetKey}) restored!`
+    );
+  };
+
+  const handleMasterClientHandover = () => {
+    if (!window.confirm(lang === 'ar'
+      ? 'تحذير تصفير شامل: سيتم تفريغ كافة المنتجات والطلبات والتقييمات التجريبية لتسليم المتجر كـ (Zero-State Clean) للعميل، مع الحفاظ على الهوية والألوان والتصميم. هل تود المتابعة؟'
+      : 'Master Zero-State Reset: Wipe demo products, orders, and reviews for clean client handover. Proceed?')) {
+      return;
+    }
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      if (clone.presets && clone.presets[activePresetId]) {
+        clone.presets[activePresetId].products = [];
+        clone.presets[activePresetId].testimonials = [];
+      }
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+    clearAllOrders();
+    showToast(lang === 'ar' ? '🎉 تم التصفير الشامل بنجاح! المتجر جاهز للتسليم الفوري للعميل.' : '🎉 Store reset to zero-state successfully! Ready for client.');
   };
 
   // Template Importer & Code Adapter Helpers
@@ -881,6 +954,17 @@ export const DeveloperPanel: React.FC = () => {
                         )}
                       </div>
                     )}
+
+                    {/* One-Click Catalog Wipe for Client Handover */}
+                    <button
+                      type="button"
+                      onClick={() => handleWipeCatalogForPreset(activeTab)}
+                      className="h-11 px-4 rounded-2xl bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                      title={lang === 'ar' ? 'تفريغ منتجات هذا الكتالوج لتسليم المتجر لعميل جديد' : 'Wipe demo products for this preset to prepare store for client'}
+                    >
+                      <Trash2 className="w-4 h-4 text-amber-400" />
+                      <span>{lang === 'ar' ? 'تفريغ الكتالوج للعميل 🗑️' : 'Wipe Catalog for Client 🗑️'}</span>
+                    </button>
 
                     {/* Factory Reset Preset Button */}
                     <button
@@ -2811,6 +2895,92 @@ export const DeveloperPanel: React.FC = () => {
                   ? (lang === 'ar' ? 'إلغاء القفل واستعادة لوحة المطور' : 'Unlock Developer Mode')
                   : (lang === 'ar' ? 'تفعيل القفل وحجب لوحة المطور فورياً' : 'Lock & Hide Developer Mode')}
               </button>
+            </div>
+
+            {/* One-Click Catalog Wipe & Client Handover Tool */}
+            <div className="bg-slate-950 p-6 rounded-3xl border border-indigo-900/60 space-y-5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-indigo-500/20 text-indigo-400 rounded-2xl shrink-0">
+                  <Rocket className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      {lang === 'ar' ? 'تجهيز وتسليم المتجر للعميل' : 'Client Handover'}
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-extrabold text-white">
+                    {lang === 'ar' ? 'أداة تفريغ الكتالوج وتجهيز المتجر للعميل بضغطة زر' : 'One-Click Client Handover & Catalog Wipe'}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
+                    {lang === 'ar'
+                      ? 'خيار آمن ومحمي في لوحة المطور لتفريغ منتجات العرض التجريبية بضغطة زر واحدة عند تسليم المتجر لعميل جديد، لتجهيز المتجر للبيع التجاري الفوري دون الحاجة لحذف الكروت يدوياً كرت بعد كرت.'
+                      : 'Prepare the store for instant commercial sale and handover by purging demo catalog cards in 1 click instead of deleting cards one by one.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                {/* 1. Wipe Catalog of Active Preset */}
+                <button
+                  type="button"
+                  onClick={() => handleWipeCatalogForPreset(activePresetId)}
+                  className="p-4 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-start space-y-1.5 transition-all cursor-pointer active:scale-95 group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                      <Trash2 className="w-4 h-4 text-amber-400" />
+                      <span>{lang === 'ar' ? 'تفريغ كتالوج المنتجات' : 'Wipe Catalog'}</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-400/80">
+                      {dynamicConfig.presets[activePresetId]?.products?.length || 0} {lang === 'ar' ? 'منتج' : 'items'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    {lang === 'ar' ? 'مسح كافة منتجات المعاينة للقالب المفعّل حالياً' : 'Purge demo products for active store preset'}
+                  </p>
+                </button>
+
+                {/* 2. Master Zero-State Reset */}
+                <button
+                  type="button"
+                  onClick={handleMasterClientHandover}
+                  className="p-4 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-start space-y-1.5 transition-all cursor-pointer active:scale-95 group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                      <Rocket className="w-4 h-4 text-indigo-400" />
+                      <span>{lang === 'ar' ? 'تصفير شامل للتسليم 🚀' : 'Master Zero-State 🚀'}</span>
+                    </span>
+                    <span className="text-[10px] font-black text-indigo-400">Zero-State</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    {lang === 'ar' ? 'تفريغ المنتجات والطلبات والتقييمات مع الحفاظ على التصميم' : 'Purge products, orders & reviews cleanly'}
+                  </p>
+                </button>
+
+                {/* 3. Restore Default Catalog */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleRestoreCatalogForPreset(activePresetId);
+                    restoreDefaultOrders();
+                  }}
+                  className="p-4 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-start space-y-1.5 transition-all cursor-pointer active:scale-95 group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <RotateCcw className="w-4 h-4 text-slate-400" />
+                      <span>{lang === 'ar' ? 'استعادة الكتالوج النموذجي' : 'Restore Demo Catalog'}</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500">Demo</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    {lang === 'ar' ? 'استرجاع المنتجات النموذجية للمعاينة في أي وقت' : 'Restore default demo items anytime for demo'}
+                  </p>
+                </button>
+              </div>
             </div>
           </div>
         )}

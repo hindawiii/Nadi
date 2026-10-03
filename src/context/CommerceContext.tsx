@@ -129,6 +129,8 @@ interface CommerceContextType {
   orders: OrderRecord[];
   placeOrder: (customer: PlaceOrderParams) => OrderRecord;
   updateOrderStatus: (orderId: string, status: OrderRecord['status']) => void;
+  clearAllOrders: () => void;
+  restoreDefaultOrders: () => void;
   
   // Smart Toast System
   toastMessage: string | null;
@@ -915,7 +917,45 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const addReview = (review: { name: string; city: string; comment: string; rating: number }) => {
-    showToast(lang === 'ar' ? 'شكراً لمشاركتك! تم إضافة تقييمك بنجاح.' : 'Thank you! Your verified review has been posted.');
+    const newId = Date.now();
+    const newReviewItem = {
+      id: newId,
+      name: { ar: review.name.trim(), en: review.name.trim() },
+      city: { ar: review.city?.trim() || (lang === 'ar' ? 'الخرطوم' : 'Khartoum'), en: review.city?.trim() || 'Khartoum' },
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+      purchasedProduct: { 
+        ar: 'مشتريات معتمدة من المتجر', 
+        en: 'Verified Store Order', 
+        id: 'verified' 
+      },
+      date: { 
+        ar: 'الآن (مكتوب حديثاً)', 
+        en: 'Just now' 
+      },
+      comment: { ar: review.comment.trim(), en: review.comment.trim() },
+      badge: { ar: 'مشتري حقيقي موثق ⭐', en: 'Verified Real Buyer ⭐' },
+      rating: review.rating || 5,
+      status: 'pending' as const
+    };
+
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      const targetPreset = clone.presets[activePresetId];
+      if (!Array.isArray(targetPreset.testimonials)) {
+        targetPreset.testimonials = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.testimonials || []));
+      }
+      targetPreset.testimonials.unshift(newReviewItem);
+      try {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+
+    showToast(
+      lang === 'ar' 
+        ? 'شكراً لكِ! تم إرسال تقييمكِ بنجاح وهو الآن بانتظار مراجعة الإدارة وسيظهر قريباً في المتجر 🌟' 
+        : 'Thank you! Your review has been submitted and is awaiting admin approval 🌟'
+    );
   };
 
   const [orders, setOrders] = useState<OrderRecord[]>([
@@ -1531,6 +1571,46 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     showToast(lang === 'ar' ? 'تم تحديث حالة الطلب بنجاح' : 'Order status updated');
   };
 
+  const clearAllOrders = () => {
+    setOrders([]);
+    showToast(lang === 'ar' ? 'تم تفريغ سجل الطلبات بالكامل بنجاح' : 'All orders have been cleared');
+  };
+
+  const restoreDefaultOrders = () => {
+    setOrders([
+      {
+        id: "ORD-2026-108",
+        date: "2026-09-22 14:30",
+        customerName: "فاطمة أحمد",
+        phone: "+249912345678",
+        address: "أم درمان – شارع الوادي",
+        items: [
+          { productName: "مرطب الهيالورونيك المكثف", quantity: 2, price: "6,000 ج.س" },
+          { productName: "سيروم فيتامين سي النقي", quantity: 1, price: "3,450 ج.س" }
+        ],
+        totalFormatted: "9,450 ج.س",
+        currency: "SDG",
+        status: "dispatched",
+        trackingCode: "TRK-98241"
+      },
+      {
+        id: "ORD-2026-109",
+        date: "2026-09-23 09:15",
+        customerName: "سارة المنصور",
+        phone: "+966501234567",
+        address: "الرياض – حي الملقا",
+        items: [
+          { productName: "مجموعة Natural Bloom الكاملة", quantity: 1, price: "67.50 ر.س" }
+        ],
+        totalFormatted: "67.50 ر.س",
+        currency: "SAR",
+        status: "processing",
+        trackingCode: "TRK-98242"
+      }
+    ]);
+    showToast(lang === 'ar' ? 'تمت استعادة الطلبات التجريبية بنجاح' : 'Default demo orders restored');
+  };
+
   const updateActiveDataField = (path: string, value: string) => {
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev));
@@ -1625,6 +1705,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         orders,
         placeOrder,
         updateOrderStatus,
+        clearAllOrders,
+        restoreDefaultOrders,
         toastMessage,
         toastData,
         showToast,

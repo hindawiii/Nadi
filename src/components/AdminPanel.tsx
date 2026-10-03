@@ -7,7 +7,7 @@ import {
   Phone, Mail, MapPin, Eye, ExternalLink, MessageCircle,
   Upload, Wand2, X, Search, Filter, CheckCircle2, Clock, Truck,
   Tag, ArrowUpRight, ShieldCheck, CheckCheck, Droplets, Star,
-  Undo2, RotateCcw
+  Undo2, RotateCcw, MessageSquare, UserCheck, Rocket, ShieldAlert
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product, siteConfig } from '../data/siteConfig';
@@ -18,7 +18,8 @@ import { UnifiedStoreCustomizer } from './UnifiedStoreCustomizer';
 export const AdminPanel: React.FC = () => {
   const { 
     lang, isAdminAuthenticated, loginAdmin, logoutAdmin, 
-    orders, updateOrderStatus, dynamicConfig, setDynamicConfig, 
+    orders, updateOrderStatus, clearAllOrders, restoreDefaultOrders,
+    dynamicConfig, setDynamicConfig, 
     activePresetId, navigateTo, showToast, convertPrice,
     historyStack, canUndo, undoLastChange, resetFieldToDefault, isFieldModified, recordHistorySnapshot
   } = useCommerce();
@@ -27,8 +28,19 @@ export const AdminPanel: React.FC = () => {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
 
-  // Active Admin Tabs: 'customizer' | 'orders' | 'products' | 'devices' | 'banners' | 'content' | 'branding'
-  const [activeTab, setActiveTab] = useState<'customizer' | 'orders' | 'products' | 'devices' | 'banners' | 'content' | 'branding'>('customizer');
+  // Active Admin Tabs: 'customizer' | 'orders' | 'products' | 'reviews' | 'onboarding' | 'devices' | 'banners' | 'content' | 'branding'
+  const [activeTab, setActiveTab] = useState<'customizer' | 'orders' | 'products' | 'reviews' | 'onboarding' | 'devices' | 'banners' | 'content' | 'branding'>('customizer');
+
+  // Review & Moderation States
+  const [reviewFilter, setReviewFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [reviewSearchQuery, setReviewSearchQuery] = useState('');
+  const [isAddingReview, setIsAddingReview] = useState(false);
+  const [newRevName, setNewRevName] = useState('');
+  const [newRevCity, setNewRevCity] = useState('');
+  const [newRevRating, setNewRevRating] = useState(5);
+  const [newRevComment, setNewRevComment] = useState('');
+  const [newRevAvatar, setNewRevAvatar] = useState('');
+  const [newRevProduct, setNewRevProduct] = useState('');
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,6 +55,7 @@ export const AdminPanel: React.FC = () => {
   const [newProdCatAr, setNewProdCatAr] = useState('');
   const [newProdCatEn, setNewProdCatEn] = useState('');
   const [newProdPrice, setNewProdPrice] = useState(10);
+  const [newProdOriginalPrice, setNewProdOriginalPrice] = useState<number | ''>('');
   const [newProdStock, setNewProdStock] = useState(15);
   const [newProdImage, setNewProdImage] = useState('');
   const [newProdBadge, setNewProdBadge] = useState('جديد 🌟');
@@ -169,6 +182,25 @@ export const AdminPanel: React.FC = () => {
       return clone;
     });
     showToast(lang === 'ar' ? 'تم تحديث السعر الأساسي' : 'Base price updated');
+  };
+
+  const handleOriginalPriceChange = (productId: string, newOrigUSD: number | undefined) => {
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      const target = clone.presets[activePresetId].products.find((p: any) => p.id === productId);
+      if (target) {
+        if (newOrigUSD === undefined || isNaN(newOrigUSD) || newOrigUSD <= 0) {
+          delete target.originalPriceUSD;
+        } else {
+          target.originalPriceUSD = newOrigUSD;
+        }
+      }
+      try {
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (e) {}
+      return clone;
+    });
+    showToast(lang === 'ar' ? 'تم تحديث السعر المشطوب ونسبة الخصم' : 'Slashed price & discount updated');
   };
 
   // Image File Reader helper to convert uploaded File to Data URL
@@ -407,10 +439,184 @@ export const AdminPanel: React.FC = () => {
         }
       }
       try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
         localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
       } catch (err) {}
       return clone;
     });
+  };
+
+  // Review Moderation Handlers
+  const handleApproveReview = (reviewId: number) => {
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      const targetPreset = clone.presets[activePresetId];
+      if (!Array.isArray(targetPreset.testimonials)) {
+        targetPreset.testimonials = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.testimonials || []));
+      }
+      const item = targetPreset.testimonials.find((t: any) => t.id === reviewId);
+      if (item) {
+        item.status = 'approved';
+      }
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+    showToast(lang === 'ar' ? 'تم اعتماد التقييم ونشره في واجهة المتجر بنجاح ✓' : 'Review approved and published to storefront ✓');
+  };
+
+  const handleRejectReview = (reviewId: number) => {
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      const targetPreset = clone.presets[activePresetId];
+      if (!Array.isArray(targetPreset.testimonials)) {
+        targetPreset.testimonials = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.testimonials || []));
+      }
+      const item = targetPreset.testimonials.find((t: any) => t.id === reviewId);
+      if (item) {
+        item.status = 'rejected';
+      }
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+    showToast(lang === 'ar' ? 'تم إخفاء التقييم من واجهة المتجر ⏸️' : 'Review hidden from storefront ⏸️');
+  };
+
+  const handleDeleteReview = (reviewId: number) => {
+    if (!window.confirm(lang === 'ar' ? 'هل أنتِ متأكدة من حذف هذا التقييم نهائياً؟' : 'Are you sure you want to permanently delete this review?')) return;
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      const targetPreset = clone.presets[activePresetId];
+      if (!Array.isArray(targetPreset.testimonials)) {
+        targetPreset.testimonials = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.testimonials || []));
+      }
+      targetPreset.testimonials = targetPreset.testimonials.filter((t: any) => t.id !== reviewId);
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+    showToast(lang === 'ar' ? 'تم حذف التقييم نهائياً 🗑️' : 'Review permanently deleted');
+  };
+
+  const handleAddReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRevName.trim() || !newRevComment.trim()) {
+      showToast(lang === 'ar' ? 'يرجى كتابة اسم العميلة ونص التجربة' : 'Please provide name and review text');
+      return;
+    }
+    const newId = Date.now();
+    const newReview = {
+      id: newId,
+      name: { ar: newRevName.trim(), en: newRevName.trim() },
+      city: { ar: newRevCity.trim() || (lang === 'ar' ? 'الرياض' : 'Riyadh'), en: newRevCity.trim() || 'Riyadh' },
+      avatar: newRevAvatar.trim() || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
+      purchasedProduct: { 
+        ar: newRevProduct.trim() || (lang === 'ar' ? 'مشتريات معتمدة من المتجر' : 'Verified Store Order'), 
+        en: newRevProduct.trim() || 'Verified Store Order', 
+        id: 'manual' 
+      },
+      date: { ar: 'الآن (مضاف من الإدارة)', en: 'Just now' },
+      comment: { ar: newRevComment.trim(), en: newRevComment.trim() },
+      badge: { ar: 'مشتري حقيقي موثق ⭐', en: 'Verified Real Buyer ⭐' },
+      rating: newRevRating || 5,
+      status: 'approved' as const
+    };
+
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      const targetPreset = clone.presets[activePresetId];
+      if (!Array.isArray(targetPreset.testimonials)) {
+        targetPreset.testimonials = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.testimonials || []));
+      }
+      targetPreset.testimonials.unshift(newReview);
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+
+    setIsAddingReview(false);
+    setNewRevName('');
+    setNewRevCity('');
+    setNewRevComment('');
+    setNewRevAvatar('');
+    setNewRevProduct('');
+    setNewRevRating(5);
+    showToast(lang === 'ar' ? 'تمت إضافة التقييم ونشره في المتجر بنجاح 🌟' : 'Review added and published to store 🌟');
+  };
+
+  // Onboarding & Store Wipe Handlers for Client Setup
+  const handleWipeProducts = () => {
+    if (!window.confirm(lang === 'ar' ? 'تأكيد: هل ترغب في تفريغ كافة المنتجات التجريبية لتجهيز المتجر للعميل الجديد؟' : 'Confirm: Wipe all demo products to prepare store for new client?')) return;
+    setDynamicConfig(prev => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      clone.presets[activePresetId].products = [];
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+    showToast(lang === 'ar' ? 'تم تفريغ كافة المنتجات بنجاح! المتجر جاهز لإضافة منتجات العميل.' : 'All demo products cleared! Ready for client inventory.');
+  };
+
+  const handleWipeOrders = () => {
+    if (!window.confirm(lang === 'ar' ? 'تأكيد: هل ترغب في تفريغ سجل الطلبات التجريبية بالكامل؟' : 'Confirm: Clear all demo orders?')) return;
+    clearAllOrders();
+  };
+
+  const handleWipeReviews = () => {
+    if (!window.confirm(lang === 'ar' ? 'تأكيد: هل ترغب في تفريغ التقييمات الافتراضية للبدء بدون آراء سابقة؟' : 'Confirm: Clear all demo reviews?')) return;
+    setDynamicConfig(prev => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      clone.presets[activePresetId].testimonials = [];
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+    showToast(lang === 'ar' ? 'تم تفريغ كافة التقييمات بنجاح' : 'All demo reviews cleared');
+  };
+
+  const handleFullClientReset = () => {
+    if (!window.confirm(lang === 'ar' ? 'تحذير تصفير شامل: سيتم مسح المنتجات والطلبات والتقييمات التجريبية لتسليم المتجر كـ (Zero-State Clean) للعميل. هل تود المتابعة؟' : 'Full Reset: This will wipe demo products, orders, and reviews for clean client handover. Proceed?')) return;
+    setDynamicConfig(prev => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      clone.presets[activePresetId].products = [];
+      clone.presets[activePresetId].testimonials = [];
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+    clearAllOrders();
+    showToast(lang === 'ar' ? '🎉 تم التصفير الشامل بنجاح! المتجر مهيأ بالكامل لتسليمه للعميل.' : '🎉 Store successfully reset to zero-state for client!');
+  };
+
+  const handleRestoreDemoDefaults = () => {
+    if (!window.confirm(lang === 'ar' ? 'استعادة البيانات: هل ترغب في استرجاع المنتجات والطلبات النموذجية للمعاينة مجدداً؟' : 'Restore: Recover default demo products and orders?')) return;
+    setDynamicConfig(prev => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      clone.presets[activePresetId].products = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId]?.products || siteConfig.presets.cosmetics.products));
+      clone.presets[activePresetId].testimonials = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId]?.testimonials || siteConfig.presets.cosmetics.testimonials));
+      try {
+        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+      } catch (_) {}
+      return clone;
+    });
+    restoreDefaultOrders();
+    showToast(lang === 'ar' ? 'تمت استعادة البيانات والمنتجات النموذجية بنجاح!' : 'Default demo data restored successfully!');
   };
 
   // Smart Product Auto-Complete AI Generator
@@ -427,6 +633,7 @@ export const AdminPanel: React.FC = () => {
     let suggestedCatEn = 'Skincare';
     let suggestedNameEn = 'Botanical Luxury Formulation';
     let suggestedPrice = 24.5;
+    let suggestedOriginalPrice = 34.0;
     let suggestedBadge = 'الأكثر طلباً 🔥';
     let sampleImage = 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80';
 
@@ -435,6 +642,7 @@ export const AdminPanel: React.FC = () => {
       suggestedCatEn = 'Radiance Serums';
       suggestedNameEn = 'Intensive Glow Vitamin Serum';
       suggestedPrice = 28.0;
+      suggestedOriginalPrice = 38.0;
       suggestedBadge = 'طبيعي 100% 🌿';
       sampleImage = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80';
     } else if (lower.includes('كريم') || lower.includes('cream') || lower.includes('ترطيب') || lower.includes('مرطب')) {
@@ -442,6 +650,7 @@ export const AdminPanel: React.FC = () => {
       suggestedCatEn = 'Hydration Creams';
       suggestedNameEn = '24H Deep Velvet Moisture Cream';
       suggestedPrice = 22.0;
+      suggestedOriginalPrice = 30.0;
       suggestedBadge = 'ترطيب عميق 💧';
       sampleImage = 'https://images.unsplash.com/photo-1608248597359-25b82877fb18?auto=format&fit=crop&w=800&q=80';
     } else if (lower.includes('شعر') || lower.includes('hair') || lower.includes('زيت') || lower.includes('استشوار') || lower.includes('كلارا') || lower.includes('أوكيما')) {
@@ -449,6 +658,7 @@ export const AdminPanel: React.FC = () => {
       suggestedCatEn = 'Hair Styling & Care';
       suggestedNameEn = 'Salon Pro Thermal Styler';
       suggestedPrice = 45.0;
+      suggestedOriginalPrice = 65.0;
       suggestedBadge = 'ضمان سنتين ⚡';
       sampleImage = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80';
     } else if (lower.includes('غسول') || lower.includes('منظف') || lower.includes('cleanser')) {
@@ -456,6 +666,7 @@ export const AdminPanel: React.FC = () => {
       suggestedCatEn = 'Gentle Cleansers';
       suggestedNameEn = 'Purifying Botanical Gel Cleanser';
       suggestedPrice = 16.5;
+      suggestedOriginalPrice = 22.0;
       suggestedBadge = 'رغوة ناعمة ✨';
       sampleImage = 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80';
     } else if (lower.includes('عطر') || lower.includes('perfume') || lower.includes('مسك') || lower.includes('عود')) {
@@ -463,6 +674,7 @@ export const AdminPanel: React.FC = () => {
       suggestedCatEn = 'Royal Perfumes & Mists';
       suggestedNameEn = 'Royal Amber & Floral Mist';
       suggestedPrice = 39.0;
+      suggestedOriginalPrice = 52.0;
       suggestedBadge = 'ثبات عالي 🌸';
       sampleImage = 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=800&q=80';
     }
@@ -471,6 +683,7 @@ export const AdminPanel: React.FC = () => {
     if (!newProdCatEn) setNewProdCatEn(suggestedCatEn);
     if (!newProdNameEn) setNewProdNameEn(suggestedNameEn);
     if (newProdPrice === 10) setNewProdPrice(suggestedPrice);
+    if (newProdOriginalPrice === '' || newProdOriginalPrice === 0) setNewProdOriginalPrice(suggestedOriginalPrice);
     if (newProdBadge === 'جديد 🌟') setNewProdBadge(suggestedBadge);
     if (!newProdImage) setNewProdImage(sampleImage);
 
@@ -485,6 +698,10 @@ export const AdminPanel: React.FC = () => {
       return;
     }
 
+    const parsedOrig = typeof newProdOriginalPrice === 'number' && !isNaN(newProdOriginalPrice) && newProdOriginalPrice > Number(newProdPrice)
+      ? Number(newProdOriginalPrice)
+      : undefined;
+
     const newProd: Product = {
       id: `prod-${Date.now()}`,
       name: {
@@ -496,6 +713,7 @@ export const AdminPanel: React.FC = () => {
         en: newProdCatEn.trim() || 'Skincare'
       },
       basePriceUSD: Number(newProdPrice) || 10,
+      originalPriceUSD: parsedOrig,
       stock: Number(newProdStock) || 10,
       badge: {
         ar: newProdBadge || 'جديد 🌟',
@@ -538,7 +756,13 @@ export const AdminPanel: React.FC = () => {
     setIsAddingProduct(false);
     setNewProdNameAr('');
     setNewProdNameEn('');
+    setNewProdCatAr('');
+    setNewProdCatEn('');
+    setNewProdPrice(10);
+    setNewProdOriginalPrice('');
+    setNewProdStock(15);
     setNewProdImage('');
+    setNewProdBadge('جديد 🌟');
     showToast(lang === 'ar' ? 'تمت إضافة المنتج الجديد بنجاح!' : 'New product added successfully!');
   };
 
@@ -642,6 +866,25 @@ export const AdminPanel: React.FC = () => {
   const trioBannersList = (activePreset.trioBanners && activePreset.trioBanners.length > 0)
     ? activePreset.trioBanners
     : (siteConfig.presets.cosmetics.trioBanners || []);
+
+  // Testimonials & Reviews list for moderation
+  const allTestimonialsList = (activePreset.testimonials && activePreset.testimonials.length > 0)
+    ? activePreset.testimonials
+    : (siteConfig.presets.cosmetics.testimonials || []);
+  const pendingReviewsCount = allTestimonialsList.filter((t: any) => t.status === 'pending').length;
+  const approvedReviewsCount = allTestimonialsList.filter((t: any) => t.status === 'approved' || !t.status).length;
+  const rejectedReviewsCount = allTestimonialsList.filter((t: any) => t.status === 'rejected').length;
+
+  const filteredReviews = allTestimonialsList.filter((t: any) => {
+    const status = t.status || 'approved';
+    const matchesFilter = reviewFilter === 'all' || status === reviewFilter;
+    const q = reviewSearchQuery.toLowerCase().trim();
+    if (!q) return matchesFilter;
+    const nameMatch = (t.name?.ar || '').toLowerCase().includes(q) || (t.name?.en || '').toLowerCase().includes(q);
+    const cityMatch = (t.city?.ar || '').toLowerCase().includes(q) || (t.city?.en || '').toLowerCase().includes(q);
+    const commentMatch = (t.comment?.ar || '').toLowerCase().includes(q) || (t.comment?.en || '').toLowerCase().includes(q);
+    return matchesFilter && (nameMatch || cityMatch || commentMatch);
+  });
 
   return (
     <div className="min-h-screen bg-slate-50/70 py-6 sm:py-10 text-slate-900 font-sans">
@@ -811,7 +1054,7 @@ export const AdminPanel: React.FC = () => {
             onClick={() => setActiveTab('orders')}
             className={`h-11 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'orders' 
-                ? 'bg-white text-slate-950 shadow-sm' 
+                ? 'bg-white text-slate-950 shadow-sm font-bold' 
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -819,6 +1062,43 @@ export const AdminPanel: React.FC = () => {
             <span>{lang === 'ar' ? 'الطلبات' : 'Orders'}</span>
             <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-mono">
               {orders.length}
+            </span>
+          </button>
+
+          {/* Reviews & Testimonials Tab */}
+          <button
+            onClick={() => setActiveTab('reviews')}
+            className={`h-11 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'reviews' 
+                ? 'bg-white text-slate-950 shadow-sm font-bold' 
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <span>{lang === 'ar' ? 'آراء وتقييمات العملاء' : 'Customer Reviews'}</span>
+            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-mono">
+              {allTestimonialsList.length}
+            </span>
+            {pendingReviewsCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold animate-pulse">
+                {pendingReviewsCount} {lang === 'ar' ? 'جديد ⏳' : 'new'}
+              </span>
+            )}
+          </button>
+
+          {/* Smart Client Onboarding & Store Wipe Tab */}
+          <button
+            onClick={() => setActiveTab('onboarding')}
+            className={`h-11 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'onboarding' 
+                ? 'bg-white text-slate-950 shadow-sm font-bold' 
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Rocket className="w-4 h-4 text-indigo-600" />
+            <span>{lang === 'ar' ? 'تهيئة المتجر للعميل' : 'Client Handover'}</span>
+            <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-mono">
+              {lang === 'ar' ? 'تجهيز 🚀' : 'Setup'}
             </span>
           </button>
         </div>
@@ -1511,7 +1791,7 @@ export const AdminPanel: React.FC = () => {
 
                     <div>
                       <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                        {lang === 'ar' ? 'السعر الأساسي بالدولار ($ USD):' : 'Base Price ($ USD):'}
+                        {lang === 'ar' ? 'السعر الفعلي بالدولار ($ USD) *:' : 'Current Price ($ USD) *:'}
                       </label>
                       <input
                         type="number"
@@ -1521,6 +1801,27 @@ export const AdminPanel: React.FC = () => {
                         onChange={(e) => setNewProdPrice(parseFloat(e.target.value) || 1)}
                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-amber-900 block mb-1 flex items-center justify-between">
+                        <span>{lang === 'ar' ? 'السعر المشطوب قبل الخصم ($ USD):' : 'Original Price (Strikethrough $):'}</span>
+                        <span className="text-[10px] text-amber-600 font-normal">{lang === 'ar' ? '(اختياري لإظهار خصم وتوفير)' : '(Optional)'}</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        placeholder={lang === 'ar' ? 'مثال: 35 (لإظهار خط الشطب ونسبة الخصم)' : 'e.g. 35'}
+                        value={newProdOriginalPrice}
+                        onChange={(e) => setNewProdOriginalPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                        className="w-full px-3 py-2 bg-amber-50/50 border border-amber-200 rounded-xl text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder:text-slate-400 placeholder:font-normal"
+                      />
+                      {typeof newProdOriginalPrice === 'number' && newProdOriginalPrice > newProdPrice && (
+                        <div className="mt-1 text-[10px] font-black text-emerald-700 flex items-center gap-1">
+                          <span>🎉 {lang === 'ar' ? `سيظهر للعميل بخصم ${Math.round(((newProdOriginalPrice - newProdPrice) / newProdOriginalPrice) * 100)}% وتوفير $${(newProdOriginalPrice - newProdPrice).toFixed(1)}` : `Calculated: ${Math.round(((newProdOriginalPrice - newProdPrice) / newProdOriginalPrice) * 100)}% OFF (Save $${(newProdOriginalPrice - newProdPrice).toFixed(1)})`}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -1756,43 +2057,90 @@ export const AdminPanel: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Stock & Price Controls with 44px touch targets */}
-                          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
-                            <div className="space-y-1">
-                              <label className="text-[11px] font-bold text-slate-500 block">
-                                {lang === 'ar' ? 'المخزون المتوفر:' : 'Available Stock:'}
-                              </label>
-                              <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50 text-xs h-11">
-                                <button
-                                  onClick={() => handleStockChange(p.id, p.stock - 1)}
-                                  className="w-10 h-full text-slate-700 hover:bg-slate-200 font-black text-sm flex items-center justify-center cursor-pointer transition-colors"
-                                >
-                                  -
-                                </button>
-                                <span className={`flex-1 font-mono font-bold text-center ${p.stock === 0 ? 'text-rose-600' : 'text-slate-900'}`}>
-                                  {p.stock}
-                                </span>
-                                <button
-                                  onClick={() => handleStockChange(p.id, p.stock + 1)}
-                                  className="w-10 h-full text-slate-700 hover:bg-slate-200 font-black text-sm flex items-center justify-center cursor-pointer transition-colors"
-                                >
-                                  +
-                                </button>
+                          {/* Stock & Dual Price (Actual & Slashed) Controls */}
+                          <div className="space-y-3 pt-3 border-t border-slate-100">
+                            <div className="grid grid-cols-2 gap-3">
+                              {/* 1. Stock */}
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-bold text-slate-500 block">
+                                  {lang === 'ar' ? 'المخزون المتوفر:' : 'Available Stock:'}
+                                </label>
+                                <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50 text-xs h-11">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStockChange(p.id, p.stock - 1)}
+                                    className="w-10 h-full text-slate-700 hover:bg-slate-200 font-black text-sm flex items-center justify-center cursor-pointer transition-colors"
+                                  >
+                                    -
+                                  </button>
+                                  <span className={`flex-1 font-mono font-bold text-center ${p.stock === 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+                                    {p.stock}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStockChange(p.id, p.stock + 1)}
+                                    className="w-10 h-full text-slate-700 hover:bg-slate-200 font-black text-sm flex items-center justify-center cursor-pointer transition-colors"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* 2. Actual Price */}
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-bold text-slate-700 block">
+                                  {lang === 'ar' ? 'السعر الحالي ($):' : 'Current Price ($):'}
+                                </label>
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    step="0.5"
+                                    min="0.5"
+                                    value={p.basePriceUSD}
+                                    onChange={(e) => handlePriceChange(p.id, parseFloat(e.target.value) || 1)}
+                                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                                  />
+                                </div>
                               </div>
                             </div>
 
-                            <div className="space-y-1">
-                              <label className="text-[11px] font-bold text-slate-500 block">
-                                {lang === 'ar' ? 'السعر ($ USD):' : 'Price ($ USD):'}
-                              </label>
-                              <div className="relative">
+                            {/* 3. Slashed / Original Price Control */}
+                            <div className="p-2.5 bg-amber-50/60 rounded-2xl border border-amber-200/80 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[11px] font-bold text-amber-900 flex items-center gap-1">
+                                  <span>{lang === 'ar' ? 'السعر المشطوب قبل الخصم ($):' : 'Slashed Price ($):'}</span>
+                                </label>
+                                {p.originalPriceUSD && p.originalPriceUSD > p.basePriceUSD && (
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-600 text-white font-mono">
+                                    {lang === 'ar' 
+                                      ? `خصم ${Math.round(((p.originalPriceUSD - p.basePriceUSD) / p.originalPriceUSD) * 100)}% 🔥` 
+                                      : `-${Math.round(((p.originalPriceUSD - p.basePriceUSD) / p.originalPriceUSD) * 100)}% OFF`}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
                                 <input
                                   type="number"
                                   step="0.5"
-                                  value={p.basePriceUSD}
-                                  onChange={(e) => handlePriceChange(p.id, parseFloat(e.target.value) || 1)}
-                                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                                  min="0"
+                                  placeholder={lang === 'ar' ? 'مثال: 35 (فارغ = بدون خصم)' : 'e.g. 35'}
+                                  value={p.originalPriceUSD ?? ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                                    handleOriginalPriceChange(p.id, val);
+                                  }}
+                                  className="w-full h-10 px-3 bg-white border border-amber-300 rounded-xl text-xs font-mono font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder:text-slate-400 placeholder:font-normal"
                                 />
+                                {p.originalPriceUSD && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOriginalPriceChange(p.id, undefined)}
+                                    className="h-10 px-2.5 rounded-xl border border-amber-300 bg-white hover:bg-rose-50 text-amber-800 hover:text-rose-600 text-[10px] font-bold cursor-pointer transition-colors shrink-0"
+                                    title={lang === 'ar' ? 'إلغاء الخصم والشطب' : 'Clear discount'}
+                                  >
+                                    {lang === 'ar' ? 'إلغاء' : 'Clear'}
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1802,6 +2150,586 @@ export const AdminPanel: React.FC = () => {
                   })}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB: CUSTOMER REVIEWS & TESTIMONIALS MODERATION          */}
+        {/* ======================================================== */}
+        {activeTab === 'reviews' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-6">
+              
+              {/* Header with Metrics */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                <div className="space-y-1">
+                  <h2 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
+                    <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                    <span>{lang === 'ar' ? 'إدارة تقييمات وآراء العملاء (Customer Reviews)' : 'Verified Customer Reviews Management'}</span>
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    {lang === 'ar' 
+                      ? 'مراجعة واعتماد التقييمات الواردة من عميلات المتجر، نشرها بالواجهة أو إخفاؤها وحذفها، وإضافة تقييمات جديدة موثقة.'
+                      : 'Review incoming customer submissions, publish or unpublish them on the storefront, and manage testimonials.'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingReview(true)}
+                    className="h-11 px-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center gap-2 shadow-xs cursor-pointer transition-all active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{lang === 'ar' ? '+ إضافة تقييم يدوي' : '+ Add Testimonial'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status KPI Summary Chips */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div 
+                  onClick={() => setReviewFilter('all')}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    reviewFilter === 'all' 
+                      ? 'bg-purple-50 border-purple-300 ring-2 ring-purple-500/20' 
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="text-[11px] font-bold text-slate-500 block">{lang === 'ar' ? 'إجمالي التقييمات' : 'Total Reviews'}</span>
+                  <span className="text-lg font-black text-slate-900">{allTestimonialsList.length}</span>
+                </div>
+
+                <div 
+                  onClick={() => setReviewFilter('pending')}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    reviewFilter === 'pending' 
+                      ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20' 
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-amber-800">{lang === 'ar' ? 'بانتظار المراجعة' : 'Pending Approval'}</span>
+                    {pendingReviewsCount > 0 && <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />}
+                  </div>
+                  <span className="text-lg font-black text-amber-900">{pendingReviewsCount}</span>
+                </div>
+
+                <div 
+                  onClick={() => setReviewFilter('approved')}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    reviewFilter === 'approved' 
+                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20' 
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="text-[11px] font-bold text-emerald-800 block">{lang === 'ar' ? 'معتمدة ومنشورة' : 'Published on Store'}</span>
+                  <span className="text-lg font-black text-emerald-900">{approvedReviewsCount}</span>
+                </div>
+
+                <div 
+                  onClick={() => setReviewFilter('rejected')}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    reviewFilter === 'rejected' 
+                      ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20' 
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="text-[11px] font-bold text-rose-800 block">{lang === 'ar' ? 'مخفية / مرفوضة' : 'Hidden / Rejected'}</span>
+                  <span className="text-lg font-black text-rose-900">{rejectedReviewsCount}</span>
+                </div>
+              </div>
+
+              {/* Add New Review Form Drawer */}
+              {isAddingReview && (
+                <div className="p-6 bg-slate-50 rounded-2xl border-2 border-amber-500/40 shadow-lg space-y-4 animate-in fade-in">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                      <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                      <span>{lang === 'ar' ? 'إضافة رأي وتجربة عميلة جديدة' : 'Add New Customer Testimonial'}</span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingReview(false)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleAddReviewSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                          {lang === 'ar' ? 'اسم العميلة *' : 'Customer Name *'}
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newRevName}
+                          onChange={(e) => setNewRevName(e.target.value)}
+                          placeholder={lang === 'ar' ? 'مثال: سارة محمد' : 'e.g. Sarah M.'}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                          {lang === 'ar' ? 'المدينة / الدولة:' : 'City / Country:'}
+                        </label>
+                        <input
+                          type="text"
+                          value={newRevCity}
+                          onChange={(e) => setNewRevCity(e.target.value)}
+                          placeholder={lang === 'ar' ? 'مثال: أم درمان / الرياض' : 'e.g. Omdurman / Riyadh'}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                          {lang === 'ar' ? 'التقييم بالنجوم (1-5):' : 'Star Rating (1-5):'}
+                        </label>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              type="button"
+                              key={star}
+                              onClick={() => setNewRevRating(star)}
+                              className="p-1 text-amber-400 hover:scale-110 transition-transform"
+                            >
+                              <Star className={`w-6 h-6 ${star <= newRevRating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                            </button>
+                          ))}
+                          <span className="ms-2 text-xs font-black text-slate-700 font-mono">({newRevRating}/5)</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                          {lang === 'ar' ? 'المنتج المقتنى أو الوصف:' : 'Purchased Product tag:'}
+                        </label>
+                        <input
+                          type="text"
+                          value={newRevProduct}
+                          onChange={(e) => setNewRevProduct(e.target.value)}
+                          placeholder={lang === 'ar' ? 'مثال: سيروم فيتامين سي النقي' : 'e.g. Vitamin C Radiance Serum'}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                        {lang === 'ar' ? 'رابط صورة الأفاتار (اختياري):' : 'Avatar Photo URL (Optional):'}
+                      </label>
+                      <input
+                        type="url"
+                        value={newRevAvatar}
+                        onChange={(e) => setNewRevAvatar(e.target.value)}
+                        placeholder="https://images.unsplash.com/..."
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                        {lang === 'ar' ? 'نص التجربة والرأي *' : 'Review Comment *'}
+                      </label>
+                      <textarea
+                        required
+                        rows={3}
+                        value={newRevComment}
+                        onChange={(e) => setNewRevComment(e.target.value)}
+                        placeholder={lang === 'ar' ? 'اكتب تجربة العميلة وانطباعها الصادق عن المنتجات...' : 'Customer feedback...'}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingReview(false)}
+                        className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-100"
+                      >
+                        {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs cursor-pointer shadow-sm active:scale-95"
+                      >
+                        {lang === 'ar' ? 'نشر التقييم بالمتجر فوراً ✨' : 'Publish Testimonial ✨'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Filter and Search Bar */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={reviewSearchQuery}
+                    onChange={(e) => setReviewSearchQuery(e.target.value)}
+                    placeholder={lang === 'ar' ? 'بحث بالاسم، المدينة، أو التعليق...' : 'Search by name, city, or comment...'}
+                    className="w-full h-10 ps-9 pe-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white"
+                  />
+                  {reviewSearchQuery && (
+                    <button
+                      onClick={() => setReviewSearchQuery('')}
+                      className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 self-start sm:self-auto overflow-x-auto max-w-full">
+                  <span className="text-[11px] font-bold text-slate-400 me-1">{lang === 'ar' ? 'الحالة:' : 'Filter:'}</span>
+                  {(['all', 'pending', 'approved', 'rejected'] as const).map((filterKey) => (
+                    <button
+                      key={filterKey}
+                      type="button"
+                      onClick={() => setReviewFilter(filterKey)}
+                      className={`h-9 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        reviewFilter === filterKey
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {filterKey === 'all' && (lang === 'ar' ? 'الكل' : 'All')}
+                      {filterKey === 'pending' && (lang === 'ar' ? `قيد المراجعة (${pendingReviewsCount})` : `Pending (${pendingReviewsCount})`)}
+                      {filterKey === 'approved' && (lang === 'ar' ? `المعتمدة (${approvedReviewsCount})` : `Approved (${approvedReviewsCount})`)}
+                      {filterKey === 'rejected' && (lang === 'ar' ? `المخفية (${rejectedReviewsCount})` : `Hidden (${rejectedReviewsCount})`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reviews Cards Grid */}
+              {filteredReviews.length === 0 ? (
+                <div className="text-center py-12 px-4 rounded-2xl bg-slate-50 border border-dashed border-slate-200 space-y-2">
+                  <Star className="w-8 h-8 mx-auto text-slate-300" />
+                  <h3 className="text-sm font-bold text-slate-700">
+                    {lang === 'ar' ? 'لا توجد تقييمات مطابقة لهذا البحث أو التصفية' : 'No matching reviews found'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {lang === 'ar' ? 'يمكنك تغيير التصفية أو إضافة تقييم جديد يدوي.' : 'Change your filter or add a new testimonial.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredReviews.map((rev: any) => {
+                    const status = rev.status || 'approved';
+                    const isPending = status === 'pending';
+                    const isApproved = status === 'approved';
+                    const isRejected = status === 'rejected';
+
+                    return (
+                      <div 
+                        key={rev.id} 
+                        className={`p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-4 shadow-2xs ${
+                          isPending 
+                            ? 'bg-amber-50/40 border-amber-300 ring-1 ring-amber-400/40' 
+                            : isRejected 
+                              ? 'bg-slate-50 border-slate-200 opacity-70' 
+                              : 'bg-white border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        {/* Top: Avatar, Name, Stars & Status Badge */}
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <img
+                                src={rev.avatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80'}
+                                alt={rev.name?.ar || 'Avatar'}
+                                className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                              />
+                              <div>
+                                <h4 className="text-xs font-black text-slate-900 leading-snug">
+                                  {rev.name?.[lang] || rev.name?.ar}
+                                </h4>
+                                <span className="text-[10px] text-slate-500 font-medium">
+                                  {rev.city?.[lang] || rev.city?.ar || (lang === 'ar' ? 'الخرطوم' : 'Khartoum')}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Status Badge */}
+                            <div>
+                              {isPending && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200 animate-pulse">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{lang === 'ar' ? 'قيد المراجعة' : 'Pending'}</span>
+                                </span>
+                              )}
+                              {isApproved && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                                  <Check className="w-3 h-3" />
+                                  <span>{lang === 'ar' ? 'منشور بالمتجر' : 'Published'}</span>
+                                </span>
+                              )}
+                              {isRejected && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                                  <span>{lang === 'ar' ? 'مخفي' : 'Hidden'}</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Star Rating & Purchased tag */}
+                          <div className="flex items-center justify-between text-[11px]">
+                            <div className="flex items-center text-amber-400">
+                              {[...Array(5)].map((_, i) => (
+                                <Star 
+                                  key={i} 
+                                  className={`w-3.5 h-3.5 ${i < (rev.rating || 5) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} 
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[10px] text-slate-400 truncate max-w-[150px]">
+                              {rev.purchasedProduct?.[lang] || rev.purchasedProduct?.ar || rev.date?.[lang] || rev.date?.ar}
+                            </span>
+                          </div>
+
+                          {/* Comment Content */}
+                          <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100 text-xs text-slate-800 leading-relaxed font-sans italic">
+                            "{rev.comment?.[lang] || rev.comment?.ar}"
+                          </div>
+                        </div>
+
+                        {/* Actions Toolbar */}
+                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 flex-1">
+                            {!isApproved && (
+                              <button
+                                type="button"
+                                onClick={() => handleApproveReview(rev.id)}
+                                className="flex-1 h-9 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95"
+                                title={lang === 'ar' ? 'اعتماد ونشر في المتجر' : 'Approve and Publish'}
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>{lang === 'ar' ? 'نشر بالمتجر' : 'Publish'}</span>
+                              </button>
+                            )}
+
+                            {isApproved && (
+                              <button
+                                type="button"
+                                onClick={() => handleRejectReview(rev.id)}
+                                className="flex-1 h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                                title={lang === 'ar' ? 'إخفاء من المتجر' : 'Hide from Store'}
+                              >
+                                <span>{lang === 'ar' ? 'إخفاء مؤقت ⏸️' : 'Hide'}</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReview(rev.id)}
+                            className="h-9 px-2.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold cursor-pointer transition-colors flex items-center gap-1 shrink-0"
+                            title={lang === 'ar' ? 'حذف نهائي' : 'Delete'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB: SMART CLIENT ONBOARDING & STORE WIPE SUITE          */}
+        {/* ======================================================== */}
+        {activeTab === 'onboarding' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-6">
+              
+              {/* Header */}
+              <div className="border-b border-slate-100 pb-5 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold border border-indigo-200">
+                    {lang === 'ar' ? 'أداة التسليم والتجهيز الاحترافية' : 'Store Handover Suite'}
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+                  <Rocket className="w-6 h-6 text-indigo-600" />
+                  <span>{lang === 'ar' ? 'مركز تهيئة وتسليم المتجر للعميل (Client Onboarding)' : 'Client Handover & Onboarding Suite'}</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 max-w-3xl leading-relaxed">
+                  {lang === 'ar' 
+                    ? 'أدوات ذكية متقدمة لتهيئة وتصفير المتجر عند بيعه لعميل جديد بنقرة زر واحدة دون الحاجة لمسح الكروت يدوياً، مع إمكانية استعادة الكتالوج النموذجي في أي وقت.'
+                    : 'Smart automated zero-state tools to prepare, wipe, or initialize the store for your client with zero manual effort.'}
+                </p>
+              </div>
+
+              {/* Action Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                
+                {/* 1. Wipe Demo Products */}
+                <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-4 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                      <ShoppingBag className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-900">
+                      {lang === 'ar' ? '1. تفريغ المنتجات التجريبية' : '1. Wipe Demo Products'}
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {lang === 'ar' 
+                        ? 'مسح كافة منتجات المعاينة دفعة واحدة ليصبح المتجر فارغاً ونظيفاً تماماً وجاهزاً لرفع كتالوج منتجات العميل الفعلي.'
+                        : 'Clears all demo catalog products in one click so the client can start adding their actual inventory.'}
+                    </p>
+                  </div>
+                  <div className="pt-3 border-t border-slate-200/70 space-y-2">
+                    <span className="text-[11px] font-bold text-slate-500 block">
+                      {lang === 'ar' ? `المنتجات الحالية: ${products.length} منتج` : `Current catalog: ${products.length} products`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleWipeProducts}
+                      className="w-full h-10 rounded-xl bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 hover:border-rose-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-2xs"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>{lang === 'ar' ? 'تفريغ المنتجات التجريبية' : 'Wipe Products'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Wipe Demo Orders */}
+                <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-4 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-900">
+                      {lang === 'ar' ? '2. تفريغ سجل الطلبات التجريبية' : '2. Wipe Demo Orders'}
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {lang === 'ar' 
+                        ? 'تصفير ومسح كافة الطلبات المسجلة أثناء تجربة المتجر، لتبدأ لوحة المبيعات والإحصائيات من الصفر مع العميل.'
+                        : 'Purge test orders recorded during staging so revenue KPIs start clean for the merchant.'}
+                    </p>
+                  </div>
+                  <div className="pt-3 border-t border-slate-200/70 space-y-2">
+                    <span className="text-[11px] font-bold text-slate-500 block">
+                      {lang === 'ar' ? `الطلبات الحالية: ${orders.length} طلب` : `Current orders: ${orders.length}`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleWipeOrders}
+                      className="w-full h-10 rounded-xl bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 hover:border-rose-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-2xs"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>{lang === 'ar' ? 'تفريغ سجل الطلبات' : 'Wipe Orders'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Wipe Demo Reviews */}
+                <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-4 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                      <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-900">
+                      {lang === 'ar' ? '3. تفريغ التقييمات الافتراضية' : '3. Wipe Demo Reviews'}
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {lang === 'ar' 
+                        ? 'مسح التقييمات الافتراضية إذا كان العميل يفضل بدء المتجر خالياً حتى يتسنى له جمع آراء المشترين الحقيقيين.'
+                        : 'Clear default testimonials if the merchant prefers launching with organic buyer reviews only.'}
+                    </p>
+                  </div>
+                  <div className="pt-3 border-t border-slate-200/70 space-y-2">
+                    <span className="text-[11px] font-bold text-slate-500 block">
+                      {lang === 'ar' ? `التقييمات الحالية: ${allTestimonialsList.length}` : `Current reviews: ${allTestimonialsList.length}`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleWipeReviews}
+                      className="w-full h-10 rounded-xl bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 hover:border-rose-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-2xs"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>{lang === 'ar' ? 'تفريغ التقييمات' : 'Wipe Reviews'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4. Full Zero-State Handover (Master Wipe) */}
+                <div className="p-5 rounded-3xl bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 space-y-4 flex flex-col justify-between md:col-span-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center">
+                        <Rocket className="w-5 h-5" />
+                      </div>
+                      <span className="text-[11px] font-black text-indigo-700 bg-white px-2.5 py-0.5 rounded-full border border-indigo-200">
+                        {lang === 'ar' ? 'التصفير الذكي الشامل' : 'Master Zero-State Reset'}
+                      </span>
+                    </div>
+                    <h3 className="font-black text-base text-slate-900">
+                      {lang === 'ar' ? 'التصفير الشامل لتسليم المتجر للعميل (Master Zero-State Clean)' : 'Master Zero-State Clean Handover'}
+                    </h3>
+                    <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
+                      {lang === 'ar' 
+                        ? 'يقوم بتفريغ المنتجات والطلبات والتقييمات دفعة واحدة في ثانية واحدة، مع الحفاظ الكامل على كافة إعدادات الهوية والتصميم والتنسيقات وأرقام التواصل سليمة 100% لتسليم متجر مهيأ بالكامل للعميل الجديد.'
+                        : 'Purges products, orders, and reviews simultaneously in 1 click, while keeping brand identity, colors, and layout configurations completely intact.'}
+                    </p>
+                  </div>
+
+                  <div className="pt-4 border-t border-indigo-200/80 flex flex-wrap items-center justify-between gap-3">
+                    <span className="text-xs text-indigo-950 font-bold">
+                      {lang === 'ar' ? 'جاهز للتسليم الفوري بنقرة واحدة' : 'Instant ready for client handover'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleFullClientReset}
+                      className="h-11 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all active:scale-95"
+                    >
+                      <Rocket className="w-4 h-4" />
+                      <span>{lang === 'ar' ? 'تنفيذ التصفير الشامل وتسليم المتجر 🚀' : 'Execute Master Clean Handover 🚀'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 5. Restore Default Demo Catalog */}
+                <div className="p-5 rounded-3xl bg-amber-50/70 border border-amber-200/80 space-y-4 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-200 text-amber-900 flex items-center justify-center">
+                      <RotateCcw className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-extrabold text-sm text-slate-900">
+                      {lang === 'ar' ? 'استعادة الكتالوج النموذجي' : 'Restore Demo Catalog'}
+                    </h3>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {lang === 'ar' 
+                        ? 'هل ترغب في استرجاع المنتجات والطلبات والتقييمات النموذجية لعرض المتجر أو المعاينة مجدداً؟ يمكنك استعادتها بضغطة زر.'
+                        : 'Restore default sample products, mock orders, and verified reviews anytime for demonstration.'}
+                    </p>
+                  </div>
+                  <div className="pt-3 border-t border-amber-200/70">
+                    <button
+                      type="button"
+                      onClick={handleRestoreDemoDefaults}
+                      className="w-full h-10 rounded-xl bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-2xs"
+                    >
+                      <RotateCcw className="w-4 h-4 text-amber-700" />
+                      <span>{lang === 'ar' ? 'استعادة البيانات النموذجية 🔄' : 'Restore Sample Data 🔄'}</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
             </div>
           </div>
         )}

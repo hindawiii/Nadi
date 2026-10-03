@@ -172,10 +172,12 @@ export const StorefrontView: React.FC = () => {
       }))
     : skinTypes;
 
-  // Dynamic Verified Testimonials from activeData or fallback
-  const effectiveTestimonials = (activeData?.testimonials && activeData.testimonials.length > 0)
+  // Dynamic Verified Testimonials from activeData or fallback (approved or seed reviews)
+  const rawTestimonials = (activeData?.testimonials && activeData.testimonials.length > 0)
     ? activeData.testimonials
     : testimonials;
+  const approvedTestimonials = rawTestimonials.filter((t: any) => t.status === 'approved' || !t.status);
+  const effectiveTestimonials = approvedTestimonials.length > 0 ? approvedTestimonials : rawTestimonials;
 
   const iconMap: Record<string, any> = {
     Sparkles,

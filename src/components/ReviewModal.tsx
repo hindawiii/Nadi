@@ -3,7 +3,7 @@ import { X, Star, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 
 export const ReviewModal: React.FC = () => {
-  const { isReviewModalOpen, setIsReviewModalOpen, lang, addReview, showToast } = useCommerce();
+  const { isReviewModalOpen, setIsReviewModalOpen, lang, addReview, showToast, activeData } = useCommerce();
   const [rating, setRating] = useState<number>(5);
   const [name, setName] = useState<string>('');
   const [city, setCity] = useState<string>('');
@@ -11,6 +11,8 @@ export const ReviewModal: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   if (!isReviewModalOpen) return null;
+
+  const storeNameText = activeData?.storeName?.[lang] || (lang === 'ar' ? 'المتجر' : 'the Store');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +34,7 @@ export const ReviewModal: React.FC = () => {
       setName('');
       setCity('');
       setComment('');
-    }, 500);
+    }, 400);
   };
 
   return (
@@ -55,10 +57,10 @@ export const ReviewModal: React.FC = () => {
             <span>{lang === 'ar' ? 'تجربة عميلة حقيقية' : 'Verified Experience'}</span>
           </div>
           <h3 className="text-2xl font-black text-slate-900">
-            {lang === 'ar' ? 'شاركينا تجربتكِ مع So Beauty' : 'Share Your Glow Journey'}
+            {lang === 'ar' ? `شاركينا تجربتكِ مع ${storeNameText}` : `Share Your Experience with ${storeNameText}`}
           </h3>
           <p className="text-xs text-slate-500">
-            {lang === 'ar' ? 'رأيكِ يلهم آلاف النساء في اختيار روتين العناية الطبيعي المناسب' : 'Your honest feedback inspires thousands of women worldwide'}
+            {lang === 'ar' ? 'رأيكِ يلهم عميلاتنا في اختيار روتين العناية المناسب' : 'Your honest feedback inspires other customers in our community'}
           </p>
         </div>
 

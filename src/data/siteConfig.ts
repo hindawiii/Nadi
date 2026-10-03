@@ -125,6 +125,7 @@ export interface PresetNiche {
     comment: { ar: string; en: string };
     badge: { ar: string; en: string };
     rating?: number;
+    status?: 'approved' | 'pending' | 'rejected';
   }[];
   theme: {
     primaryBg: string;
