@@ -1,0 +1,111 @@
+{
+  "entities": {
+    "order": {
+      "title": "Order",
+      "description": "Store customer order record for e-commerce purchases",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique order ID (e.g. ORD-2026-108)"
+        },
+        "date": {
+          "type": "string",
+          "description": "Formatted date and time of the order"
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Full name of the customer"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number of the customer"
+        },
+        "address": {
+          "type": "string",
+          "description": "Delivery address of the customer"
+        },
+        "items": {
+          "type": "array",
+          "description": "Ordered items with quantities and prices"
+        },
+        "totalFormatted": {
+          "type": "string",
+          "description": "Formatted order total with currency symbol"
+        },
+        "totalUSD": {
+          "type": "number",
+          "description": "Order total in USD"
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency code (e.g. SDG, SAR, USD, AED)"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["received", "processing", "dispatched", "delivered"],
+          "description": "Current fulfillment status of the order"
+        },
+        "trackingCode": {
+          "type": "string",
+          "description": "Public parcel tracking code (e.g. TRK-98241)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation"
+        }
+      },
+      "required": [
+        "id",
+        "customerName",
+        "phone",
+        "address",
+        "totalFormatted",
+        "status",
+        "trackingCode"
+      ]
+    },
+    "review": {
+      "title": "Customer Review",
+      "description": "Verified or submitted customer review",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique review identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Reviewer display name"
+        },
+        "city": {
+          "type": "string",
+          "description": "Reviewer city"
+        },
+        "comment": {
+          "type": "string",
+          "description": "Review comment body"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Rating score between 1 and 5"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["name", "city", "comment", "rating"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": "order",
+      "description": "Customer purchase orders collection with live tracking"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "review",
+      "description": "Product and store customer reviews collection"
+    }
+  }
+}

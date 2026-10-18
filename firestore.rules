@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['id', 'customerName', 'phone', 'address', 'totalFormatted', 'status', 'trackingCode'])
+        && data.id is string && data.id.size() <= 64
+        && data.customerName is string && data.customerName.size() > 0 && data.customerName.size() <= 120
+        && data.phone is string && data.phone.size() > 0 && data.phone.size() <= 40
+        && data.address is string && data.address.size() > 0 && data.address.size() <= 300
+        && data.totalFormatted is string && data.totalFormatted.size() <= 60
+        && data.status in ['received', 'processing', 'dispatched', 'delivered']
+        && data.trackingCode is string && data.trackingCode.size() <= 64;
+    }
+
+    function isValidReview(data) {
+      return data.keys().hasAll(['name', 'city', 'comment', 'rating'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 80
+        && data.city is string && data.city.size() <= 80
+        && data.comment is string && data.comment.size() > 0 && data.comment.size() <= 1000
+        && data.rating is number && data.rating >= 1 && data.rating <= 5;
+    }
+
+    // Connection testing
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Orders Collection
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId);
+      allow list: if true;
+      allow create: if isValidId(orderId) && isValidOrder(incoming());
+      allow update: if isValidId(orderId) && incoming().diff(existing()).affectedKeys().hasOnly(['status']) && incoming().status in ['received', 'processing', 'dispatched', 'delivered'];
+      allow delete: if isValidId(orderId);
+    }
+
+    // Reviews Collection
+    match /reviews/{reviewId} {
+      allow read: if isValidId(reviewId) || true;
+      allow create: if isValidId(reviewId) && isValidReview(incoming());
+      allow update, delete: if isValidId(reviewId);
+    }
+  }
+}

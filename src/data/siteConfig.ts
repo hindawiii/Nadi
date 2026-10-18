@@ -301,10 +301,10 @@ export const siteConfig: SiteConfig = {
         title: { ar: "قبل وبعد (14 يوماً من النضارة)", en: "Before & After (14 Days)" },
         subtitle: { ar: "مقارنة حقيقية لنضارة وترطيب البشرة قبل وبعد 14 يوماً من الاستخدام المنتظم لمنتجات نَدِي الطبيعية. اسحبي المؤشر لمعاينة الفرق.", en: "Real photographic comparison of skin radiance and hydration before and after 14 days of NADI care. Drag to compare." },
         badge: { ar: "نتائج واقعية ومثبتة", en: "Proven Transformations" },
-        beforeImage: "https://images.unsplash.com/photo-1512290900672-1f551b945199?auto=format&fit=crop&w=1000&q=80",
-        afterImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1000&q=80",
-        beforeLabel: { ar: "قبل", en: "Before" },
-        afterLabel: { ar: "بعد", en: "After" }
+        beforeImage: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80",
+        afterImage: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80",
+        beforeLabel: { ar: "قبل الاستخدام (اليوم الأول)", en: "Before (Day 1)" },
+        afterLabel: { ar: "بعد 14 يوماً من النضارة", en: "After 14 Days" }
       },
       trioBanners: [
         {
@@ -349,8 +349,8 @@ export const siteConfig: SiteConfig = {
           title: { ar: 'بشرة مرطبة', en: 'Moisturized Skin' },
           ingredient: { ar: 'حمض الهيالورونيك المكثف', en: 'Intense Hyaluronic Acid' },
           desc: { ar: 'حمض الهيالورونيك المكثف لحبس الرطوبة ومحاربة الجفاف.', en: 'Hyaluronic acid deep hydration barrier.' },
-          image: 'https://images.unsplash.com/photo-1512290900672-1f41b2f6ef8d?auto=format&fit=crop&w=700&q=80',
-          fallbackImage: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=700&q=80',
+          image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80',
+          fallbackImage: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80',
           badge: { ar: 'ترطيب عميق 💧', en: 'Deep Moisture 💧' },
           bg: 'bg-blue-50/70 border-blue-200/80 hover:border-blue-400 text-blue-900',
           badgeColor: 'bg-blue-600 text-white'
@@ -360,8 +360,8 @@ export const siteConfig: SiteConfig = {
           title: { ar: 'بشرة موحّدة', en: 'Even Tone Skin' },
           ingredient: { ar: 'فيتامين سي العضوي', en: 'Pure Organic Vitamin C' },
           desc: { ar: 'فيتامين سي العضوي لتفتيح التصبغات وتوحيد لون البشرة.', en: 'Active Vitamin C to combat hyperpigmentation.' },
-          image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=700&q=80',
-          fallbackImage: 'https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=700&q=80',
+          image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+          fallbackImage: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80',
           badge: { ar: 'تفتيح وتوحيد ☀️', en: 'Even Tone ☀️' },
           bg: 'bg-amber-50/70 border-amber-200/80 hover:border-amber-400 text-amber-900',
           badgeColor: 'bg-amber-600 text-white'
@@ -371,8 +371,8 @@ export const siteConfig: SiteConfig = {
           title: { ar: 'بشرة مشدودة', en: 'Firm Skin' },
           ingredient: { ar: 'خلاصات الكولاجين النباتي', en: 'Botanical Collagen Boost' },
           desc: { ar: 'مستخلصات نباتية لتجديد الكولاجين والمرونة الطبيعية.', en: 'Plant botanicals restoring elasticity.' },
-          image: 'https://images.unsplash.com/photo-1508746829417-e6f548d8d6ed?auto=format&fit=crop&w=700&q=80',
-          fallbackImage: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=700&q=80',
+          image: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=800&q=80',
+          fallbackImage: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80',
           badge: { ar: 'شد ومرونة 🌿', en: 'Firm & Elastic 🌿' },
           bg: 'bg-purple-50/70 border-purple-200/80 hover:border-purple-400 text-purple-900',
           badgeColor: 'bg-purple-700 text-white'
@@ -382,8 +382,8 @@ export const siteConfig: SiteConfig = {
           title: { ar: 'بشرة مشرقة', en: 'Radiant Skin' },
           ingredient: { ar: 'زيوت اللافندر والورد', en: 'Rose & Lavender Infusion' },
           desc: { ar: 'زيوت اللافندر والورد لنضارة فورية وإشراقة طبيعية تدوم.', en: 'Lavender & Rose extracts for healthy glow.' },
-          image: 'https://images.unsplash.com/photo-1556228722-d0b5b0340fe3?auto=format&fit=crop&w=700&q=80',
-          fallbackImage: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=700&q=80',
+          image: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=800&q=80',
+          fallbackImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80',
           badge: { ar: 'إشراقة طبيعية ✨', en: 'Natural Glow ✨' },
           bg: 'bg-rose-50/70 border-rose-200/80 hover:border-rose-400 text-rose-900',
           badgeColor: 'bg-rose-600 text-white'

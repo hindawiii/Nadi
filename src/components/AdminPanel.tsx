@@ -397,6 +397,21 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
+  // Handle direct file upload for Skin Diagnosis Card
+  const handleSkinCardFileSelect = async (cardId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      updateSkinDiagnosisCard(cardId, 'image', dataUrl);
+      showToast(lang === 'ar' ? 'تم تحديث صورة كرت نوع البشرة بنجاح!' : 'Skin card image updated!');
+    } catch (err: any) {
+      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
+    } finally {
+      if (e.target) e.target.value = '';
+    }
+  };
+
   // Helper for Skin Diagnosis cards update
   const updateSkinDiagnosisCard = (cardId: string, field: string, value: any) => {
     setDynamicConfig((prev) => {
@@ -3092,15 +3107,25 @@ export const AdminPanel: React.FC = () => {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-500 block">{lang === 'ar' ? 'رابط صورة الكرت:' : 'Card Image URL:'}</label>
+                        <label className="text-[10px] font-bold text-slate-500 block">{lang === 'ar' ? 'صورة الكرت:' : 'Card Image:'}</label>
                         <div className="flex items-center gap-2">
                           <input
-                            type="url"
+                            type="text"
                             value={card.image || ''}
                             onChange={(e) => updateSkinDiagnosisCard(card.id, 'image', e.target.value)}
-                            placeholder="https://..."
+                            placeholder="/assets/nadi/... أو رابط"
                             className="flex-1 h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
                           />
+                          <label className="h-9 px-3 bg-purple-50 hover:bg-purple-100 text-[#5A3E7A] border border-purple-200 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors">
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>{lang === 'ar' ? 'رفع ملف' : 'Upload'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handleSkinCardFileSelect(card.id, e)}
+                            />
+                          </label>
                           {card.image && (
                             <img src={card.image} alt="Card" className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0" />
                           )}

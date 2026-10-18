@@ -11,6 +11,13 @@ import {
   sanitizeProductDefensively,
   GoldenSnapshotMeta
 } from '../data/goldenStoreConfig';
+import { 
+  getOrdersFromCloud, 
+  persistOrderToCloud, 
+  updateOrderStatusInCloud, 
+  clearAllOrdersFromCloud 
+} from '../services/orderService';
+import { testConnection } from '../lib/firebase';
 
 export interface CartItem {
   product: Product;
@@ -337,9 +344,40 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                   }
                   return siteConfig.presets[presetKey]?.products || [];
                 })(),
-                skinDiagnosisCards: Array.isArray(parsed.presets[presetKey]?.skinDiagnosisCards)
-                  ? parsed.presets[presetKey].skinDiagnosisCards
-                  : (siteConfig.presets[presetKey]?.skinDiagnosisCards || siteConfig.presets.cosmetics.skinDiagnosisCards || []),
+                skinDiagnosisCards: (() => {
+                  const cached = parsed.presets[presetKey]?.skinDiagnosisCards;
+                  if (Array.isArray(cached) && cached.length > 0) {
+                    const isCorrupted = cached.some((c: any) => 
+                      !c.image || 
+                      c.image.includes('1508746829417') || 
+                      c.image.includes('1512290900672') ||
+                      c.image.includes('1556228720-195a672e8a03') ||
+                      (c.image.includes('/assets/nadi/') && !c.image.startsWith('data:'))
+                    );
+                    if (!isCorrupted) {
+                      return cached;
+                    }
+                  }
+                  return (siteConfig.presets[presetKey]?.skinDiagnosisCards || siteConfig.presets.cosmetics.skinDiagnosisCards || []);
+                })(),
+                beforeAfterMedia: (() => {
+                  const cached = parsed.presets[presetKey]?.beforeAfterMedia;
+                  if (cached && cached.beforeImage && cached.afterImage) {
+                    const isCorrupted = 
+                      cached.beforeImage.includes('1512290900672') || 
+                      cached.beforeImage.includes('1508214751196') ||
+                      cached.afterImage.includes('1567532939604') ||
+                      (cached.beforeImage.includes('/assets/nadi/') && !cached.beforeImage.startsWith('data:')) ||
+                      (cached.afterImage.includes('/assets/nadi/') && !cached.afterImage.startsWith('data:'));
+                    if (!isCorrupted) {
+                      return {
+                        ...siteConfig.presets[presetKey]?.beforeAfterMedia,
+                        ...cached
+                      };
+                    }
+                  }
+                  return siteConfig.presets[presetKey]?.beforeAfterMedia || siteConfig.presets.cosmetics.beforeAfterMedia;
+                })(),
                 testimonials: Array.isArray(parsed.presets[presetKey]?.testimonials)
                   ? parsed.presets[presetKey].testimonials
                   : (siteConfig.presets[presetKey]?.testimonials || siteConfig.presets.cosmetics.testimonials || [])
@@ -348,6 +386,11 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           });
         }
         parsed.presets = mergedPresets;
+
+        // Auto-persist healed config back to localStorage
+        try {
+          localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(parsed));
+        } catch (err) {}
 
         // Migrate any cached single-string currency symbols to bilingual symbols from siteConfig
         if (parsed.currencies) {
@@ -555,7 +598,12 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [clonedSections, setClonedSections] = useState<Record<string, ClonedSectionConfig>>(() => {
     try {
       const saved = safeStorage.getItem(STORAGE_KEY_CLONED);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.routineDiagnosis?.isCloned) parsed.routineDiagnosis.isCloned = false;
+        if (parsed?.promoBanner?.isCloned) parsed.promoBanner.isCloned = false;
+        return parsed;
+      }
     } catch (e) {}
     return {};
   });
@@ -959,7 +1007,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
-  const [orders, setOrders] = useState<OrderRecord[]>([
+  const defaultOrdersPreset: OrderRecord[] = [
     {
       id: "ORD-2026-108",
       date: "2026-09-22 14:30",
@@ -989,7 +1037,43 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       status: "processing",
       trackingCode: "TRK-98242"
     }
-  ]);
+  ];
+
+  const [orders, setOrders] = useState<OrderRecord[]>(() => {
+    try {
+      const cached = safeStorage.getItem('luxe_cached_orders');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return defaultOrdersPreset;
+  });
+
+  // Synchronize orders with Firestore Cloud Database
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        await testConnection();
+        const cloudOrders = await getOrdersFromCloud();
+        if (isMounted) {
+          if (Array.isArray(cloudOrders) && cloudOrders.length > 0) {
+            setOrders(cloudOrders);
+            safeStorage.setItem('luxe_cached_orders', JSON.stringify(cloudOrders));
+          } else {
+            // Seed Firestore with initial records so the store starts populated
+            for (const item of defaultOrdersPreset) {
+              await persistOrderToCloud(item);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not sync orders from cloud:', err);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, []);
 
   // Persist language and update document direction
   const setLang = (l: 'ar' | 'en') => {
@@ -1641,58 +1725,52 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return { ...prevConfig, presets: updatedPresets };
     });
 
-    setOrders((prev) => [newOrder, ...prev]);
+    setOrders((prev) => {
+      const next = [newOrder, ...prev];
+      safeStorage.setItem('luxe_cached_orders', JSON.stringify(next));
+      return next;
+    });
+
+    // Cloud Firestore persistence (asynchronous with error safety)
+    persistOrderToCloud(newOrder).catch((err) => {
+      console.warn('Could not persist order to Firestore in background:', err);
+    });
+
     clearCart();
     setIsCartOpen(false);
-    showToast(lang === 'ar' ? 'تم تسجيل طلبك بنجاح! رقم التتبع: ' + trackingCode : 'Order placed successfully! Tracking: ' + trackingCode);
+    showToast(lang === 'ar' ? 'تم تسجيل طلبك وحفظه سحابياً بنجاح! رقم التتبع: ' + trackingCode : 'Order placed & saved to cloud! Tracking: ' + trackingCode);
     return newOrder;
   };
 
   const updateOrderStatus = (orderId: string, status: OrderRecord['status']) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status } : o))
-    );
-    showToast(lang === 'ar' ? 'تم تحديث حالة الطلب بنجاح' : 'Order status updated');
+    setOrders((prev) => {
+      const next = prev.map((o) => (o.id === orderId ? { ...o, status } : o));
+      safeStorage.setItem('luxe_cached_orders', JSON.stringify(next));
+      return next;
+    });
+    updateOrderStatusInCloud(orderId, status).catch((err) => {
+      console.warn('Could not update order status in cloud:', err);
+    });
+    showToast(lang === 'ar' ? 'تم تحديث حالة الطلب سحابياً بنجاح' : 'Order status updated in cloud');
   };
 
   const clearAllOrders = () => {
+    const existingIds = orders.map((o) => o.id);
     setOrders([]);
+    safeStorage.removeItem('luxe_cached_orders');
+    clearAllOrdersFromCloud(existingIds).catch((err) => {
+      console.warn('Could not clear orders from cloud:', err);
+    });
     showToast(lang === 'ar' ? 'تم تفريغ سجل الطلبات بالكامل بنجاح' : 'All orders have been cleared');
   };
 
   const restoreDefaultOrders = () => {
-    setOrders([
-      {
-        id: "ORD-2026-108",
-        date: "2026-09-22 14:30",
-        customerName: "فاطمة أحمد",
-        phone: "+249912345678",
-        address: "أم درمان – شارع الوادي",
-        items: [
-          { productName: "مرطب الهيالورونيك المكثف", quantity: 2, price: "6,000 ج.س" },
-          { productName: "سيروم فيتامين سي النقي", quantity: 1, price: "3,450 ج.س" }
-        ],
-        totalFormatted: "9,450 ج.س",
-        currency: "SDG",
-        status: "dispatched",
-        trackingCode: "TRK-98241"
-      },
-      {
-        id: "ORD-2026-109",
-        date: "2026-09-23 09:15",
-        customerName: "سارة المنصور",
-        phone: "+966501234567",
-        address: "الرياض – حي الملقا",
-        items: [
-          { productName: "مجموعة Natural Bloom الكاملة", quantity: 1, price: "67.50 ر.س" }
-        ],
-        totalFormatted: "67.50 ر.س",
-        currency: "SAR",
-        status: "processing",
-        trackingCode: "TRK-98242"
-      }
-    ]);
-    showToast(lang === 'ar' ? 'تمت استعادة الطلبات التجريبية بنجاح' : 'Default demo orders restored');
+    setOrders(defaultOrdersPreset);
+    safeStorage.setItem('luxe_cached_orders', JSON.stringify(defaultOrdersPreset));
+    for (const defOrder of defaultOrdersPreset) {
+      persistOrderToCloud(defOrder).catch(() => {});
+    }
+    showToast(lang === 'ar' ? 'تمت استعادة الطلبات وتحديث السحابة بنجاح' : 'Default orders restored to cloud');
   };
 
   const updateActiveDataField = (path: string, value: string) => {
