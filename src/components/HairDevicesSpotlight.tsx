@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { 
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, LayoutGrid, SlidersHorizontal, ChevronUp
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
@@ -238,7 +238,8 @@ export const HairDevicesSpotlight: React.FC = () => {
   const { lang, showToast, dynamicConfig, activePresetId } = useCommerce();
   const isRtl = lang === 'ar';
 
-  const [activeSubCategory, setActiveSubCategory] = useState<SubCategoryKey>('waving');
+  const [activeSubCategory, setActiveSubCategory] = useState<SubCategoryKey>('all');
+  const [isGridView, setIsGridView] = useState(false);
 
   // Horizontal Carousel Drag & Scroll State
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -246,11 +247,15 @@ export const HairDevicesSpotlight: React.FC = () => {
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
 
-  // Sub-category filters
+  // Sub-category filters (All first, concise and professional)
   const tabs = [
     {
+      id: 'all' as SubCategoryKey,
+      label: { ar: 'الكل', en: 'All' },
+    },
+    {
       id: 'waving' as SubCategoryKey,
-      label: { ar: 'مكواة تجعيد و تمويج الشعر', en: 'Curling & Waving Irons' },
+      label: { ar: 'مكواة تجعيد وتمويج', en: 'Curling & Waving' },
     },
     {
       id: 'straightener' as SubCategoryKey,
@@ -259,10 +264,6 @@ export const HairDevicesSpotlight: React.FC = () => {
     {
       id: 'dryer' as SubCategoryKey,
       label: { ar: 'مجفف الشعر', en: 'Hair Dryers & Blowers' },
-    },
-    {
-      id: 'all' as SubCategoryKey,
-      label: { ar: 'عرض كافة الأجهزة', en: 'All Devices' },
     },
   ];
 
@@ -519,72 +520,109 @@ export const HairDevicesSpotlight: React.FC = () => {
         })}
       </div>
 
-      {/* 4. HORIZONTAL SMOOTH CAROUSEL (3 UNIFIED SMART CARDS DEFAULT ON DESKTOP, TOUCH & MOUSE SWIPE) */}
-      <div className="relative group/carousel">
-        {/* Previous Button (Desktop / Tablet) */}
-        <button
-          type="button"
-          onClick={() => scrollCarousel('prev')}
-          aria-label={lang === 'ar' ? 'السابق' : 'Previous devices'}
-          className="hidden md:flex absolute -start-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#2B827A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
-        >
-          {isRtl ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-        </button>
-
-        {/* Carousel Scroll Container (With fluid vertical page scroll and horizontal device swipe) */}
-        <div
-          ref={scrollContainerRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
-          className="flex gap-2.5 sm:gap-3.5 overflow-x-auto pb-2 sm:pb-3 pt-2 px-1 scroll-smooth snap-x snap-mandatory scrollbar-none cursor-grab active:cursor-grabbing touch-manipulation"
-          style={{ 
-            scrollbarWidth: 'none', 
-            msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehaviorX: 'contain',
-            touchAction: 'pan-x pan-y'
-          }}
-        >
-          {filteredProducts.map((product) => (
-            <ProductCard 
-              key={product.id} 
-              product={product} 
-              isCarouselItem={true} 
-            />
-          ))}
-        </div>
-
-        {/* Next Button (Desktop / Tablet) */}
-        <button
-          type="button"
-          onClick={() => scrollCarousel('next')}
-          aria-label={lang === 'ar' ? 'التالي' : 'Next devices'}
-          className="hidden md:flex absolute -end-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#2B827A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
-        >
-          {isRtl ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-        </button>
-
-        {/* Unified Bottom Footer: Swipe Hint + View All Link (Zero Dead Space) */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 pt-3">
-          <span className="text-[11px] sm:text-xs text-slate-400 font-medium">
-            {lang === 'ar' ? '← اسحبي يميناً ويساراً لتصفح باقي الأجهزة →' : '← Drag or swipe to explore all devices →'}
-          </span>
-          <span className="hidden sm:inline text-slate-300">•</span>
+      {/* 4. PRODUCTS DISPLAY: EITHER HORIZONTAL CAROUSEL OR FULL RESPONSIVE GRID */}
+      {!isGridView ? (
+        <div className="relative group/carousel">
+          {/* Previous Button (Desktop / Tablet) */}
           <button
             type="button"
-            onClick={() => {
-              handleTabChange('all');
-              showToast(lang === 'ar' ? 'عرض كافة أجهزة الشعر' : 'Displaying all hair devices');
-            }}
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#2B827A] bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 transition-all py-1.5 px-4 rounded-full min-h-[38px] sm:min-h-[40px] shadow-2xs active:scale-95"
+            onClick={() => scrollCarousel('prev')}
+            aria-label={lang === 'ar' ? 'السابق' : 'Previous devices'}
+            className="hidden md:flex absolute -start-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#2B827A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
           >
-            <span>{lang === 'ar' ? 'عرض كافة الأجهزة' : 'View All Devices'}</span>
-            {isRtl ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            {isRtl ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           </button>
+
+          {/* Carousel Scroll Container (With fluid vertical page scroll and horizontal device swipe) */}
+          <div
+            ref={scrollContainerRef}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            className="flex gap-2.5 sm:gap-3.5 overflow-x-auto pb-2 sm:pb-3 pt-2 px-1 scroll-smooth snap-x snap-mandatory scrollbar-none cursor-grab active:cursor-grabbing touch-manipulation"
+            style={{ 
+              scrollbarWidth: 'none', 
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehaviorX: 'contain',
+              touchAction: 'pan-x pan-y'
+            }}
+          >
+            {filteredProducts.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                isCarouselItem={true} 
+              />
+            ))}
+          </div>
+
+          {/* Next Button (Desktop / Tablet) */}
+          <button
+            type="button"
+            onClick={() => scrollCarousel('next')}
+            aria-label={lang === 'ar' ? 'التالي' : 'Next devices'}
+            className="hidden md:flex absolute -end-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#2B827A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
+          >
+            {isRtl ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+          </button>
+
+          {/* Unified Bottom Footer: Swipe Hint + Switch to Grid Button */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 pt-3">
+            <span className="text-[11px] sm:text-xs text-slate-400 font-medium">
+              {lang === 'ar' ? '← اسحبي يميناً ويساراً لتصفح باقي الأجهزة →' : '← Drag or swipe to explore all devices →'}
+            </span>
+            <span className="hidden sm:inline text-slate-300">•</span>
+            <button
+              type="button"
+              onClick={() => {
+                setIsGridView(true);
+                handleTabChange('all');
+                showToast(lang === 'ar' ? 'تم فتح شبكة عرض كافة الأجهزة' : 'Switched to full grid view');
+              }}
+              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#2B827A] bg-white hover:bg-slate-50 border border-slate-200/90 hover:border-[#2B827A]/40 transition-all py-2 px-4 sm:px-5 rounded-full min-h-[42px] shadow-sm hover:shadow active:scale-95 cursor-pointer"
+            >
+              <LayoutGrid className="w-4 h-4 text-[#2B827A]" />
+              <span>
+                {lang === 'ar' 
+                  ? `عرض كافة الأجهزة في شبكة (${effectiveDevices.length})` 
+                  : `View All in Grid (${effectiveDevices.length})`}
+              </span>
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-4 pt-2">
+          {/* Autonomous Adaptive Grid: Strictly 2 columns on mobile, strictly 3 columns on all other devices */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-2.5 sm:gap-4 animate-in fade-in duration-300">
+            {filteredProducts.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                isCarouselItem={false} 
+              />
+            ))}
+          </div>
+
+          {/* Back to Carousel (Show Less) Button */}
+          <div className="flex items-center justify-center pt-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsGridView(false);
+                document.getElementById('hair-devices-carousel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                showToast(lang === 'ar' ? 'تمت العودة للعرض كشريط أفقي' : 'Returned to carousel view');
+              }}
+              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#2B827A] bg-white hover:bg-slate-50 border border-slate-200/90 hover:border-[#2B827A]/40 transition-all py-2 px-5 rounded-full min-h-[42px] shadow-sm hover:shadow active:scale-95 cursor-pointer"
+            >
+              <SlidersHorizontal className="w-4 h-4 text-[#2B827A]" />
+              <span>{lang === 'ar' ? 'عرض أقل (العودة للشريط الأفقي)' : 'Show Less (Carousel)'}</span>
+              <ChevronUp className="w-4 h-4 text-slate-500" />
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
