@@ -6,6 +6,7 @@ export interface SmartDiscountBadgeProps {
   manualPercent?: number;
   lang?: 'ar' | 'en';
   size?: 'xs' | 'sm' | 'md' | 'lg';
+  variant?: 'rose' | 'emerald';
   className?: string;
 }
 
@@ -30,11 +31,7 @@ export function calculateDiscountPercent(
 
 /**
  * SmartDiscountBadge - Universal Single-Source-of-Truth Discount Badge.
- * Enforces:
- * - Standard Arabic prefix 'خ%' (e.g. خ20%, خ35%)
- * - Standard English prefix '-%' (e.g. -20%, -35%)
- * - Zero occurrence of outdated words like 'وفر'
- * - High-end emerald brand styling (#2B827A)
+ * High-end luxury discount styling (Rose-Red #E11D48 / Emerald #2B827A).
  */
 export const SmartDiscountBadge: React.FC<SmartDiscountBadgeProps> = ({
   basePriceUSD,
@@ -42,6 +39,7 @@ export const SmartDiscountBadge: React.FC<SmartDiscountBadgeProps> = ({
   manualPercent,
   lang = 'ar',
   size = 'md',
+  variant = 'rose',
   className = '',
 }) => {
   const percent = calculateDiscountPercent(basePriceUSD, originalPriceUSD, manualPercent);
@@ -51,17 +49,21 @@ export const SmartDiscountBadge: React.FC<SmartDiscountBadgeProps> = ({
   }
 
   const sizeClasses = {
-    xs: 'text-[9px] px-1.5 py-0.5 rounded-md',
-    sm: 'text-[9px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg',
-    md: 'text-[11px] sm:text-xs px-2.5 py-1 rounded-xl',
-    lg: 'text-xs sm:text-sm px-3 py-1 rounded-xl',
+    xs: 'text-[9px] sm:text-[10px] px-2 py-0.5 font-black',
+    sm: 'text-[10px] sm:text-[11px] px-2.5 py-0.5 font-black',
+    md: 'text-[11px] sm:text-xs px-2.5 py-1 font-black',
+    lg: 'text-xs sm:text-sm px-3 py-1 font-black',
   };
 
-  const displayText = lang === 'ar' ? `خ${percent}%` : `-${percent}%`;
+  const bgClasses = variant === 'emerald' 
+    ? 'bg-[#2B827A] text-white' 
+    : 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs';
+
+  const displayText = lang === 'ar' ? `خ ${percent}` : `-${percent}%`;
 
   return (
     <span
-      className={`inline-flex items-center justify-center font-black tracking-wide shadow-xs bg-[#2B827A] text-white select-none whitespace-nowrap ${sizeClasses[size]} ${className}`}
+      className={`inline-flex items-center justify-center tracking-wide select-none whitespace-nowrap ${bgClasses} ${sizeClasses[size]} ${className}`}
       aria-label={`Discount: ${percent}%`}
       title={`Discount: ${percent}%`}
     >

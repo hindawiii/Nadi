@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b0764" />
+      <stop offset="50%" stop-color="#581c87" />
+      <stop offset="100%" stop-color="#7e22ce" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="40%" stop-color="#fde047" />
+      <stop offset="70%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#e9d5ff" stop-opacity="0.3" />
+    </linearGradient>
+    <filter id="luxuryGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background with subtle luxury rounded aesthetic -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Inner Soft Vignette / Glow -->
+  <circle cx="256" cy="240" r="180" fill="#a855f7" opacity="0.25" filter="url(#luxuryGlow)" />
+
+  <!-- Decorative Outer Ring (Safe Zone friendly) -->
+  <circle cx="256" cy="256" r="190" fill="none" stroke="url(#goldGrad)" stroke-width="3" opacity="0.4" stroke-dasharray="12 8" />
+
+  <!-- Botanical Leaf / Droplet Emblem (Nadi / Dew) -->
+  <g transform="translate(256, 230)">
+    <!-- Elegant Dewdrop / Leaf shape -->
+    <path d="M 0,-100 C 45,-45 95,15 95,85 C 95,145 48,190 0,190 C -48,190 -95,145 -95,85 C -95,15 -45,-45 0,-100 Z" 
+          fill="url(#goldGrad)" 
+          filter="url(#luxuryGlow)" />
+
+    <!-- Inner Core Cutout / Petal -->
+    <path d="M 0,-70 C 32,-25 65,20 65,75 C 65,118 32,150 0,150 C -32,150 -65,118 -65,75 C -65,20 -32,-25 0,-70 Z" 
+          fill="#4c1d95" opacity="0.95" />
+
+    <!-- Center Nadi / Arabic Letter Nuun & Seed pearl -->
+    <!-- Nuun Arc -->
+    <path d="M -36,65 C -36,95 -20,118 0,118 C 20,118 36,95 36,65" 
+          fill="none" 
+          stroke="url(#goldGrad)" 
+          stroke-width="9" 
+          stroke-linecap="round" />
+    <!-- Nuun Nuqta (Dot) as radiant diamond / dew pearl -->
+    <circle cx="0" cy="50" r="8" fill="url(#goldGrad)" />
+
+    <!-- Dew Sparkle Accent Top Right -->
+    <path d="M 40,-50 Q 55,-40 65,-25 Q 50,-20 40,-50 Z" fill="#ffffff" opacity="0.8" />
+  </g>
+
+  <!-- Radiant Sparkle Stars -->
+  <g fill="url(#goldGrad)">
+    <!-- Top Right Sparkle -->
+    <polygon points="360,110 365,125 380,130 365,135 360,150 355,135 340,130 355,125" opacity="0.85" />
+    <!-- Bottom Left Minor Sparkle -->
+    <polygon points="140,360 144,370 155,373 144,377 140,388 136,377 125,373 136,370" opacity="0.7" />
+  </g>
+
+  <!-- Elegant Brand Typography "NADI" -->
+  <text x="256" y="455" 
+        font-family="'Playfair Display', 'Cinzel', serif" 
+        font-size="34" 
+        font-weight="700" 
+        letter-spacing="10" 
+        fill="url(#goldGrad)" 
+        text-anchor="middle">NADI</text>
+</svg>

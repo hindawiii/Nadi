@@ -493,24 +493,39 @@ export const SmartPinOtpInput: React.FC<SmartPinOtpInputProps> = ({
 // ==========================================
 // 3. SMART PHONE NUMBER INPUT WITH AUTO-FORMATTING
 // ==========================================
-interface SmartPhoneInputProps {
+// 3. SMART PHONE NUMBER INPUT WITH AUTO-FORMATTING
+// ==========================================
+export interface CountryOption {
+  code: string;
+  nameAr: string;
+  nameEn: string;
+  flag: string;
+  digits: number;
+  placeholder: string;
+}
+
+export const COUNTRIES: CountryOption[] = [
+  { code: '+249', nameAr: 'السودان', nameEn: 'Sudan', flag: '🇸🇩', digits: 9, placeholder: '91 234 5678' },
+  { code: '+966', nameAr: 'السعودية', nameEn: 'Saudi Arabia', flag: '🇸🇦', digits: 9, placeholder: '50 123 4567' },
+  { code: '+971', nameAr: 'الإمارات', nameEn: 'UAE', flag: '🇦🇪', digits: 9, placeholder: '50 123 4567' },
+  { code: '+20',  nameAr: 'مصر', nameEn: 'Egypt', flag: '🇪🇬', digits: 10, placeholder: '10 1234 5678' },
+  { code: '+974', nameAr: 'قطر', nameEn: 'Qatar', flag: '🇶🇦', digits: 8, placeholder: '33 123 456' },
+  { code: '+965', nameAr: 'الكويت', nameEn: 'Kuwait', flag: '🇰🇼', digits: 8, placeholder: '50 123 456' },
+  { code: '+968', nameAr: 'عُمان', nameEn: 'Oman', flag: '🇴🇲', digits: 8, placeholder: '91 234 567' },
+  { code: '+973', nameAr: 'البحرين', nameEn: 'Bahrain', flag: '🇧🇭', digits: 8, placeholder: '36 123 456' },
+  { code: '+962', nameAr: 'الأردن', nameEn: 'Jordan', flag: '🇯🇴', digits: 9, placeholder: '79 123 4567' },
+];
+
+export interface SmartPhoneInputProps {
   value: string;
   onChange: (val: string) => void;
   lang: 'ar' | 'en';
   label?: string;
   required?: boolean;
+  defaultCountryCode?: string;
+  onFullPhoneChange?: (fullPhone: string, isValid: boolean) => void;
+  error?: string;
 }
-
-const COUNTRIES = [
-  { code: '+966', nameAr: 'السعودية', nameEn: 'Saudi Arabia', flag: '🇸🇦', digits: 9, placeholder: '50 123 4567' },
-  { code: '+971', nameAr: 'الإمارات', nameEn: 'UAE', flag: '🇦🇪', digits: 9, placeholder: '50 123 4567' },
-  { code: '+965', nameAr: 'الكويت', nameEn: 'Kuwait', flag: '🇰🇼', digits: 8, placeholder: '50 123 456' },
-  { code: '+974', nameAr: 'قطر', nameEn: 'Qatar', flag: '🇶🇦', digits: 8, placeholder: '50 123 456' },
-  { code: '+968', nameAr: 'عُمان', nameEn: 'Oman', flag: '🇴🇲', digits: 8, placeholder: '91 234 567' },
-  { code: '+973', nameAr: 'البحرين', nameEn: 'Bahrain', flag: '🇧🇭', digits: 8, placeholder: '36 123 456' },
-  { code: '+20',  nameAr: 'مصر', nameEn: 'Egypt', flag: '🇪🇬', digits: 10, placeholder: '10 1234 5678' },
-  { code: '+962', nameAr: 'الأردن', nameEn: 'Jordan', flag: '🇯🇴', digits: 9, placeholder: '79 123 4567' },
-];
 
 export const SmartPhoneInput: React.FC<SmartPhoneInputProps> = ({
   value,
@@ -518,10 +533,25 @@ export const SmartPhoneInput: React.FC<SmartPhoneInputProps> = ({
   lang,
   label,
   required = false,
+  defaultCountryCode,
+  onFullPhoneChange,
+  error,
 }) => {
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  // Find initial country matching defaultCountryCode or default to Sudan
+  const initialCountry = (defaultCountryCode && COUNTRIES.find(c => c.code === defaultCountryCode)) || COUNTRIES[0];
+  const [selectedCountry, setSelectedCountry] = useState<CountryOption>(initialCountry);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Sync when defaultCountryCode changes externally (e.g. city or currency changed)
+  useEffect(() => {
+    if (defaultCountryCode) {
+      const match = COUNTRIES.find(c => c.code === defaultCountryCode);
+      if (match && match.code !== selectedCountry.code) {
+        setSelectedCountry(match);
+      }
+    }
+  }, [defaultCountryCode]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -534,31 +564,59 @@ export const SmartPhoneInput: React.FC<SmartPhoneInputProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Format raw digits with smart grouping: e.g. "50 123 4567"
-  const formatPhoneNumber = (raw: string) => {
-    const digitsOnly = raw.replace(/\D/g, '').slice(0, selectedCountry.digits);
-    if (digitsOnly.length <= 2) return digitsOnly;
-    if (digitsOnly.length <= 5) return `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2)}`;
-    return `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2, 5)} ${digitsOnly.slice(5)}`;
+  // Format raw digits with smart grouping: e.g. "91 234 5678"
+  // Also cleanly handles if user types a local leading 0 (e.g. 0912345678 -> 912345678)
+  const formatPhoneNumber = (raw: string, country = selectedCountry) => {
+    let clean = raw.replace(/\D/g, '');
+    if (clean.startsWith('0') && clean.length > 1) {
+      clean = clean.slice(1);
+    }
+    const digitsOnly = clean.slice(0, country.digits);
+
+    let formatted = digitsOnly;
+    if (digitsOnly.length > 5) {
+      formatted = `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2, 5)} ${digitsOnly.slice(5)}`;
+    } else if (digitsOnly.length > 2) {
+      formatted = `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2)}`;
+    }
+
+    return { formatted, digitsOnly };
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
+    const { formatted, digitsOnly } = formatPhoneNumber(e.target.value);
     onChange(formatted);
+
+    const fullPhone = digitsOnly ? `${selectedCountry.code}${digitsOnly}` : '';
+    const isValid = digitsOnly.length === selectedCountry.digits;
+    if (onFullPhoneChange) {
+      onFullPhoneChange(fullPhone, isValid);
+    }
   };
 
-  const digitsCount = value.replace(/\D/g, '').length;
+  const cleanDigits = value.replace(/\D/g, '');
+  const digitsCount = cleanDigits.length;
   const isComplete = digitsCount === selectedCountry.digits;
+
+  // Inform parent of initial full phone if value exists
+  useEffect(() => {
+    const digitsOnly = value.replace(/\D/g, '');
+    const fullPhone = digitsOnly ? `${selectedCountry.code}${digitsOnly}` : '';
+    const isValid = digitsOnly.length === selectedCountry.digits;
+    if (onFullPhoneChange) {
+      onFullPhoneChange(fullPhone, isValid);
+    }
+  }, [selectedCountry]);
 
   return (
     <div className="space-y-1.5 text-start w-full" ref={dropdownRef}>
       <div className="flex items-center justify-between">
         <label className="text-xs font-bold text-slate-700 block">
-          {label || (lang === 'ar' ? 'رقم الهاتف للتوصيل والإشعارات' : 'Phone Number')}
+          {label || (lang === 'ar' ? 'رقم الهاتف / الواتساب للتواصل والإشعارات' : 'Phone / WhatsApp')}
           {required && <span className="text-rose-500 ms-1">*</span>}
         </label>
         {value.length > 0 && (
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full font-mono ${
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono transition-colors ${
             isComplete ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
           }`}>
             {digitsCount} / {selectedCountry.digits} {lang === 'ar' ? 'أرقام' : 'digits'}
@@ -566,17 +624,22 @@ export const SmartPhoneInput: React.FC<SmartPhoneInputProps> = ({
         )}
       </div>
 
-      <div className="relative flex items-center bg-slate-50 border border-slate-200 focus-within:border-[#5A3E7A] focus-within:ring-2 focus-within:ring-[#5A3E7A]/20 focus-within:bg-white rounded-2xl transition-all min-h-[48px] overflow-hidden">
+      <div className={`relative flex items-center bg-slate-50 border rounded-2xl transition-all min-h-[48px] overflow-hidden ${
+        error 
+          ? 'border-rose-400 focus-within:border-rose-500 focus-within:ring-2 focus-within:ring-rose-500/20' 
+          : 'border-slate-200 focus-within:border-[#5A3E7A] focus-within:ring-2 focus-within:ring-[#5A3E7A]/20 focus-within:bg-white'
+      }`}>
         {/* Country Selector Trigger */}
         <button
           type="button"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="h-full px-3 flex items-center gap-1.5 bg-slate-100/80 hover:bg-slate-200/80 border-e border-slate-200 text-slate-800 text-xs font-bold transition-colors shrink-0 min-h-[48px]"
+          className="h-full px-3.5 flex items-center gap-1.5 bg-slate-100/90 hover:bg-slate-200/90 border-e border-slate-200 text-slate-800 text-xs font-bold transition-colors shrink-0 min-h-[48px] cursor-pointer"
           title={lang === 'ar' ? selectedCountry.nameAr : selectedCountry.nameEn}
+          aria-label="Select Country Code"
         >
-          <span className="text-base">{selectedCountry.flag}</span>
-          <span className="font-mono text-xs">{selectedCountry.code}</span>
-          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          <span className="text-base leading-none">{selectedCountry.flag}</span>
+          <span className="font-mono text-xs text-slate-900" dir="ltr">{selectedCountry.code}</span>
+          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {/* Formatted Number Input */}
@@ -588,13 +651,14 @@ export const SmartPhoneInput: React.FC<SmartPhoneInputProps> = ({
             onChange={handleInputChange}
             placeholder={selectedCountry.placeholder}
             required={required}
-            className="w-full px-3.5 py-3 bg-transparent text-sm font-mono tracking-wider text-slate-900 focus:outline-none min-h-[48px]"
+            className="w-full px-3.5 py-3 bg-transparent text-sm font-mono tracking-wider text-slate-900 placeholder:text-slate-400 focus:outline-none min-h-[48px]"
+            dir="ltr"
           />
         </div>
 
         {/* Valid Icon */}
         {isComplete && (
-          <div className="pe-3 text-emerald-500 shrink-0">
+          <div className="pe-3.5 text-emerald-500 shrink-0 animate-in zoom-in-75 duration-150">
             <CheckCircle2 className="w-4 h-4" />
           </div>
         )}
@@ -609,24 +673,34 @@ export const SmartPhoneInput: React.FC<SmartPhoneInputProps> = ({
                 onClick={() => {
                   setSelectedCountry(country);
                   setIsDropdownOpen(false);
-                  onChange(formatPhoneNumber(value));
+                  const { formatted, digitsOnly } = formatPhoneNumber(value, country);
+                  onChange(formatted);
+                  if (onFullPhoneChange) {
+                    onFullPhoneChange(digitsOnly ? `${country.code}${digitsOnly}` : '', digitsOnly.length === country.digits);
+                  }
                 }}
-                className={`w-full px-3 py-2 rounded-xl flex items-center justify-between text-xs transition-colors ${
+                className={`w-full px-3 py-2.5 rounded-xl flex items-center justify-between text-xs transition-colors cursor-pointer ${
                   selectedCountry.code === country.code 
                     ? 'bg-purple-50 text-[#5A3E7A] font-bold' 
                     : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <span className="text-base">{country.flag}</span>
-                  <span>{lang === 'ar' ? country.nameAr : country.nameEn}</span>
+                  <span className="font-medium text-slate-900">{lang === 'ar' ? country.nameAr : country.nameEn}</span>
                 </div>
-                <span className="font-mono text-slate-400 text-[11px]">{country.code}</span>
+                <span className="font-mono text-slate-400 text-[11px]" dir="ltr">{country.code}</span>
               </button>
             ))}
           </div>
         )}
       </div>
+
+      {error && (
+        <p className="text-[11px] font-bold text-rose-500 ps-1 animate-in fade-in duration-150">
+          {error}
+        </p>
+      )}
     </div>
   );
 };

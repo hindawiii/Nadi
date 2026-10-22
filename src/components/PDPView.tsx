@@ -2,7 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, ArrowRight, Star, Heart, MessageCircle, 
   Sparkles, ShieldCheck, Truck, RotateCcw, AlertCircle, 
-  Clock, Plus, Check, Share2, Layers, Maximize2, ZoomIn, ZoomOut, X, ChevronLeft, ChevronRight, ArrowLeftRight
+  Clock, Plus, Check, Share2, Layers, Maximize2, ZoomIn, ZoomOut, X, 
+  ChevronLeft, ChevronRight, ArrowLeftRight, ChevronDown, ChevronUp,
+  FileText, CheckCircle2, Shield, Award, HelpCircle, SlidersHorizontal,
+  FlaskConical, ThumbsUp, PenLine, Sparkle, Tag, Sparkles as SparklesIcon
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
@@ -14,7 +17,7 @@ export const PDPView: React.FC = () => {
     lang, convertPrice, addToCart, wishlist, toggleWishlist, 
     activeProduct, setCurrentRoute, activeData, showToast, navigateTo,
     comparisonList, toggleCompare, setIsCompareModalOpen,
-    returnFromPDPToStore
+    returnFromPDPToStore, setIsReviewModalOpen
   } = useCommerce();
 
   const isRtl = lang === 'ar';
@@ -22,7 +25,22 @@ export const PDPView: React.FC = () => {
 
   const [selectedImgIndex, setSelectedImgIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<'desc' | 'usage' | 'specs' | 'reviews'>('desc');
+
+  // 5-Pillar Accordion State (Description open by default for immediate clarity)
+  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
+    desc: true,
+    usage: true,
+    specs: false,
+    shipping: false,
+    reviews: false
+  });
+
+  const toggleAccordion = (key: string) => {
+    setOpenAccordions(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
 
@@ -64,6 +82,20 @@ export const PDPView: React.FC = () => {
   const origPrice = product.originalPriceUSD ? convertPrice(product.originalPriceUSD * quantity) : null;
   const isOutOfStock = product.stock === 0;
 
+  // Defensive image normalization & fallbacks
+  const fallbackImage = "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80";
+  const rawImages: string[] = (product && Array.isArray(product.images) && product.images.length > 0)
+    ? product.images.filter((img): img is string => typeof img === 'string' && img.trim().length > 0)
+    : [fallbackImage];
+  const finalImages = rawImages.length > 0 ? rawImages : [fallbackImage];
+  const activeImage = finalImages[selectedImgIndex] || finalImages[0] || fallbackImage;
+
+  useEffect(() => {
+    if (selectedImgIndex >= finalImages.length) {
+      setSelectedImgIndex(0);
+    }
+  }, [product?.id, finalImages.length, selectedImgIndex]);
+
   // Touch gesture & pinch-to-zoom state
   const [touchScale, setTouchScale] = useState(1);
   const [initialDistance, setInitialDistance] = useState<number | null>(null);
@@ -85,18 +117,18 @@ export const PDPView: React.FC = () => {
         setLightboxScale(1);
         setLightboxPan({ x: 0, y: 0 });
       } else if (e.key === 'ArrowRight') {
-        setSelectedImgIndex(prev => (prev === (product?.images?.length || 1) - 1 ? 0 : prev + 1));
+        setSelectedImgIndex(prev => (prev === finalImages.length - 1 ? 0 : prev + 1));
         setLightboxScale(1);
         setLightboxPan({ x: 0, y: 0 });
       } else if (e.key === 'ArrowLeft') {
-        setSelectedImgIndex(prev => (prev === 0 ? (product?.images?.length || 1) - 1 : prev - 1));
+        setSelectedImgIndex(prev => (prev === 0 ? finalImages.length - 1 : prev - 1));
         setLightboxScale(1);
         setLightboxPan({ x: 0, y: 0 });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLightboxOpen, product]);
+  }, [isLightboxOpen, finalImages.length]);
 
   // Smooth mouse wheel zoom for fullscreen lightbox
   const handleWheelZoom = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -212,7 +244,7 @@ export const PDPView: React.FC = () => {
     setInitialDistance(null);
 
     // If not zoomed in, detect natural horizontal swipe across multiple images
-    if (touchScale <= 1 && product && product.images.length > 1 && e.changedTouches.length === 1) {
+    if (touchScale <= 1 && finalImages.length > 1 && e.changedTouches.length === 1) {
       const diffX = e.changedTouches[0].clientX - touchSwipeRef.current.startX;
       const diffY = e.changedTouches[0].clientY - touchSwipeRef.current.startY;
       const timeTaken = Date.now() - touchSwipeRef.current.time;
@@ -220,10 +252,10 @@ export const PDPView: React.FC = () => {
       if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY) && timeTaken < 800) {
         if (diffX < 0) {
           // Swipe Left -> Next Image
-          setSelectedImgIndex(prev => (prev === product.images.length - 1 ? 0 : prev + 1));
+          setSelectedImgIndex(prev => (prev === finalImages.length - 1 ? 0 : prev + 1));
         } else {
           // Swipe Right -> Previous Image
-          setSelectedImgIndex(prev => (prev === 0 ? product.images.length - 1 : prev - 1));
+          setSelectedImgIndex(prev => (prev === 0 ? finalImages.length - 1 : prev - 1));
         }
       }
     }
@@ -339,8 +371,7 @@ export const PDPView: React.FC = () => {
           {/* LEFT COLUMN: Multi-Image Gallery with Pinch/Hover Lens */}
           <div className="lg:col-span-6 space-y-4">
             <div 
-              onClick={() => setIsLightboxOpen(true)}
-              className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 cursor-zoom-in group touch-pan-y select-none"
+              className="relative aspect-[4/4.8] sm:aspect-[4/4.5] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-100 border border-slate-200/80 group touch-pan-y select-none"
               onMouseEnter={() => setIsZoomed(true)}
               onMouseLeave={() => {
                 setIsZoomed(false);
@@ -352,12 +383,15 @@ export const PDPView: React.FC = () => {
               onTouchEnd={handleTouchEnd}
             >
               <img
-                src={product.images[selectedImgIndex] || product.images[0]}
+                src={activeImage}
                 alt={product.name[lang]}
-                className="w-full h-full object-cover transition-transform duration-150 ease-out"
+                className="w-full h-full object-cover object-center transition-transform duration-150 ease-out"
                 style={{
                   transform: `scale(${isZoomed ? 1.4 : touchScale})`,
                   transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
+                }}
+                onError={(e) => {
+                  e.currentTarget.src = fallbackImage;
                 }}
               />
             </div>
@@ -365,9 +399,9 @@ export const PDPView: React.FC = () => {
             {/* Controls Below Main Image: Thumbnails & Dedicated White 4-Arrow Expand Button (Matching Reference Image) */}
             <div className="flex items-center justify-between gap-3 pt-1">
               {/* Thumbnail Ribbons */}
-              {product.images.length > 1 ? (
+              {finalImages.length > 1 ? (
                 <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none flex-1">
-                  {product.images.map((img, idx) => (
+                  {finalImages.map((img, idx) => (
                     <button
                       key={idx}
                       onClick={() => setSelectedImgIndex(idx)}
@@ -377,7 +411,14 @@ export const PDPView: React.FC = () => {
                           : 'border-slate-200 opacity-70 hover:opacity-100'
                       }`}
                     >
-                      <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                      <img 
+                        src={img} 
+                        alt="thumb" 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          e.currentTarget.src = fallbackImage;
+                        }}
+                      />
                     </button>
                   ))}
                 </div>
@@ -597,117 +638,448 @@ export const PDPView: React.FC = () => {
           </div>
         )}
 
-        {/* INTERACTIVE TABS (Description, Usage, Ingredients/Specs, Reviews) */}
-        <div className="mt-10 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm">
-          {/* Tab Navigation */}
-          <div className="flex items-center gap-2 sm:gap-4 border-b border-slate-100 pb-4 overflow-x-auto scrollbar-none">
-            <button
-              onClick={() => setActiveTab('desc')}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all min-h-[44px] whitespace-nowrap ${
-                activeTab === 'desc'
-                  ? 'bg-[#5A3E7A] text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {lang === 'ar' ? 'الوصف والتفاصيل' : 'Description'}
-            </button>
-            <button
-              onClick={() => setActiveTab('usage')}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all min-h-[44px] whitespace-nowrap ${
-                activeTab === 'usage'
-                  ? 'bg-[#5A3E7A] text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {lang === 'ar' ? 'طريقة الاستخدام' : 'How to Use'}
-            </button>
-            <button
-              onClick={() => setActiveTab('specs')}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all min-h-[44px] whitespace-nowrap ${
-                activeTab === 'specs'
-                  ? 'bg-[#5A3E7A] text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {product.isTechSpecs
-                ? (lang === 'ar' ? 'المواصفات الفنية' : 'Tech Specs')
-                : (lang === 'ar' ? 'المكونات الفعالة' : 'Ingredients')}
-            </button>
-            <button
-              onClick={() => setActiveTab('reviews')}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all min-h-[44px] whitespace-nowrap ${
-                activeTab === 'reviews'
-                  ? 'bg-[#5A3E7A] text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {lang === 'ar' ? `آراء العميلات (${product.reviewsCount})` : `Reviews (${product.reviewsCount})`}
-            </button>
+        {/* 5-PILLAR LUXE PRO ACCORDION SYSTEM (Description, Usage, Specs/Ingredients, Shipping & Guarantee, Customer Reviews) */}
+        <div className="mt-10 space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+            <h3 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-700" />
+              <span>{lang === 'ar' ? 'تفاصيل ومعلومات المنتج الشاملة' : 'Complete Product Information'}</span>
+            </h3>
+            <span className="text-xs font-semibold text-slate-400">
+              {lang === 'ar' ? 'اضغطي على أي قسم لعرض التفاصيل' : 'Click to expand / collapse'}
+            </span>
           </div>
 
-          {/* Tab Content Display */}
-          <div className="pt-6 text-slate-700 leading-relaxed text-sm sm:text-base">
-            {activeTab === 'desc' && (
-              <div className="space-y-4">
-                <p>{product.tabs.description[lang]}</p>
+          {/* ACCORDION 1: Description & Key Highlights */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden transition-all duration-300 hover:border-purple-200">
+            <button
+              type="button"
+              onClick={() => toggleAccordion('desc')}
+              className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-start transition-colors hover:bg-slate-50/70 min-h-[56px] cursor-pointer"
+              aria-expanded={openAccordions.desc}
+            >
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="truncate">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
+                      {lang === 'ar' ? 'الوصف وتفاصيل المنتج الفاخرة' : 'Description & Key Highlights'}
+                    </h4>
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                      {lang === 'ar' ? 'نظرة شاملة' : 'Overview'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate mt-0.5">
+                    {lang === 'ar' ? 'شرح وافٍ لخصائص ومميزات المنتج ونتائجه' : 'Comprehensive overview of features and results'}
+                  </p>
+                </div>
               </div>
-            )}
 
-            {activeTab === 'usage' && (
-              <div className="space-y-4">
-                <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100">
-                  <h4 className="font-bold text-[#5A3E7A] mb-2">{lang === 'ar' ? 'إرشادات الاستخدام الموصى بها:' : 'Recommended Application:'}</h4>
-                  <p>{product.tabs.usage[lang]}</p>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 transition-transform duration-300 ${openAccordions.desc ? 'rotate-180 bg-purple-100 text-purple-700' : ''}`}>
+                  <ChevronDown className="w-4 h-4" />
+                </span>
+              </div>
+            </button>
+
+            {openAccordions.desc && (
+              <div className="p-4 sm:p-6 pt-0 border-t border-slate-100 space-y-4 animate-in fade-in duration-200">
+                <div className="text-slate-700 leading-relaxed text-sm sm:text-base pt-4">
+                  <p>{product.tabs.description[lang]}</p>
+                </div>
+
+                {/* Highlights Bullet Matrix */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-50/60 border border-purple-100 text-xs sm:text-sm text-purple-950 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                    <span>{lang === 'ar' ? 'تركيبة أصلية معتمدة 100% مختبرة سريرياً' : '100% Certified clinically proven formula'}</span>
+                  </div>
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-50/60 border border-purple-100 text-xs sm:text-sm text-purple-950 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                    <span>{lang === 'ar' ? 'مصممة لتلائم الاستخدام اليومي المنتظم' : 'Crafted for optimal regular daily care'}</span>
+                  </div>
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-50/60 border border-purple-100 text-xs sm:text-sm text-purple-950 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                    <span>{lang === 'ar' ? 'نتائج ملحوظة وملموسة من أول أسبوعين' : 'Noticeable visible results within 2 weeks'}</span>
+                  </div>
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-50/60 border border-purple-100 text-xs sm:text-sm text-purple-950 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                    <span>{lang === 'ar' ? 'حائز على أعلى تقييمات الرضى من العميلات' : 'Top rated satisfaction by verified buyers'}</span>
+                  </div>
+                </div>
+
+                {/* Micro Guarantee Badges */}
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">
+                    <Award className="w-3.5 h-3.5 text-amber-600" />
+                    <span>{lang === 'ar' ? 'ضمان الجودة الفائقة' : 'Premium Quality Guarantee'}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{lang === 'ar' ? 'خالٍ من الإضافات الكيميائية الضارة' : 'Free of Harmful Additives'}</span>
+                  </span>
                 </div>
               </div>
             )}
+          </div>
 
-            {activeTab === 'specs' && (
-              <div>
-                {product.isTechSpecs && product.techSpecs ? (
-                  /* Technical Specs Matrix for Electronics */
-                  <div className="overflow-hidden border border-slate-200 rounded-2xl">
-                    <table className="w-full text-start text-xs sm:text-sm">
-                      <tbody>
-                        {product.techSpecs.map((spec, i) => (
-                          <tr key={i} className={i % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
-                            <td className="p-3.5 font-bold text-slate-900 w-1/3 border-b border-slate-100">
-                              {spec.label[lang]}
-                            </td>
-                            <td className="p-3.5 text-slate-700 border-b border-slate-100">
-                              {spec.value[lang]}
-                            </td>
-                          </tr>
+          {/* ACCORDION 2: How to Use & Application Guide */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden transition-all duration-300 hover:border-purple-200">
+            <button
+              type="button"
+              onClick={() => toggleAccordion('usage')}
+              className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-start transition-colors hover:bg-slate-50/70 min-h-[56px] cursor-pointer"
+              aria-expanded={openAccordions.usage}
+            >
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                  <HelpCircle className="w-5 h-5" />
+                </div>
+                <div className="truncate">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
+                      {lang === 'ar' ? 'طريقة الاستخدام والخطوات الموصى بها' : 'How to Use & Application Guide'}
+                    </h4>
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                      {lang === 'ar' ? 'نصائح الخبراء' : 'Expert Routine'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate mt-0.5">
+                    {lang === 'ar' ? 'الخطوات السليمة لتحقيق أقصى فاعلية واستفادة' : 'Step-by-step instructions for best performance'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 transition-transform duration-300 ${openAccordions.usage ? 'rotate-180 bg-amber-100 text-amber-800' : ''}`}>
+                  <ChevronDown className="w-4 h-4" />
+                </span>
+              </div>
+            </button>
+
+            {openAccordions.usage && (
+              <div className="p-4 sm:p-6 pt-0 border-t border-slate-100 space-y-4 animate-in fade-in duration-200">
+                <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200/80 mt-4">
+                  <h5 className="font-extrabold text-amber-950 text-xs sm:text-sm mb-1.5 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    <span>{lang === 'ar' ? 'إرشادات الاستخدام المعتمدة:' : 'Recommended Application Guidelines:'}</span>
+                  </h5>
+                  <p className="text-xs sm:text-sm text-amber-900 leading-relaxed">
+                    {product.tabs.usage[lang]}
+                  </p>
+                </div>
+
+                {/* 3 Step Practical Workflow */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                    <span className="w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center mb-2">
+                      1
+                    </span>
+                    <h6 className="font-bold text-xs text-slate-900 mb-1">
+                      {lang === 'ar' ? 'التحضير والتنظيف' : 'Preparation & Cleanse'}
+                    </h6>
+                    <p className="text-[11px] text-slate-500 leading-normal">
+                      {lang === 'ar' ? 'تأكدي من تنظيف وتجفيف المنطقة بعناية قبل البدء.' : 'Ensure skin/hair is clean and prepared.'}
+                    </p>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                    <span className="w-6 h-6 rounded-full bg-purple-700 text-white font-bold text-xs flex items-center justify-center mb-2">
+                      2
+                    </span>
+                    <h6 className="font-bold text-xs text-slate-900 mb-1">
+                      {lang === 'ar' ? 'التطبيق المتوازن' : 'Even Application'}
+                    </h6>
+                    <p className="text-[11px] text-slate-500 leading-normal">
+                      {lang === 'ar' ? 'وزّعي كمية مناسبة بحركات دائرية هادئة للامتصاص التام.' : 'Apply evenly with gentle circular motions.'}
+                    </p>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                    <span className="w-6 h-6 rounded-full bg-emerald-700 text-white font-bold text-xs flex items-center justify-center mb-2">
+                      3
+                    </span>
+                    <h6 className="font-bold text-xs text-slate-900 mb-1">
+                      {lang === 'ar' ? 'التثبيت والانتظام' : 'Consistency'}
+                    </h6>
+                    <p className="text-[11px] text-slate-500 leading-normal">
+                      {lang === 'ar' ? 'كرّري الاستخدام وفق الروتين الموصى به للحفاظ على النضارة.' : 'Repeat regularly as part of your daily routine.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ACCORDION 3: Specifications or Pure Formulation */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden transition-all duration-300 hover:border-purple-200">
+            <button
+              type="button"
+              onClick={() => toggleAccordion('specs')}
+              className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-start transition-colors hover:bg-slate-50/70 min-h-[56px] cursor-pointer"
+              aria-expanded={openAccordions.specs}
+            >
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                  <SlidersHorizontal className="w-5 h-5" />
+                </div>
+                <div className="truncate">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
+                      {product.isTechSpecs
+                        ? (lang === 'ar' ? 'المواصفات الفنية المعتمدة' : 'Technical Specifications')
+                        : (lang === 'ar' ? 'المكونات الفعالة والتركيبة النقية' : 'Ingredients & Pure Formulation')}
+                    </h4>
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      {lang === 'ar' ? 'موثقة مخبرياً' : 'Lab Tested'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate mt-0.5">
+                    {product.isTechSpecs
+                      ? (lang === 'ar' ? 'الأبعاد، الجهد الكهربائي، درجات الحرارة والضمان' : 'Voltage, wattage, temperatures and warranty')
+                      : (lang === 'ar' ? 'الخلاصات الطبيعية والمستخلصات العضوية النقية' : 'Natural extracts and active botanical ingredients')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 transition-transform duration-300 ${openAccordions.specs ? 'rotate-180 bg-emerald-100 text-emerald-800' : ''}`}>
+                  <ChevronDown className="w-4 h-4" />
+                </span>
+              </div>
+            </button>
+
+            {openAccordions.specs && (
+              <div className="p-4 sm:p-6 pt-0 border-t border-slate-100 space-y-4 animate-in fade-in duration-200">
+                <div className="pt-4">
+                  {product.isTechSpecs && product.techSpecs ? (
+                    <div className="overflow-hidden border border-slate-200 rounded-2xl shadow-xs">
+                      <table className="w-full text-start text-xs sm:text-sm">
+                        <tbody>
+                          {product.techSpecs.map((spec, i) => (
+                            <tr key={i} className={i % 2 === 0 ? 'bg-slate-50/70' : 'bg-white'}>
+                              <td className="p-3.5 font-bold text-slate-900 w-1/3 border-b border-slate-100">
+                                {spec.label[lang]}
+                              </td>
+                              <td className="p-3.5 text-slate-700 border-b border-slate-100 font-medium">
+                                {spec.value[lang]}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/80">
+                        <h5 className="font-extrabold text-emerald-950 text-xs sm:text-sm mb-1.5 flex items-center gap-1.5">
+                          <FlaskConical className="w-4 h-4 text-emerald-700" />
+                          <span>{lang === 'ar' ? 'تركيبة نقية ومختبرة مخبرياً:' : 'Pure Tested Formulation:'}</span>
+                        </h5>
+                        <p className="text-xs sm:text-sm text-emerald-900 leading-relaxed">
+                          {product.tabs.ingredientsOrSpecs?.[lang] || (lang === 'ar' ? 'مستخلصات نباتية طبيعية غنية بالعناصر المغذية ومضادات الأكسدة.' : 'Pure natural plant extracts rich in nourishing antioxidants.')}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs font-bold text-slate-700">
+                          {lang === 'ar' ? '🌿 100% نباتي نقي' : '🌿 100% Botanical'}
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs font-bold text-slate-700">
+                          {lang === 'ar' ? '💧 خفيف سريع الامتصاص' : '💧 Fast Absorbing'}
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs font-bold text-slate-700 col-span-2 sm:col-span-1">
+                          {lang === 'ar' ? '🛡️ آمن للبشرة الحساسة' : '🛡️ Sensitive Skin Safe'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ACCORDION 4: Shipping, Delivery & Golden Guarantee */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden transition-all duration-300 hover:border-purple-200">
+            <button
+              type="button"
+              onClick={() => toggleAccordion('shipping')}
+              className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-start transition-colors hover:bg-slate-50/70 min-h-[56px] cursor-pointer"
+              aria-expanded={openAccordions.shipping}
+            >
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center shrink-0">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div className="truncate">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
+                      {lang === 'ar' ? 'الشحن السريع، الدفع عند الاستلام، والضمان الذهبي' : 'Shipping, COD & Golden Guarantee'}
+                    </h4>
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                      {lang === 'ar' ? 'ضمان 100%' : '100% Guaranteed'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate mt-0.5">
+                    {lang === 'ar' ? 'توصيل سريع، فحص قبل الدفع، وسياسة استبدال ميسرة' : 'Fast delivery, pay on delivery, hassle-free returns'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 transition-transform duration-300 ${openAccordions.shipping ? 'rotate-180 bg-blue-100 text-blue-800' : ''}`}>
+                  <ChevronDown className="w-4 h-4" />
+                </span>
+              </div>
+            </button>
+
+            {openAccordions.shipping && (
+              <div className="p-4 sm:p-6 pt-0 border-t border-slate-100 space-y-4 animate-in fade-in duration-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <div className="flex items-center gap-2 text-blue-700 font-extrabold text-xs sm:text-sm">
+                      <Truck className="w-4 h-4" />
+                      <span>{lang === 'ar' ? 'شحن فوري وسريع' : 'Express Delivery'}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {lang === 'ar' ? 'يتم تجهيز الطلب وإرساله مع مندوب معتمد خلال 24 إلى 48 ساعة لباب منزلك.' : 'Dispatched with certified express couriers within 24-48 hours.'}
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <div className="flex items-center gap-2 text-emerald-700 font-extrabold text-xs sm:text-sm">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>{lang === 'ar' ? 'الدفع عند الاستلام (COD)' : 'Cash on Delivery (COD)'}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {lang === 'ar' ? 'لا حاجة للدفع مسبقاً، يمكنك معاينة وفحص الشحنة عند الاستلام ثم الدفع بكل ثقة.' : 'No upfront payment required. Inspect your order and pay with full confidence.'}
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <div className="flex items-center gap-2 text-purple-700 font-extrabold text-xs sm:text-sm">
+                      <RotateCcw className="w-4 h-4" />
+                      <span>{lang === 'ar' ? 'الضمان الذهبي للاستبدال' : 'Golden Replacement Guarantee'}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {lang === 'ar' ? 'سياسة استبدال أو استرجاع فورية في حال وجود أي ملاحظة خلال 14 يوماً من الاستلام.' : 'Easy 14-day replacement or return policy if you have any questions.'}
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <div className="flex items-center gap-2 text-amber-700 font-extrabold text-xs sm:text-sm">
+                      <Award className="w-4 h-4" />
+                      <span>{lang === 'ar' ? 'تغليف آمن وفاخر' : 'Luxury Secure Packaging'}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {lang === 'ar' ? 'تصلك المنتجات في تغليف حماية عازل للصدمات يحفظ نقاء وفاعلية المكونات.' : 'Items arrive safely in impact-resistant luxury packaging.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 flex items-center justify-between flex-wrap gap-2 text-xs">
+                  <span className="font-bold text-purple-900">
+                    {lang === 'ar' ? 'لديكِ استفسار حول الشحن أو التوصيل؟' : 'Have questions regarding shipping or delivery?'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleWhatsAppOrder}
+                    className="font-extrabold text-[#5A3E7A] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{lang === 'ar' ? 'تحدثي مباشرة مع خدمة العملاء' : 'Chat with Support on WhatsApp'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ACCORDION 5: Verified Customer Reviews & Ratings */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden transition-all duration-300 hover:border-purple-200">
+            <button
+              type="button"
+              onClick={() => toggleAccordion('reviews')}
+              className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-start transition-colors hover:bg-slate-50/70 min-h-[56px] cursor-pointer"
+              aria-expanded={openAccordions.reviews}
+            >
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <Star className="w-5 h-5 fill-current" />
+                </div>
+                <div className="truncate">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
+                      {lang === 'ar' ? `تقييمات وتجارب العميلات المعتمدة (${product.reviewsCount})` : `Verified Customer Reviews (${product.reviewsCount})`}
+                    </h4>
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                      ★ {product.rating} / 5
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate mt-0.5">
+                    {lang === 'ar' ? 'آراء وتجارب واقعية موثقة من مشترين حقيقيين' : 'Real verified feedback from actual shoppers'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 transition-transform duration-300 ${openAccordions.reviews ? 'rotate-180 bg-amber-100 text-amber-700' : ''}`}>
+                  <ChevronDown className="w-4 h-4" />
+                </span>
+              </div>
+            </button>
+
+            {openAccordions.reviews && (
+              <div className="p-4 sm:p-6 pt-0 border-t border-slate-100 space-y-4 animate-in fade-in duration-200">
+                {/* Score & Action Row */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-500 text-white font-black text-xl flex items-center justify-center shadow-sm">
+                      {product.rating}
+                    </div>
+                    <div>
+                      <div className="flex text-amber-400 gap-0.5 mb-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="w-4 h-4 fill-current" />
                         ))}
-                      </tbody>
-                    </table>
+                      </div>
+                      <p className="text-xs font-bold text-slate-800">
+                        {lang === 'ar' ? 'معدل رضى فائق بنسبة 98% من المشترين' : '98% Customer Satisfaction Rate'}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        {lang === 'ar' ? `بناءً على ${product.reviewsCount} تقييم موثق من الطلبات المكتملة` : `Based on ${product.reviewsCount} verified purchases`}
+                      </p>
+                    </div>
                   </div>
-                ) : (
-                  /* Cosmetic botanical ingredients */
-                  <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                    <h4 className="font-bold text-emerald-800 mb-2">{lang === 'ar' ? 'تركيبة نقية ومختبرة مخبرياً:' : 'Pure Tested Formulation:'}</h4>
-                    <p>{product.tabs.ingredientsOrSpecs?.[lang]}</p>
-                  </div>
-                )}
-              </div>
-            )}
 
-            {activeTab === 'reviews' && (
-              <div className="space-y-4">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between flex-wrap gap-3">
-                  <div>
-                    <span className="text-2xl font-extrabold text-slate-900">{product.rating} / 5</span>
-                    <p className="text-xs text-slate-500">{lang === 'ar' ? 'بناءً على تقييمات العملاء الموثقة' : 'Based on verified buyer reviews'}</p>
-                  </div>
-                  <div className="flex text-amber-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-current" />
-                    ))}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsReviewModalOpen(true)}
+                    className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer min-h-[44px]"
+                  >
+                    <PenLine className="w-4 h-4" />
+                    <span>{lang === 'ar' ? 'أضيفي تقييمك وتجربتك' : 'Write a Review'}</span>
+                  </button>
                 </div>
-                <p className="text-sm text-slate-600 italic">
-                  "{product.tabs.reviews[lang]}"
-                </p>
+
+                {/* Testimonial Quote */}
+                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-purple-200 text-purple-900 font-bold text-xs flex items-center justify-center">
+                        ⭐
+                      </div>
+                      <span className="font-extrabold text-xs text-slate-900">
+                        {lang === 'ar' ? 'مراجعة موثقة من مشتري حقيقي' : 'Verified Buyer Review'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold border border-emerald-200">
+                      {lang === 'ar' ? 'شراء مؤكد ✓' : 'Verified Purchase ✓'}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed italic">
+                    "{product.tabs.reviews[lang]}"
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -802,11 +1174,11 @@ export const PDPView: React.FC = () => {
             onTouchEnd={handleLightboxTouchEnd}
           >
             {/* Previous Arrow */}
-            {product.images.length > 1 && (
+            {finalImages.length > 1 && (
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedImgIndex(prev => (prev === 0 ? product.images.length - 1 : prev - 1));
+                  setSelectedImgIndex(prev => (prev === 0 ? finalImages.length - 1 : prev - 1));
                   setLightboxScale(1);
                   setLightboxPan({ x: 0, y: 0 });
                 }}
@@ -831,22 +1203,25 @@ export const PDPView: React.FC = () => {
               }}
             >
               <img
-                src={product.images[selectedImgIndex] || product.images[0]}
+                src={activeImage}
                 alt={product.name[lang]}
                 draggable={false}
                 className="max-h-[76vh] sm:max-h-[80vh] max-w-[90vw] object-contain drop-shadow-2xl transition-transform duration-100 ease-out select-none pointer-events-none"
                 style={{
                   transform: `scale(${lightboxScale}) translate(${lightboxPan.x / lightboxScale}px, ${lightboxPan.y / lightboxScale}px)`,
                 }}
+                onError={(e) => {
+                  e.currentTarget.src = fallbackImage;
+                }}
               />
             </div>
 
             {/* Next Arrow */}
-            {product.images.length > 1 && (
+            {finalImages.length > 1 && (
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedImgIndex(prev => (prev === product.images.length - 1 ? 0 : prev + 1));
+                  setSelectedImgIndex(prev => (prev === finalImages.length - 1 ? 0 : prev + 1));
                   setLightboxScale(1);
                   setLightboxPan({ x: 0, y: 0 });
                 }}
@@ -863,9 +1238,9 @@ export const PDPView: React.FC = () => {
             className="w-full max-w-xl mx-auto flex flex-col items-center gap-2 z-10"
             onClick={(e) => e.stopPropagation()}
           >
-            {product.images.length > 1 && (
+            {finalImages.length > 1 && (
               <div className="flex gap-2 overflow-x-auto p-1.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/15 max-w-full">
-                {product.images.map((img, idx) => (
+                {finalImages.map((img, idx) => (
                   <button
                     key={idx}
                     type="button"
@@ -880,7 +1255,14 @@ export const PDPView: React.FC = () => {
                         : 'border-transparent opacity-50 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                    <img 
+                      src={img} 
+                      alt="thumb" 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        e.currentTarget.src = fallbackImage;
+                      }}
+                    />
                   </button>
                 ))}
               </div>

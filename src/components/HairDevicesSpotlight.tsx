@@ -538,7 +538,7 @@ export const HairDevicesSpotlight: React.FC = () => {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
-          className="flex gap-5 sm:gap-6 overflow-x-auto pb-6 pt-2 px-1 scroll-smooth snap-x snap-mandatory scrollbar-none cursor-grab active:cursor-grabbing touch-manipulation"
+          className="flex gap-2.5 sm:gap-3.5 overflow-x-auto pb-2 sm:pb-3 pt-2 px-1 scroll-smooth snap-x snap-mandatory scrollbar-none cursor-grab active:cursor-grabbing touch-manipulation"
           style={{ 
             scrollbarWidth: 'none', 
             msOverflowStyle: 'none',
@@ -566,24 +566,24 @@ export const HairDevicesSpotlight: React.FC = () => {
           {isRtl ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
         </button>
 
-        {/* Subtle Swipe Hint for Users (Mobile & Desktop) */}
-        <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-medium pt-1">
-          <span>{lang === 'ar' ? '← اسحبي يميناً ويساراً لتصفح باقي الأجهزة →' : '← Drag or swipe to explore all devices →'}</span>
+        {/* Unified Bottom Footer: Swipe Hint + View All Link (Zero Dead Space) */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 pt-3">
+          <span className="text-[11px] sm:text-xs text-slate-400 font-medium">
+            {lang === 'ar' ? '← اسحبي يميناً ويساراً لتصفح باقي الأجهزة →' : '← Drag or swipe to explore all devices →'}
+          </span>
+          <span className="hidden sm:inline text-slate-300">•</span>
+          <button
+            type="button"
+            onClick={() => {
+              handleTabChange('all');
+              showToast(lang === 'ar' ? 'عرض كافة أجهزة الشعر' : 'Displaying all hair devices');
+            }}
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#2B827A] bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 transition-all py-1.5 px-4 rounded-full min-h-[38px] sm:min-h-[40px] shadow-2xs active:scale-95"
+          >
+            <span>{lang === 'ar' ? 'عرض كافة الأجهزة' : 'View All Devices'}</span>
+            {isRtl ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          </button>
         </div>
-      </div>
-
-      {/* 5. BOTTOM NAVIGATION & VIEW ALL LINK */}
-      <div className="flex items-center justify-center pt-2">
-        <button
-          onClick={() => {
-            handleTabChange('all');
-            showToast(lang === 'ar' ? 'عرض كافة أجهزة الشعر' : 'Displaying all hair devices');
-          }}
-          className="inline-flex items-center gap-2 text-sm sm:text-base font-bold text-slate-700 hover:text-[#2B827A] transition-colors py-2 px-4 rounded-full hover:bg-slate-100 min-h-[44px]"
-        >
-          <span>{lang === 'ar' ? 'عرض الكل' : 'View All'}</span>
-          {isRtl ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </button>
       </div>
     </section>
   );

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { StoreCartIcon } from './common/StoreCartIcon';
 import { useCommerce } from '../context/CommerceContext';
+import { PWAInstallMenuItem } from './PWAInstallBanner';
 
 interface MobileNavigationDrawerProps {
   isOpen: boolean;
@@ -325,6 +326,9 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({ 
                 {lang === 'ar' ? 'English (EN)' : 'العربية (AR)'}
               </button>
             </div>
+
+            {/* PWA In-App Install Action */}
+            <PWAInstallMenuItem onActionComplete={onClose} />
 
             {/* Quick Guarantees Badge */}
             <div className="p-3 bg-purple-50/60 rounded-2xl border border-purple-100/70 flex items-center gap-2.5">

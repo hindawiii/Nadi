@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { 
-  Heart, Eye, Star, MessageCircle, 
+  Heart, Star, MessageCircle, 
   Sparkles, AlertCircle, Check, ShieldCheck, Award, ArrowLeftRight
 } from 'lucide-react';
 import { Product } from '../data/siteConfig';
@@ -201,46 +201,49 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         if (justSwipedRef.current) return;
         openProductPDP(product);
       }}
-      className={`group relative bg-white rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 border border-slate-200/80 hover:border-purple-300 hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer select-none ${
+      className={`group relative bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-200/80 hover:border-purple-300 hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer select-none ${
         isCarouselItem 
-          ? 'shrink-0 snap-start w-[82%] sm:w-[calc((100%-24px)/2)] lg:w-[calc((100%-48px)/3)]' 
+          ? 'shrink-0 snap-start w-[58%] sm:w-[calc((100%-14px)/2)] lg:w-[calc((100%-28px)/3)]' 
           : 'w-full'
       } ${className}`}
     >
       <div>
-        {/* 1. TOP VISUAL STUDIO (Full-Bleed Photographic Display with Smooth Hover Zoom) */}
+        {/* 1. TOP VISUAL STUDIO (Grand Portrait Photographic Canvas - Dominant Visual Hero) */}
         <div 
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="relative aspect-square w-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 mb-2.5 sm:mb-4"
+          className="relative aspect-[4/4.8] sm:aspect-[4/4.6] w-full overflow-hidden bg-slate-100 border-b border-slate-100"
         >
-          {/* Main Product Image - Fills the Frame Professionally */}
+          {/* Main Product Image - High-Clarity Tall Portrait Focus with Smooth Duration-700 Zoom */}
           <img
             key={activeImgIndex}
             src={images[activeImgIndex]}
             alt={`${product.name[lang]} - ${activeImgIndex + 1}`}
-            className="w-full h-full object-cover object-center group-hover:scale-106 transition-transform duration-500 ease-out"
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
             loading="lazy"
             onError={(e) => {
-              e.currentTarget.src = "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80";
+              e.currentTarget.src = defaultFallbackImage;
             }}
           />
 
-          {/* Top-Start: Single Ultra-Clean Micro Discount Badge (Only one clean badge, leaving 95% of image completely clear) */}
-          <div className="absolute top-2 start-2 sm:top-2.5 sm:start-2.5 z-10 pointer-events-none">
+          {/* Top-Start: Corner-Flush Luxury Discount Ribbon Badge in Rose-Red */}
+          <div className="absolute top-0 start-0 z-10 pointer-events-none">
             <SmartDiscountBadge
               basePriceUSD={safeBasePrice}
               originalPriceUSD={safeOrigPriceUSD}
               manualPercent={product.discountPercentage}
               lang={lang}
               size="xs"
+              variant="rose"
+              className="rounded-tl-none rounded-tr-none rounded-bl-none rounded-ee-xl shadow-xs"
             />
           </div>
 
           {/* Interactive Multi-Image Switcher Dots (Minimalist line indicators at absolute bottom) */}
           {hasMultipleImages && (
             <div 
-              className="absolute bottom-1.5 inset-x-0 flex items-center justify-center gap-1 z-10 px-2"
+              className="absolute bottom-2 inset-x-0 flex items-center justify-center gap-1 z-10 px-2"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="bg-slate-950/30 backdrop-blur-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 border border-white/20">
@@ -272,8 +275,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        {/* 2. METADATA & CONTENT AREA */}
-        <div className="space-y-1 sm:space-y-1.5 text-start">
+        {/* 2. METADATA & CONTENT AREA (Tight, Balanced & Clean) */}
+        <div className="p-2 sm:p-3 space-y-1 sm:space-y-1.5 text-start">
           {/* Category, Rating & Heart Wishlist Row (Perfect harmony below image) */}
           <div className="flex items-center justify-between text-[10px] sm:text-xs text-slate-400">
             <span className="truncate max-w-[45%] font-medium">{product.category[lang]}</span>
@@ -339,7 +342,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       {/* 3. UNIFIED ACTION ROW (Balanced 3-Button Single Row: Cart + Compare + WhatsApp) */}
-      <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100 flex items-center gap-1 sm:gap-2">
+      <div className="px-2 pb-2 sm:px-3 sm:pb-3 pt-2 border-t border-slate-100 flex items-center gap-1 sm:gap-1.5">
         {/* Main CTA: Add to Bag (Icon-only on mobile to fit 3 buttons, expands with text on tablet/desktop) */}
         <button
           onClick={handleAddToCart}

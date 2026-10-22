@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, Truck, ShieldCheck, CreditCard, ArrowRight, ArrowLeft, 
-  Star, CheckCircle2, ChevronRight, ChevronLeft, MessageCircle, Heart, Eye, 
+  Star, CheckCircle2, ChevronRight, ChevronLeft, MessageCircle, Heart, 
   MapPin, Phone, Mail, Award, Droplets, Sun, Sparkle, Shield, 
   Layers, MessageSquarePlus, SlidersHorizontal, Quote, ThumbsUp, Check, BadgeCheck,
   ZoomIn, Maximize2, X, Plus, Minus, ShoppingBag, Gift
 } from 'lucide-react';
-import { useCommerce } from '../context/CommerceContext';
+import { useCommerce, SectionId } from '../context/CommerceContext';
 import { ProductCard } from './ProductCard';
 import { InfiniteBrandTicker } from './InfiniteBrandTicker';
 import { HairDevicesSpotlight } from './HairDevicesSpotlight';
@@ -15,7 +15,7 @@ export const StorefrontView: React.FC = () => {
   const { 
     lang, activeData, setCurrentRoute, navigateTo, 
     openProductPDP, setIsReviewModalOpen, showToast, 
-    sectionsControl, activePresetId, clonedSections,
+    sectionsControl, sectionsOrder, activePresetId, clonedSections,
     addToCart, convertPrice, setIsCartOpen
   } = useCommerce();
   const isRtl = lang === 'ar';
@@ -241,14 +241,12 @@ export const StorefrontView: React.FC = () => {
     CreditCard
   };
 
-  return (
-    <div className="space-y-12 sm:space-y-20 pb-16">
-      
-      {/* 1. HERO SECTION (Matching So Beauty style in photos 1 & 2) */}
-      {sectionsControl.hero && (
-        <section className="relative overflow-hidden bg-gradient-to-b from-purple-50/60 via-slate-50 to-white pt-6 sm:pt-12 pb-12 sm:pb-16 border-b border-slate-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+  const sectionsContent: Record<SectionId, React.ReactNode> = {
+    // 1. HERO SECTION (Matching So Beauty style in photos 1 & 2)
+    hero: sectionsControl.hero ? (
+      <section className="relative overflow-hidden bg-gradient-to-b from-purple-50/60 via-slate-50 to-white pt-6 sm:pt-12 pb-4 sm:pb-6 border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               
               {/* Hero Copy */}
               <div className="lg:col-span-6 space-y-6 text-center lg:text-start">
@@ -303,7 +301,7 @@ export const StorefrontView: React.FC = () => {
 
               {/* Hero Image Presentation */}
               <div className="lg:col-span-6 relative">
-                <div className="relative aspect-[4/3] sm:aspect-square max-w-lg mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
+                <div className="relative aspect-[4/5] sm:aspect-[4/4.8] max-w-md mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
                   <img
                     src={activeData.heroImage}
                     alt={activeData.heroTitle[lang]}
@@ -316,42 +314,42 @@ export const StorefrontView: React.FC = () => {
             </div>
           </div>
         </section>
-      )}
+      ) : null,
 
-      {/* LUXURY INFINITE BRAND & SLOGAN TICKER */}
-      {sectionsControl.brandTicker && (
-        <InfiniteBrandTicker className="my-6 sm:my-8" />
-      )}
+      // LUXURY INFINITE BRAND & SLOGAN TICKER
+      brandTicker: sectionsControl.brandTicker ? (
+        <InfiniteBrandTicker className="mt-1 mb-6 sm:mt-2 sm:mb-8" />
+      ) : null,
 
-      {/* 2. VALUE PROPOSITIONS STRIP (Matching Photo 2: نتائج فعالة، شحن سريع، أصلية 100%، دفع آمن) */}
-      {sectionsControl.valueProps && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-sm">
-            {activeData.valueProps.map((item, idx) => {
-              const Icon = iconMap[item.icon] || Sparkles;
-              return (
-                <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-3 p-2">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5A3E7A] flex items-center justify-center shrink-0 border border-purple-100 shadow-xs">
-                    <Icon className="w-6 h-6" />
+      // 2. VALUE PROPOSITIONS STRIP (Matching Photo 2: نتائج فعالة، شحن سريع، أصلية 100%، دفع آمن)
+      valueProps: sectionsControl.valueProps ? (
+        <>
+          <section className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-sm">
+              {activeData.valueProps.map((item, idx) => {
+                const Icon = iconMap[item.icon] || Sparkles;
+                return (
+                  <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-3 p-2">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5A3E7A] flex items-center justify-center shrink-0 border border-purple-100 shadow-xs">
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                        {item.title[lang]}
+                      </h3>
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        {item.desc[lang]}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                      {item.title[lang]}
-                    </h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {item.desc[lang]}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+                );
+              })}
+            </div>
+          </section>
 
-      {/* CLONED VALUE PROPOSITIONS INSTANCE */}
-      {sectionsControl.valueProps && clonedSections?.valueProps?.isCloned && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 animate-in fade-in duration-300">
+          {/* CLONED VALUE PROPOSITIONS INSTANCE */}
+          {clonedSections?.valueProps?.isCloned && (
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 animate-in fade-in duration-300">
           <div className="bg-gradient-to-r from-purple-950/90 via-slate-900 to-purple-950/90 text-white p-6 sm:p-8 rounded-3xl border-2 border-purple-500/40 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
               <div className="flex items-center gap-2">
@@ -390,10 +388,12 @@ export const StorefrontView: React.FC = () => {
             </div>
           </div>
         </section>
-      )}
+        )}
+        </>
+      ) : null,
 
-      {/* 3. "اختاري بشرتك" / SKIN TYPE SOLUTIONS (Single-Row Smart Interactive 4-Card System) */}
-      {sectionsControl.routineDiagnosis && activePresetId === 'cosmetics' && (
+      // 3. "اختاري بشرتك" / SKIN TYPE SOLUTIONS (Single-Row Smart Interactive 4-Card System)
+      routineDiagnosis: (sectionsControl.routineDiagnosis && activePresetId === 'cosmetics') ? (
         <section id="categories-section" className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="space-y-1.5 text-start">
@@ -521,10 +521,10 @@ export const StorefrontView: React.FC = () => {
           })}
         </div>
       </section>
-      )}
+      ) : null,
 
-      {/* 4. PRODUCTS GRID (With Category Filter & Product Cards) */}
-      {sectionsControl.productsCatalog && (
+      // 4. PRODUCTS GRID (With Category Filter & Product Cards)
+      productsCatalog: sectionsControl.productsCatalog ? (
         <section id="products-section" className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="space-y-1">
@@ -600,22 +600,22 @@ export const StorefrontView: React.FC = () => {
           </div>
         </div>
 
-        {/* Product Cards Grid: 2 columns on mobile, 3 columns on tablet & desktop */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-6">
+        {/* Product Cards Grid: 2 columns on mobile, strictly 3 columns on tablet & desktop with optimized tight spacing */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-3.5 md:gap-4">
           {sortedProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </section>
-      )}
+      ) : null,
 
-      {/* DEDICATED HAIR DEVICES & STYLING SPOTLIGHT (Matching Photo: Siltek, Okema, Clara with Sub-Tabs & Direct Buy) */}
-      {sectionsControl.hairDevices && activePresetId === 'cosmetics' && (
+      // DEDICATED HAIR DEVICES & STYLING SPOTLIGHT (Matching Photo: Siltek, Okema, Clara with Sub-Tabs & Direct Buy)
+      hairDevices: (sectionsControl.hairDevices && activePresetId === 'cosmetics') ? (
         <HairDevicesSpotlight />
-      )}
+      ) : null,
 
-      {/* 5. NATURAL BLOOM CAMPAIGN BANNER (Completely Dynamic from activeData.promoBanner) */}
-      {sectionsControl.promoBanner && (() => {
+      // 5. NATURAL BLOOM CAMPAIGN BANNER (Completely Dynamic from activeData.promoBanner)
+      promoBanner: sectionsControl.promoBanner ? (() => {
         const targetBundle = products.find((p) => p.id === 'sb-04' || p.bundle) || products[0];
 
         return (
@@ -643,25 +643,7 @@ export const StorefrontView: React.FC = () => {
                       : 'Get a luxury velvet pouch + free botanical trial samples + fast delivery on all qualifying orders.')}
                   </p>
 
-                  {/* Highlights Grid */}
-                  <div className="grid grid-cols-2 gap-2 pt-1 max-w-lg">
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-xs font-medium text-purple-100">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>{isRtl ? '4 منتجات كاملة الحجم' : '4 Full-sized Products'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-xs font-medium text-purple-100">
-                      <Gift className="w-4 h-4 text-amber-300 shrink-0" />
-                      <span>{isRtl ? 'حقيبة مخملية هدية' : 'Free Velvet Pouch'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-xs font-medium text-purple-100">
-                      <Truck className="w-4 h-4 text-blue-300 shrink-0" />
-                      <span>{isRtl ? 'شحن فوري سريع' : 'Fast Express Delivery'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-xs font-medium text-purple-100">
-                      <ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" />
-                      <span>{isRtl ? 'ضمان نقاء معتمد 100%' : '100% Vegan Certified'}</span>
-                    </div>
-                  </div>
+
 
                   {/* CTA Buttons - Opens in-page Quick View Modal without leaving page */}
                   <div className="pt-2 flex flex-wrap items-center gap-3">
@@ -697,32 +679,38 @@ export const StorefrontView: React.FC = () => {
 
                 {/* Enriched & Clean Hero Showcase Column */}
                 <div className="lg:col-span-6 space-y-3.5">
-                  {/* Clean & Expansive Hero Frame - 100% Clean Image, Zero overlays or buttons obscuring the photo */}
+                  {/* Clean & Expansive Hero Frame (Grand Showcase: No accidental lightbox popups, strictly via expansion button) */}
                   <div 
-                    onClick={() => setIsLightboxOpen(true)}
-                    className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20 aspect-[4/3] group bg-purple-950/70 cursor-pointer transition-all duration-300 hover:border-amber-400/40"
-                    title={isRtl ? 'انقري للتوسع وعرض الصورة بالحجم الكامل' : 'Click to expand full view'}
+                    className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20 w-full aspect-[4/5] sm:aspect-[4/4.6] min-h-[400px] sm:min-h-[480px] lg:min-h-[520px] group bg-purple-950/70 transition-all duration-300 select-none"
                   >
                     <img
                       src={promoSlides[activePromoSlide].image}
                       alt={promoSlides[activePromoSlide].title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      className="w-full h-full object-cover object-center group-hover:scale-104 transition-transform duration-700 ease-out"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80";
+                      }}
                     />
                   </div>
 
-                  {/* Dedicated Meta & Navigation Control Card Below the Hero Image */}
-                  <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm text-start space-y-2.5">
-                    {/* Top Row: Discount Badge on Right & Expand Button on Left */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="inline-block text-[11px] sm:text-xs font-bold text-amber-300 bg-purple-950/90 px-3 py-1 rounded-lg border border-amber-400/30 shrink-0">
-                        {promoSlides[activePromoSlide].badge}
-                      </span>
+                  {/* Dedicated Meta & Navigation Control Card (Top Row: Badge + Expand | Bottom Row: Spacious Navigation) */}
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm text-start space-y-3">
+                    {/* Top Row: Badge + Title Aligned Horizontally with Fullscreen Expand Button */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap min-w-0">
+                        <span className="inline-block text-[11px] sm:text-xs font-bold text-amber-300 bg-purple-950/90 px-3 py-1 rounded-lg border border-amber-400/30 shrink-0 shadow-xs">
+                          {promoSlides[activePromoSlide].badge}
+                        </span>
+                        <h4 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate max-w-[200px] sm:max-w-none">
+                          {promoSlides[activePromoSlide].title}
+                        </h4>
+                      </div>
 
-                      {/* Fullscreen Expand Action Icon (Icon Only, No text) Aligned with Badge Row */}
+                      {/* Dedicated Fullscreen Expand Button Aligned Perfectly with Badge */}
                       <button
                         type="button"
                         onClick={() => setIsLightboxOpen(true)}
-                        className="p-2 sm:p-2.5 bg-purple-950/80 hover:bg-purple-900 active:bg-purple-950 text-white hover:text-amber-300 rounded-xl border border-white/20 transition-all hover:scale-105 active:scale-95 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer shadow-sm group"
+                        className="p-2 sm:p-2.5 bg-purple-950/80 hover:bg-purple-900 active:bg-purple-950 text-white hover:text-amber-300 rounded-xl border border-white/20 transition-all hover:scale-105 active:scale-95 w-10 h-10 sm:w-11 sm:h-11 shrink-0 flex items-center justify-center cursor-pointer shadow-sm group"
                         title={isRtl ? 'توسيع وعرض بالحجم الكامل' : 'Full Screen Expand'}
                         aria-label={isRtl ? 'توسيع وعرض بالحجم الكامل' : 'Full Screen Expand'}
                       >
@@ -730,28 +718,22 @@ export const StorefrontView: React.FC = () => {
                       </button>
                     </div>
 
-                    {/* Middle Row: Product Title */}
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate">
-                        {promoSlides[activePromoSlide].title}
-                      </h4>
-                    </div>
-
-                    {/* Bottom Row: Fully Dedicated Navigation Arrows & Counter (Relaxed, Spacious & Ergonomic) */}
-                    <div className="flex items-center justify-center sm:justify-start gap-3 pt-2 border-t border-white/10">
+                    {/* Bottom Row: Centered, Balanced Navigation Pod with Comfortable Touch Spacing */}
+                    <div className="pt-2.5 border-t border-white/10 flex items-center justify-center gap-2.5 sm:gap-4 w-full">
                       {/* Previous Slide Button */}
                       <button
                         type="button"
                         onClick={() => setActivePromoSlide((prev) => (prev === 0 ? promoSlides.length - 1 : prev - 1))}
-                        className="p-2.5 bg-purple-950/80 hover:bg-purple-900 active:bg-purple-950 text-white rounded-xl border border-white/20 transition-all hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer shadow-sm"
+                        className="py-2.5 px-3.5 sm:px-5 bg-purple-950/80 hover:bg-purple-900 active:bg-purple-950 text-white rounded-xl border border-white/20 transition-all hover:scale-105 active:scale-95 min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                         aria-label={isRtl ? 'الشريحة السابقة' : 'Previous slide'}
                         title={isRtl ? 'الشريحة السابقة' : 'Previous slide'}
                       >
                         {isRtl ? <ChevronRight className="w-5 h-5 text-white" /> : <ChevronLeft className="w-5 h-5 text-white" />}
+                        <span className="text-xs font-semibold">{isRtl ? 'السابق' : 'Prev'}</span>
                       </button>
 
                       {/* Slide Counter */}
-                      <span className="text-xs sm:text-sm font-bold text-white bg-black/40 px-4 py-2 rounded-xl border border-white/15 min-w-[56px] text-center shadow-inner tracking-wider">
+                      <span className="text-xs sm:text-sm font-bold text-white bg-black/50 px-4 sm:px-6 py-2.5 rounded-xl border border-white/15 min-w-[70px] sm:min-w-[80px] text-center shadow-inner tracking-wider">
                         {activePromoSlide + 1} / {promoSlides.length}
                       </span>
 
@@ -759,10 +741,11 @@ export const StorefrontView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setActivePromoSlide((prev) => (prev === promoSlides.length - 1 ? 0 : prev + 1))}
-                        className="p-2.5 bg-purple-950/80 hover:bg-purple-900 active:bg-purple-950 text-white rounded-xl border border-white/20 transition-all hover:scale-105 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer shadow-sm"
+                        className="py-2.5 px-3.5 sm:px-5 bg-purple-950/80 hover:bg-purple-900 active:bg-purple-950 text-white rounded-xl border border-white/20 transition-all hover:scale-105 active:scale-95 min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                         aria-label={isRtl ? 'الشريحة التالية' : 'Next slide'}
                         title={isRtl ? 'الشريحة التالية' : 'Next slide'}
                       >
+                        <span className="text-xs font-semibold">{isRtl ? 'التالي' : 'Next'}</span>
                         {isRtl ? <ChevronLeft className="w-5 h-5 text-white" /> : <ChevronRight className="w-5 h-5 text-white" />}
                       </button>
                     </div>
@@ -807,9 +790,10 @@ export const StorefrontView: React.FC = () => {
             </div>
           </section>
         );
-      })()}
-      {/* 6. BEFORE & AFTER PROOF (Interactive Slider - Completely Dynamic) */}
-      {sectionsControl.beforeAfter && activePresetId === 'cosmetics' && (
+      })() : null,
+
+      // 6. BEFORE & AFTER PROOF (Interactive Slider - Completely Dynamic)
+      beforeAfter: (sectionsControl.beforeAfter && activePresetId === 'cosmetics') ? (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
         <div className="text-start space-y-1.5 max-w-2xl">
           <span className="text-xs font-black text-[#5A3E7A] uppercase tracking-widest">
@@ -857,10 +841,10 @@ export const StorefrontView: React.FC = () => {
                 e.currentTarget.src = "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80";
               }}
             />
-            <span className="absolute top-4 end-4 bg-emerald-600/95 backdrop-blur-md text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-lg z-10 flex items-center gap-1.5 pointer-events-none border border-emerald-400/40">
+            <span className="absolute top-4 end-4 bg-emerald-600/95 backdrop-blur-md text-white text-xs font-black px-3 py-1 rounded-full shadow-lg z-10 flex items-center gap-1.5 pointer-events-none border border-emerald-400/40">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>
-                {activeData.beforeAfterMedia?.afterLabel ? activeData.beforeAfterMedia.afterLabel[lang] : (lang === 'ar' ? 'بعد (14 يوماً)' : 'After (14 Days)')}
+                {lang === 'ar' ? 'بعد' : 'After'}
               </span>
             </span>
 
@@ -888,10 +872,10 @@ export const StorefrontView: React.FC = () => {
               />
             </div>
 
-            <span className="absolute top-4 start-4 bg-slate-900/90 backdrop-blur-md text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-lg z-10 flex items-center gap-1.5 pointer-events-none border border-slate-700/60">
+            <span className="absolute top-4 start-4 bg-slate-900/90 backdrop-blur-md text-white text-xs font-black px-3 py-1 rounded-full shadow-lg z-10 flex items-center gap-1.5 pointer-events-none border border-slate-700/60">
               <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
               <span>
-                {activeData.beforeAfterMedia?.beforeLabel ? activeData.beforeAfterMedia.beforeLabel[lang] : (lang === 'ar' ? 'قبل الاستخدام' : 'Before')}
+                {lang === 'ar' ? 'قبل' : 'Before'}
               </span>
             </span>
 
@@ -923,10 +907,11 @@ export const StorefrontView: React.FC = () => {
           </div>
         </div>
       </section>
-      )}
+      ) : null,
 
-      {/* 7. VERIFIED CUSTOMER REVIEWS (Smart Luxury Testimonial Cards) */}
-      {sectionsControl.testimonials && (
+      // 7. VERIFIED CUSTOMER REVIEWS (Smart Luxury Testimonial Cards)
+      testimonials: sectionsControl.testimonials ? (
+        <>
         <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="space-y-1.5 text-start">
@@ -1107,10 +1092,9 @@ export const StorefrontView: React.FC = () => {
           </div>
         </div>
       </section>
-      )}
 
       {/* 7.B CLONED CUSTOMER REVIEWS (When cloned by merchant/developer) */}
-      {sectionsControl.testimonials && clonedSections?.testimonials?.isCloned && (
+      {clonedSections?.testimonials?.isCloned && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6 pt-4">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-purple-200/60 pb-4">
             <div className="space-y-1.5 text-start">
@@ -1188,7 +1172,18 @@ export const StorefrontView: React.FC = () => {
             ))}
           </div>
         </section>
-      )}
+        )}
+        </>
+      ) : null,
+  };
+
+  return (
+    <div className="space-y-12 sm:space-y-20 pb-16">
+      {sectionsOrder.map((sectionId) => (
+        <React.Fragment key={sectionId}>
+          {sectionsContent[sectionId]}
+        </React.Fragment>
+      ))}
 
       {/* IN-PAGE DIAMOND BUNDLE QUICK VIEW MODAL (معاينة وشراء البوكس الماسي الفورية في الصفحة الرئيسية) */}
       {isDiamondBundleModalOpen && (() => {

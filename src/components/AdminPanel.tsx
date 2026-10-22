@@ -4,7 +4,7 @@ import {
   TrendingUp, AlertTriangle, ArrowLeft, ArrowRight, 
   LogOut, Edit, RefreshCw, Image as ImageIcon, Sparkles, Check,
   Sliders, FileText, ShoppingBag, Plus, Trash2, Layers,
-  Phone, Mail, MapPin, Eye, ExternalLink, MessageCircle,
+  Phone, Mail, MapPin, ExternalLink, MessageCircle,
   Upload, Wand2, X, Search, Filter, CheckCircle2, Clock, Truck,
   Tag, ArrowUpRight, ShieldCheck, CheckCheck, Droplets, Star,
   Undo2, RotateCcw, MessageSquare, UserCheck, Rocket, ShieldAlert
@@ -14,6 +14,7 @@ import { Product, siteConfig } from '../data/siteConfig';
 import { SmartAuthPortal } from './common/SmartAuthPortal';
 import { hairStylingDevices } from './HairDevicesSpotlight';
 import { UnifiedStoreCustomizer } from './UnifiedStoreCustomizer';
+import { SectionsLayoutReorder } from './common/SectionsLayoutReorder';
 
 export const AdminPanel: React.FC = () => {
   const { 
@@ -28,8 +29,8 @@ export const AdminPanel: React.FC = () => {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
 
-  // Active Admin Tabs: 'customizer' | 'orders' | 'products' | 'reviews' | 'onboarding' | 'devices' | 'banners' | 'content' | 'branding'
-  const [activeTab, setActiveTab] = useState<'customizer' | 'orders' | 'products' | 'reviews' | 'onboarding' | 'devices' | 'banners' | 'content' | 'branding'>('customizer');
+  // Active Admin Tabs: 'customizer' | 'layout' | 'orders' | 'products' | 'reviews' | 'onboarding' | 'devices' | 'banners' | 'content' | 'branding'
+  const [activeTab, setActiveTab] = useState<'customizer' | 'layout' | 'orders' | 'products' | 'reviews' | 'onboarding' | 'devices' | 'banners' | 'content' | 'branding'>('customizer');
 
   // Review & Moderation States
   const [reviewFilter, setReviewFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -73,6 +74,8 @@ export const AdminPanel: React.FC = () => {
   const beforeImgFileInputRef = useRef<HTMLInputElement>(null);
   const afterImgFileInputRef = useRef<HTMLInputElement>(null);
   const [activeTargetProductIdForGallery, setActiveTargetProductIdForGallery] = useState<string | null>(null);
+  const [urlModalProductId, setUrlModalProductId] = useState<string | null>(null);
+  const [urlModalInput, setUrlModalInput] = useState('');
 
   // If not authenticated, display Smart Full-Screen Auth Portal (Default PIN: 2026)
   if (!isAdminAuthenticated) {
@@ -796,24 +799,31 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  // Add/Remove Image for a Product
+  // Add/Remove Image for a Product via Non-blocking Modal & Device Upload
   const handleAddProductImage = (productId: string) => {
-    const url = prompt(lang === 'ar' ? 'أدخل رابط الصورة الإضافية للمنتج (URL):' : 'Enter additional product image URL:');
-    if (!url || !url.trim()) return;
+    setUrlModalProductId(productId);
+    setUrlModalInput('');
+  };
+
+  const submitAddProductImageUrl = () => {
+    if (!urlModalProductId || !urlModalInput.trim()) return;
+    const url = urlModalInput.trim();
 
     setDynamicConfig(prev => {
       const clone = JSON.parse(JSON.stringify(prev));
-      const target = clone.presets[activePresetId].products.find((p: any) => p.id === productId);
+      const target = clone.presets[activePresetId].products.find((p: any) => p.id === urlModalProductId);
       if (target) {
         if (!target.images) target.images = [];
-        target.images.push(url.trim());
+        target.images.push(url);
       }
       try {
         localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
       } catch (e) {}
       return clone;
     });
-    showToast(lang === 'ar' ? 'تمت إضافة الصورة بنجاح' : 'Image added');
+    showToast(lang === 'ar' ? 'تمت إضافة الصورة بنجاح للمنتج' : 'Product image added successfully');
+    setUrlModalProductId(null);
+    setUrlModalInput('');
   };
 
   const handleRemoveProductImage = (productId: string, imgIdx: number) => {
@@ -869,7 +879,15 @@ export const AdminPanel: React.FC = () => {
 
   // WhatsApp quick contact generator
   const getCustomerWhatsAppUrl = (phone: string, customerName: string, orderId: string) => {
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    let cleanPhone = phone.replace(/[^0-9]/g, '');
+    // If phone starts with local 0, convert to appropriate international dial code
+    if (cleanPhone.startsWith('0')) {
+      if (cleanPhone.startsWith('09') || cleanPhone.startsWith('01')) {
+        cleanPhone = `249${cleanPhone.slice(1)}`;
+      } else if (cleanPhone.startsWith('05')) {
+        cleanPhone = `966${cleanPhone.slice(1)}`;
+      }
+    }
     const storeNameText = activePreset.storeName[lang];
     const msg = lang === 'ar' 
       ? `مرحباً ${customerName}، نتواصل معكِ من متجر ${storeNameText} بخصوص طلبك رقم (${orderId}). يرجى تأكيد استلام تفاصيل الشحن. شكراً لثقتكِ بنا!`
@@ -956,7 +974,7 @@ export const AdminPanel: React.FC = () => {
               onClick={() => navigateTo('store')}
               className="h-11 px-5 rounded-2xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-all flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
             >
-              <Eye className="w-4 h-4 text-slate-600" />
+              <ExternalLink className="w-4 h-4 text-slate-600" />
               <span>{lang === 'ar' ? 'معاينة المتجر' : 'View Storefront'}</span>
             </button>
             <button
@@ -1050,6 +1068,22 @@ export const AdminPanel: React.FC = () => {
             </span>
           </button>
 
+          {/* Sections Layout & Reordering Tab */}
+          <button
+            onClick={() => setActiveTab('layout')}
+            className={`h-11 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'layout' 
+                ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20 font-black' 
+                : 'text-slate-600 hover:text-slate-900 bg-white/50 hover:bg-white'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-purple-300" />
+            <span>{lang === 'ar' ? 'سحب وترتيب الأقسام' : 'Layout & Reorder'}</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${activeTab === 'layout' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'}`}>
+              9 {lang === 'ar' ? 'أقسام' : 'sections'}
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveTab('products')}
             className={`h-11 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
@@ -1123,6 +1157,13 @@ export const AdminPanel: React.FC = () => {
         {/* ======================================================== */}
         {activeTab === 'customizer' && (
           <UnifiedStoreCustomizer onNavigateToProducts={() => setActiveTab('products')} />
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB: SECTIONS DRAG & REORDER                             */}
+        {/* ======================================================== */}
+        {activeTab === 'layout' && (
+          <SectionsLayoutReorder />
         )}
 
         {/* ======================================================== */}
@@ -3511,6 +3552,101 @@ export const AdminPanel: React.FC = () => {
         accept="image/*"
         className="hidden"
       />
+
+      {/* Accessible Non-Blocking Modal for Adding Product Image via URL */}
+      {urlModalProductId && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setUrlModalProductId(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-purple-200 space-y-4 text-start animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center font-bold">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm sm:text-base text-slate-900">
+                    {lang === 'ar' ? 'إضافة صورة للمنتج عبر رابط (URL)' : 'Add Product Image via URL'}
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    {lang === 'ar' ? 'أدخلي رابط الصورة المباشر لإضافتها لمعرض صور المنتج' : 'Enter direct image URL to add to product gallery'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUrlModalProductId(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 block">
+                {lang === 'ar' ? 'رابط الصورة المباشر:' : 'Direct Image URL:'}
+              </label>
+              <input 
+                type="url"
+                value={urlModalInput}
+                onChange={(e) => setUrlModalInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitAddProductImageUrl();
+                  }
+                }}
+                placeholder="https://images.unsplash.com/photo-..."
+                className="w-full h-11 px-3.5 rounded-xl border border-slate-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-200 text-xs sm:text-sm text-slate-900 outline-none transition-all dir-ltr"
+                autoFocus
+              />
+              <p className="text-[10px] text-slate-400">
+                {lang === 'ar' ? '💡 يدعم روابط Unsplash أو Cloudinary أو أي رابط صورة عام ومباشر.' : '💡 Supports Unsplash, Cloudinary, or any public image URL.'}
+              </p>
+            </div>
+
+            {urlModalInput.trim() && (
+              <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
+                <img 
+                  src={urlModalInput.trim()} 
+                  alt="preview" 
+                  className="w-12 h-12 rounded-lg object-cover border border-slate-200 shrink-0 bg-white"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=120&q=80';
+                  }}
+                />
+                <div className="truncate text-xs">
+                  <span className="font-bold text-slate-800 block truncate">{lang === 'ar' ? 'معاينة الرابط' : 'URL Preview'}</span>
+                  <span className="text-[10px] text-emerald-600 font-medium">{lang === 'ar' ? 'جاهزة للإضافة للمعرض' : 'Ready to add to gallery'}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={submitAddProductImageUrl}
+                disabled={!urlModalInput.trim()}
+                className="flex-1 h-11 rounded-xl bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>{lang === 'ar' ? 'حفظ وإضافة للمعرض' : 'Add Image'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setUrlModalProductId(null)}
+                className="px-4 h-11 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+              >
+                {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

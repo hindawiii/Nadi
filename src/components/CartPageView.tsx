@@ -7,6 +7,7 @@ import {
 import { StoreCartIcon } from './common/StoreCartIcon';
 import { useCommerce, OrderRecord } from '../context/CommerceContext';
 import { OrderSuccessModal } from './OrderSuccessModal';
+import { SmartPhoneInput } from './SmartInputField';
 
 export const CartPageView: React.FC = () => {
   const { 
@@ -29,9 +30,20 @@ export const CartPageView: React.FC = () => {
   // Delivery destination
   const [selectedCity, setSelectedCity] = useState(currency === 'SAR' ? 'الرياض' : 'الخرطوم');
 
+  // Dynamic country code calculation
+  const getCountryCodeForCity = (city: string, cur: string): string => {
+    if (cur === 'SAR' || city.includes('الرياض') || city.includes('Riyadh')) return '+966';
+    if (cur === 'AED' || city.includes('دبي') || city.includes('Dubai')) return '+971';
+    if (cur === 'EGP' || city.includes('القاهرة') || city.includes('Cairo')) return '+20';
+    return '+249'; // Sudan
+  };
+  const activeCountryCode = getCountryCodeForCity(selectedCity, currency);
+
   // Checkout inputs
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
+  const [fullPhone, setFullPhone] = useState('');
+  const [isPhoneValid, setIsPhoneValid] = useState(false);
   const [address, setAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'binance' | 'redotpay' | 'paypal' | 'bankak' | 'cashi' | 'bravo' | 'cod'>('binance');
   const [formErrors, setFormErrors] = useState<{ name?: string; phone?: string; address?: string }>({});
@@ -101,9 +113,14 @@ export const CartPageView: React.FC = () => {
     if (!customerName.trim()) {
       errors.name = lang === 'ar' ? 'يرجى كتابة الاسم الكامل' : 'Please enter your full name';
     }
-    if (!phone.trim()) {
+    
+    const cleanDigits = phone.replace(/\D/g, '');
+    if (!phone.trim() || cleanDigits.length === 0) {
       errors.phone = lang === 'ar' ? 'يرجى إدخال رقم الهاتف أو الواتساب' : 'Phone/WhatsApp number is required';
+    } else if (!isPhoneValid && cleanDigits.length < 8) {
+      errors.phone = lang === 'ar' ? 'يرجى التأكد من كتابة رقم هاتف مكتمل وصالح' : 'Please enter a complete and valid phone number';
     }
+
     if (!address.trim()) {
       errors.address = lang === 'ar' ? 'يرجى إدخال العنوان بالتفصيل' : 'Detailed address is required';
     }
@@ -112,12 +129,16 @@ export const CartPageView: React.FC = () => {
       setFormErrors(errors);
       return;
     }
+    setFormErrors({});
+
+    // Normalize phone with clean international prefix (e.g. +249912345678 or +966501234567)
+    const normalizedPhone = fullPhone || `${activeCountryCode}${cleanDigits}`;
 
     // Place the order with accurate financial calculations
     const fullAddress = `${selectedCity} - ${address} [طريقة الدفع: ${paymentMethod.toUpperCase()}]`;
     const newPlacedOrder = placeOrder({
       name: customerName,
-      phone,
+      phone: normalizedPhone,
       address: fullAddress,
       finalTotalUSD,
       discountAmountUSD,
@@ -465,46 +486,59 @@ export const CartPageView: React.FC = () => {
                     {lang === 'ar' ? 'بيانات التوصيل الفوري' : 'Express Delivery Details'}
                   </h3>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700">
                       {lang === 'ar' ? 'الاسم الكامل للعميل *' : 'Full Name *'}
                     </label>
                     <input 
                       type="text"
                       value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
+                      onChange={(e) => {
+                        setCustomerName(e.target.value);
+                        if (formErrors.name) setFormErrors(prev => ({ ...prev, name: undefined }));
+                      }}
                       placeholder={lang === 'ar' ? 'مثال: سارة محمد المنصور' : 'e.g. Sarah Miller'}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]"
+                      className={`w-full px-4 py-3 bg-slate-50 border rounded-2xl text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] min-h-[48px] transition-colors ${
+                        formErrors.name ? 'border-rose-400 bg-rose-50/20' : 'border-slate-200 focus:bg-white'
+                      }`}
                     />
-                    {formErrors.name && <p className="text-[11px] text-rose-500">{formErrors.name}</p>}
+                    {formErrors.name && <p className="text-[11px] font-bold text-rose-500 ps-1">{formErrors.name}</p>}
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700">
-                      {lang === 'ar' ? 'رقم الهاتف / الواتساب للتواصل *' : 'Phone / WhatsApp *'}
-                    </label>
-                    <input 
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder={lang === 'ar' ? '0912345678 أو 0501234567' : '+1 234 567 8900'}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]"
-                    />
-                    {formErrors.phone && <p className="text-[11px] text-rose-500">{formErrors.phone}</p>}
-                  </div>
+                  {/* Smart Country & Phone Input */}
+                  <SmartPhoneInput
+                    value={phone}
+                    onChange={(val) => {
+                      setPhone(val);
+                      if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: undefined }));
+                    }}
+                    lang={lang}
+                    required
+                    defaultCountryCode={activeCountryCode}
+                    onFullPhoneChange={(fp, valid) => {
+                      setFullPhone(fp);
+                      setIsPhoneValid(valid);
+                    }}
+                    error={formErrors.phone}
+                  />
 
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700">
                       {lang === 'ar' ? 'العنوان التفصيلي (الحي، الشارع، المعلم) *' : 'Detailed Address (Street, Landmark) *'}
                     </label>
                     <textarea 
                       rows={2}
                       value={address}
-                      onChange={(e) => setAddress(e.target.value)}
+                      onChange={(e) => {
+                        setAddress(e.target.value);
+                        if (formErrors.address) setFormErrors(prev => ({ ...prev, address: undefined }));
+                      }}
                       placeholder={lang === 'ar' ? 'مثال: حي الرياض، شارع الستين، قرب كافيه...' : 'e.g. Al-Riyadh district, 60th street...'}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]"
+                      className={`w-full px-4 py-3 bg-slate-50 border rounded-2xl text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] min-h-[58px] transition-colors resize-none ${
+                        formErrors.address ? 'border-rose-400 bg-rose-50/20' : 'border-slate-200 focus:bg-white'
+                      }`}
                     />
-                    {formErrors.address && <p className="text-[11px] text-rose-500">{formErrors.address}</p>}
+                    {formErrors.address && <p className="text-[11px] font-bold text-rose-500 ps-1">{formErrors.address}</p>}
                   </div>
 
                   {/* Payment Method Selector - Clean, Direct, Global First then Sudan Wallets */}

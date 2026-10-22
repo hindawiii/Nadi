@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGradMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b0764" />
+      <stop offset="50%" stop-color="#581c87" />
+      <stop offset="100%" stop-color="#7e22ce" />
+    </linearGradient>
+    <linearGradient id="goldGradMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="40%" stop-color="#fde047" />
+      <stop offset="70%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </linearGradient>
+    <filter id="luxuryGlowMask" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Full-bleed background for maskable icon -->
+  <rect width="512" height="512" fill="url(#bgGradMask)" />
+
+  <!-- Inner Safe-Zone Content scaled nicely within 80% circle -->
+  <g transform="translate(0, 0)">
+    <!-- Soft glow -->
+    <circle cx="256" cy="245" r="150" fill="#a855f7" opacity="0.3" filter="url(#luxuryGlowMask)" />
+
+    <!-- Safe-Zone Emblem -->
+    <g transform="translate(256, 235) scale(0.85)">
+      <!-- Dewdrop / Leaf shape -->
+      <path d="M 0,-100 C 45,-45 95,15 95,85 C 95,145 48,190 0,190 C -48,190 -95,145 -95,85 C -95,15 -45,-45 0,-100 Z" 
+            fill="url(#goldGradMask)" 
+            filter="url(#luxuryGlowMask)" />
+
+      <!-- Inner Core Cutout -->
+      <path d="M 0,-70 C 32,-25 65,20 65,75 C 65,118 32,150 0,150 C -32,150 -65,118 -65,75 C -65,20 -32,-25 0,-70 Z" 
+            fill="#4c1d95" opacity="0.95" />
+
+      <!-- Nuun Arc -->
+      <path d="M -36,65 C -36,95 -20,118 0,118 C 20,118 36,95 36,65" 
+            fill="none" 
+            stroke="url(#goldGradMask)" 
+            stroke-width="9" 
+            stroke-linecap="round" />
+      <!-- Nuun Nuqta (Dot) -->
+      <circle cx="0" cy="50" r="8" fill="url(#goldGradMask)" />
+
+      <!-- Dew Sparkle -->
+      <path d="M 40,-50 Q 55,-40 65,-25 Q 50,-20 40,-50 Z" fill="#ffffff" opacity="0.8" />
+    </g>
+
+    <!-- Sparkle Stars -->
+    <polygon points="340,135 344,147 356,151 344,155 340,167 336,155 324,151 336,147" fill="url(#goldGradMask)" opacity="0.85" />
+    <polygon points="160,325 163,333 171,335 163,337 160,345 157,337 149,335 157,333" fill="url(#goldGradMask)" opacity="0.75" />
+
+    <!-- Brand Typography "NADI" -->
+    <text x="256" y="425" 
+          font-family="'Playfair Display', 'Cinzel', serif" 
+          font-size="30" 
+          font-weight="700" 
+          letter-spacing="9" 
+          fill="url(#goldGradMask)" 
+          text-anchor="middle">NADI</text>
+  </g>
+</svg>

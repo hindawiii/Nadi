@@ -303,8 +303,8 @@ export const siteConfig: SiteConfig = {
         badge: { ar: "نتائج واقعية ومثبتة", en: "Proven Transformations" },
         beforeImage: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80",
         afterImage: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80",
-        beforeLabel: { ar: "قبل الاستخدام (اليوم الأول)", en: "Before (Day 1)" },
-        afterLabel: { ar: "بعد 14 يوماً من النضارة", en: "After 14 Days" }
+        beforeLabel: { ar: "قبل", en: "Before" },
+        afterLabel: { ar: "بعد", en: "After" }
       },
       trioBanners: [
         {

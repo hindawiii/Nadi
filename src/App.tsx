@@ -7,7 +7,6 @@ import { AboutView } from './components/AboutView';
 import { PDPView } from './components/PDPView';
 import { WishlistView } from './components/WishlistView';
 import { CartPageView } from './components/CartPageView';
-import { AdminPanel } from './components/AdminPanel';
 import { OrderTrackerView } from './components/OrderTrackerView';
 import { LoginPageView } from './components/LoginPageView';
 import { Footer } from './components/Footer';
@@ -19,9 +18,12 @@ import { Toast } from './components/Toast';
 import { CompareModal } from './components/CompareModal';
 import { hairStylingDevices } from './components/HairDevicesSpotlight';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { PWAInstallBanner } from './components/PWAInstallBanner';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 // Lazy load heavy admin & developer tools to keep initial customer bundle featherlight for Vercel
 const DeveloperPanel = lazy(() => import('./components/DeveloperPanel').then(m => ({ default: m.DeveloperPanel })));
+const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
 
 const AppContent: React.FC = () => {
   const { 
@@ -164,7 +166,18 @@ const AppContent: React.FC = () => {
           {currentRoute === 'wishlist' && <WishlistView />}
           {currentRoute === 'cart' && <CartPageView />}
           {currentRoute === 'pdp' && <PDPView />}
-          {currentRoute === 'admin' && <AdminPanel />}
+          {currentRoute === 'admin' && (
+            <Suspense fallback={
+              <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 gap-4 bg-slate-50 text-slate-800">
+                <div className="w-10 h-10 border-3 border-[#5A3E7A] border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-slate-600 font-semibold text-sm">
+                  {lang === 'ar' ? 'جاري تحميل لوحة التحكم الفاخرة...' : 'Loading Admin Suite...'}
+                </p>
+              </div>
+            }>
+              <AdminPanel />
+            </Suspense>
+          )}
           {currentRoute === 'developer' && (
             <ErrorBoundary
               fallbackTitle={{
@@ -227,6 +240,10 @@ const AppContent: React.FC = () => {
 
       {/* Global Product Comparison Modal */}
       <CompareModal />
+
+      {/* PWA In-App Install Promotion & Offline Connectivity Indicator */}
+      {!isControlPanelRoute && <PWAInstallBanner />}
+      <OfflineIndicator />
 
       <Toast />
     </div>

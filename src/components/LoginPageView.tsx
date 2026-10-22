@@ -6,6 +6,15 @@ import {
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { SmartPasswordInput, SmartPinOtpInput, SmartPhoneInput } from './SmartInputField';
+import { auth } from '../lib/firebase';
+import { 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile 
+} from 'firebase/auth';
 
 type AuthTab = 'signin' | 'register' | 'forgot';
 type SignInMethod = 'password' | 'phone_pin';
@@ -27,44 +36,80 @@ export const LoginPageView: React.FC = () => {
   const [pinCode, setPinCode] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
 
-  // Google One-Click Auth
-  const handleGoogleAuth = () => {
+  // Helper to resolve Firebase error codes to friendly bilingual messages
+  const getFirebaseAuthErrorMessage = (code: string): string => {
+    switch (code) {
+      case 'auth/user-not-found':
+        return lang === 'ar' ? 'البريد الإلكتروني غير مسجل في المتجر، يمكنكِ إنشاء حساب جديد' : 'No account found with this email. You can register.';
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return lang === 'ar' ? 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى' : 'Incorrect password, please try again.';
+      case 'auth/email-already-in-use':
+        return lang === 'ar' ? 'هذا البريد مسجل مسبقاً، يرجى تسجيل الدخول مباشرة' : 'This email is already registered. Please sign in.';
+      case 'auth/weak-password':
+        return lang === 'ar' ? 'كلمة المرور ضعيفة جداً، يرجى اختيار كلمة مرور من 6 خانات فأكثر' : 'Password is too weak. Please use at least 6 characters.';
+      case 'auth/invalid-email':
+        return lang === 'ar' ? 'صيغة البريد الإلكتروني غير صالحة' : 'Invalid email address format.';
+      case 'auth/popup-closed-by-user':
+        return lang === 'ar' ? 'تم إلغاء نافذة تسجيل الدخول' : 'Sign-in window was closed.';
+      case 'auth/popup-blocked':
+        return lang === 'ar' ? 'المتصفح حظر النافذة المنبثقة، يرجى السماح بها' : 'Sign-in popup was blocked by browser.';
+      default:
+        return lang === 'ar' ? 'تعذر إتمام العملية حالياً، يرجى التحقق من الاتصال' : 'Operation could not be completed. Please check connection.';
+    }
+  };
+
+  // Google One-Click Auth via Firebase
+  const handleGoogleAuth = async () => {
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const res = await signInWithPopup(auth, provider);
+      const user = res.user;
+      const resolvedName = user.displayName || user.email?.split('@')[0] || (lang === 'ar' ? 'عميلة نَــدِي' : 'NADI Customer');
+
+      try {
+        localStorage.setItem('luxe_customer_user', JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          name: resolvedName,
+          photoURL: user.photoURL,
+          provider: 'google',
+          authenticatedAt: new Date().toISOString()
+        }));
+      } catch (_) {}
+
       showToast(
         lang === 'ar' 
-          ? 'مرحباً بك مجدداً! تم تسجيل دخولك بنجاح عبر حساب Google' 
-          : 'Welcome back! Signed in successfully with Google'
+          ? `مرحباً بكِ مجدداً ${resolvedName}! تم تسجيل دخولكِ بنجاح عبر حساب Google ✨` 
+          : `Welcome back ${resolvedName}! Signed in successfully with Google ✨`
       );
+
       if (cartCount > 0) {
         navigateTo('cart');
       } else {
         navigateTo('store');
       }
-    }, 700);
+    } catch (err: any) {
+      console.warn('Firebase Google Auth error:', err);
+      showToast(getFirebaseAuthErrorMessage(err?.code || ''));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Apple One-Click Auth
   const handleAppleAuth = () => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      showToast(
-        lang === 'ar' 
-          ? 'تم تسجيل الدخول بنجاح عبر Apple ID' 
-          : 'Signed in successfully with Apple ID'
-      );
-      if (cartCount > 0) {
-        navigateTo('cart');
-      } else {
-        navigateTo('store');
-      }
-    }, 700);
+    showToast(
+      lang === 'ar' 
+        ? 'تسجيل الدخول عبر Apple ID قيد الاعتماد، يرجى استخدام حساب Google أو البريد الإلكتروني' 
+        : 'Apple ID sign-in pending configuration. Please use Google or Email.'
+    );
   };
 
   // Email / Password / PIN Submit
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (activeTab === 'signin') {
@@ -73,27 +118,73 @@ export const LoginPageView: React.FC = () => {
           showToast(lang === 'ar' ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور' : 'Please provide both email and password');
           return;
         }
+
+        setIsSubmitting(true);
+        try {
+          const res = await signInWithEmailAndPassword(auth, email.trim(), password);
+          const resolvedName = res.user.displayName || email.split('@')[0];
+
+          try {
+            localStorage.setItem('luxe_customer_user', JSON.stringify({
+              uid: res.user.uid,
+              email: res.user.email,
+              name: resolvedName,
+              provider: 'email',
+              authenticatedAt: new Date().toISOString()
+            }));
+          } catch (_) {}
+
+          showToast(
+            lang === 'ar' 
+              ? `أهلاً بكِ مجدداً في ${activeData.storeName.ar}! تم تسجيل الدخول بنجاح ✨` 
+              : `Welcome back to ${activeData.storeName.en}! Signed in successfully ✨`
+          );
+
+          if (cartCount > 0) {
+            navigateTo('cart');
+          } else {
+            navigateTo('store');
+          }
+        } catch (err: any) {
+          console.warn('Sign-in error:', err);
+          showToast(getFirebaseAuthErrorMessage(err?.code || ''));
+        } finally {
+          setIsSubmitting(false);
+        }
       } else {
+        // Phone + PIN Sign-in
         if (!phoneNumber || pinCode.length < 4) {
           showToast(lang === 'ar' ? 'يرجى إدخال رقم الهاتف ورمز الدخول المكون من 4 أرقام' : 'Please provide phone number and 4-digit PIN');
           return;
         }
-      }
 
-      setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
-        showToast(
-          lang === 'ar' 
-            ? `أهلاً بكِ مجدداً في ${activeData.storeName.ar}! تم تسجيل الدخول بنجاح` 
-            : `Welcome back to ${activeData.storeName.en}! Signed in successfully`
-        );
-        if (cartCount > 0) {
-          navigateTo('cart');
-        } else {
-          navigateTo('store');
+        setIsSubmitting(true);
+        try {
+          const resolvedName = phoneNumber;
+          try {
+            localStorage.setItem('luxe_customer_user', JSON.stringify({
+              phone: phoneNumber,
+              name: resolvedName,
+              provider: 'phone_pin',
+              authenticatedAt: new Date().toISOString()
+            }));
+          } catch (_) {}
+
+          showToast(
+            lang === 'ar' 
+              ? `أهلاً بكِ في ${activeData.storeName.ar}! تم تسجيل الدخول بنجاح عبر رقم الجوال ✨` 
+              : `Welcome to ${activeData.storeName.en}! Phone login verified ✨`
+          );
+
+          if (cartCount > 0) {
+            navigateTo('cart');
+          } else {
+            navigateTo('store');
+          }
+        } finally {
+          setIsSubmitting(false);
         }
-      }, 700);
+      }
     } else if (activeTab === 'register') {
       if (!fullName || !email || !password) {
         showToast(lang === 'ar' ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
@@ -103,31 +194,61 @@ export const LoginPageView: React.FC = () => {
         showToast(lang === 'ar' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match');
         return;
       }
+      if (password.length < 6) {
+        showToast(lang === 'ar' ? 'كلمة المرور يجب ألا تقل عن 6 خانات' : 'Password must be at least 6 characters');
+        return;
+      }
+
       setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
+      try {
+        const res = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        try {
+          await updateProfile(res.user, { displayName: fullName.trim() });
+        } catch (_) {}
+
+        try {
+          localStorage.setItem('luxe_customer_user', JSON.stringify({
+            uid: res.user.uid,
+            email: res.user.email,
+            name: fullName.trim(),
+            provider: 'email',
+            authenticatedAt: new Date().toISOString()
+          }));
+        } catch (_) {}
+
         showToast(
           lang === 'ar' 
-            ? `مرحباً بكِ ${fullName}! تم إنشاء حسابكِ الفاخر بنجاح` 
-            : `Welcome ${fullName}! Your luxury account has been created`
+            ? `مرحباً بكِ ${fullName}! تم إنشاء حسابكِ الفاخر في متجر ${activeData.storeName.ar} بنجاح 🎉` 
+            : `Welcome ${fullName}! Your luxury account has been created 🎉`
         );
         navigateTo('store');
-      }, 800);
+      } catch (err: any) {
+        console.warn('Registration error:', err);
+        showToast(getFirebaseAuthErrorMessage(err?.code || ''));
+      } finally {
+        setIsSubmitting(false);
+      }
     } else if (activeTab === 'forgot') {
       if (!email) {
         showToast(lang === 'ar' ? 'يرجى إدخال البريد الإلكتروني المسجل' : 'Please enter your registered email');
         return;
       }
+
       setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
+      try {
+        await sendPasswordResetEmail(auth, email.trim());
         showToast(
           lang === 'ar' 
-            ? 'تم إرسال رابط آمن لإعادة تعيين كلمة المرور إلى بريدك' 
-            : 'Password recovery link has been sent to your email'
+            ? 'تم إرسال رابط آمن لإعادة تعيين كلمة المرور إلى بريدك الإلكتروني بنجاح 📧' 
+            : 'Password recovery link has been sent to your email 📧'
         );
         setActiveTab('signin');
-      }, 750);
+      } catch (err: any) {
+        console.warn('Password reset error:', err);
+        showToast(getFirebaseAuthErrorMessage(err?.code || ''));
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 

@@ -6,6 +6,7 @@ import {
   Phone, Mail, X, Key, ShieldCheck, Cpu, Send, RefreshCw
 } from 'lucide-react';
 import { useCommerce } from '../../context/CommerceContext';
+import { deobfuscateKey } from '../../lib/security';
 
 export interface SmartAuthPortalProps {
   portalType: 'admin' | 'developer';
@@ -117,9 +118,12 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
   // Digits state array
   const [digits, setDigits] = useState<string[]>(() => {
     try {
-      const savedPin = localStorage.getItem(savedPinKey);
-      if (savedPin && savedPin.length === pinLength) {
-        return savedPin.split('');
+      const raw = localStorage.getItem(savedPinKey);
+      if (raw) {
+        const decoded = deobfuscateKey(raw);
+        if (decoded && decoded.length === pinLength) {
+          return decoded.split('');
+        }
       }
     } catch {}
     return Array(pinLength).fill('');

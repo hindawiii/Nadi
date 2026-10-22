@@ -4,11 +4,12 @@ import {
   RotateCcw, Upload, ArrowUpRight, MessageCircle, 
   Phone, Mail, CheckCircle2, Star, ShieldCheck, 
   Droplets, ExternalLink, ArrowRight, ArrowLeft,
-  ChevronDown, ChevronUp, ShoppingBag, Eye, Plus, Trash2,
-  Sliders, Award, Truck, Check, HelpCircle, Undo2
+  ChevronDown, ChevronUp, ShoppingBag, Plus, Trash2,
+  Sliders, Award, Truck, Check, HelpCircle, Undo2, X
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { siteConfig, Product } from '../data/siteConfig';
+import { SectionsLayoutReorder } from './common/SectionsLayoutReorder';
 
 export interface UnifiedStoreCustomizerProps {
   onNavigateToProducts?: () => void;
@@ -32,6 +33,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
   const activePreset = dynamicConfig.presets[effectivePresetId] || dynamicConfig.presets.cosmetics;
   const preset = activePreset as any;
   const [activeCornerId, setActiveCornerId] = useState<string>('corner-1');
+  const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
 
   // Direct file upload references
   const logoFileInputRef = useRef<HTMLInputElement>(null);
@@ -459,15 +461,25 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
               <span>{lang === 'ar' ? `تراجع (${historyStack.length})` : `Undo (${historyStack.length})`}</span>
             </button>
 
+            {/* Sections Reorder Button */}
+            <button
+              type="button"
+              onClick={() => setIsReorderModalOpen(true)}
+              className="h-11 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all cursor-pointer active:scale-95"
+              title={lang === 'ar' ? 'سحب وترتيب أقسام المتجر' : 'Sections Layout & Reorder'}
+            >
+              <Layers className="w-4 h-4 text-purple-200" />
+              <span>{lang === 'ar' ? 'سحب وترتيب الأقسام' : 'Reorder Sections'}</span>
+            </button>
+
             {/* View Live Store Button */}
             <button
               type="button"
               onClick={() => navigateTo('store')}
               className="h-11 px-4 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/20 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
             >
-              <Eye className="w-4 h-4" />
               <span>{lang === 'ar' ? 'معاينة المتجر الحي' : 'View Storefront'}</span>
-              <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+              <ExternalLink className="w-3.5 h-3.5 opacity-90" />
             </button>
           </div>
         </div>
@@ -1780,6 +1792,31 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
         </div>
 
       </div>
+
+      {/* Embedded High-Fidelity Sections Layout & Reorder Modal */}
+      {isReorderModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200"
+          onClick={() => setIsReorderModalOpen(false)}
+        >
+          <div 
+            className="max-w-3xl w-full max-h-[90vh] overflow-y-auto rounded-3xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsReorderModalOpen(false)}
+                className="absolute top-4 end-4 z-20 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
+                title={lang === 'ar' ? 'إغلاق' : 'Close'}
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <SectionsLayoutReorder onClose={() => setIsReorderModalOpen(false)} showStorefrontLink={false} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

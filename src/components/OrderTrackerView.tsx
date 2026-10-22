@@ -1,27 +1,55 @@
 import React, { useState } from 'react';
 import { 
   Search, CheckCircle2, Clock, Truck, Package, MapPin, 
-  Phone, Calendar, AlertCircle, ArrowLeft, ArrowRight 
+  Phone, Calendar, AlertCircle, ArrowLeft, ArrowRight, MessageSquare, Copy 
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 
 export const OrderTrackerView: React.FC = () => {
-  const { lang, orders, setCurrentRoute, navigateTo } = useCommerce();
+  const { lang, orders, setCurrentRoute, navigateTo, activeData, showToast } = useCommerce();
   const isRtl = lang === 'ar';
   
   const [searchCode, setSearchCode] = useState('');
-  const [selectedOrder, setSelectedOrder] = useState(() => orders[0] || null);
+  const [selectedOrder, setSelectedOrder] = useState<typeof orders[0] | null>(() => {
+    // Check if customer placed an order in this browser session
+    try {
+      const myTracking = localStorage.getItem('luxe_my_last_tracking');
+      if (myTracking) {
+        return orders.find(o => o.trackingCode.toLowerCase() === myTracking.toLowerCase()) || null;
+      }
+    } catch (_) {}
+    return null;
+  });
+  const [hasSearched, setHasSearched] = useState(false);
+  const [searchNotFound, setSearchNotFound] = useState(false);
+
+  // Retrieve customer's own last tracking code if available
+  const myLastTracking = typeof window !== 'undefined' ? localStorage.getItem('luxe_my_last_tracking') : null;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchCode.trim()) return;
-    const found = orders.find(
-      (o) =>
-        o.trackingCode.toLowerCase() === searchCode.trim().toLowerCase() ||
-        o.id.toLowerCase() === searchCode.trim().toLowerCase()
-    );
+    setHasSearched(true);
+    const query = searchCode.trim().toLowerCase();
+    if (!query) return;
+
+    const cleanQuery = query.replace(/[^a-z0-9]/g, '');
+    const cleanDigits = query.replace(/\D/g, '');
+
+    const found = orders.find((o) => {
+      const matchTracking = o.trackingCode.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanQuery;
+      const matchId = o.id.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanQuery;
+      const matchPhone = cleanDigits.length >= 6 && o.phone.replace(/\D/g, '').includes(cleanDigits);
+      return matchTracking || matchId || matchPhone;
+    });
+
     if (found) {
       setSelectedOrder(found);
+      setSearchNotFound(false);
+      showToast(lang === 'ar' ? `تم العثور على الشحنة #${found.id}` : `Shipment #${found.id} found`);
+    } else {
+      setSelectedOrder(null);
+      setSearchNotFound(true);
+      showToast(lang === 'ar' ? 'لم يتم العثور على شحنة تطابق البحث' : 'No shipment found matching query');
     }
   };
 
@@ -70,8 +98,8 @@ export const OrderTrackerView: React.FC = () => {
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
             {lang === 'ar'
-              ? 'أدخل رقم التتبع (مثل TRK-98241) أو رقم الطلب لمعرفة خط سير شحنتك لحظة بلحظة.'
-              : 'Enter your tracking code or order ID to view current dispatch progress.'}
+              ? 'أدخلي رقم التتبع الخاص بكِ (مثل TRK-98241) أو رقم الطلب أو رقم الهاتف المسجل لمعرفة خط سير شحنتكِ.'
+              : 'Enter your tracking code, order ID, or registered phone number to view real-time delivery status.'}
           </p>
         </div>
 
@@ -83,35 +111,38 @@ export const OrderTrackerView: React.FC = () => {
               type="text"
               value={searchCode}
               onChange={(e) => setSearchCode(e.target.value)}
-              placeholder={lang === 'ar' ? 'أدخل رقم التتبع هنا...' : 'Enter tracking code...'}
-              className="w-full ps-11 pe-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] shadow-sm"
+              placeholder={lang === 'ar' ? 'رقم التتبع (TRK-...) أو رقم الطلب أو الهاتف...' : 'Tracking code, order ID, or phone...'}
+              className="w-full ps-11 pe-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] shadow-sm min-h-[48px]"
             />
           </div>
           <button
             type="submit"
-            className="px-6 py-3 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-2xl text-sm font-bold shadow-md transition-colors min-h-[48px]"
+            className="px-6 py-3 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-2xl text-sm font-bold shadow-md transition-colors min-h-[48px] cursor-pointer active:scale-95 shrink-0"
           >
             {lang === 'ar' ? 'بحث' : 'Track'}
           </button>
         </form>
 
-        {/* Recent Orders Pill Selector */}
-        {orders.length > 0 && (
-          <div className="flex items-center justify-center gap-2 flex-wrap text-xs">
-            <span className="text-slate-400 font-medium">{lang === 'ar' ? 'طلبات سريعة للتجربة:' : 'Quick demo orders:'}</span>
-            {orders.map((o) => (
-              <button
-                key={o.id}
-                onClick={() => setSelectedOrder(o)}
-                className={`px-3 py-1 rounded-full font-semibold border transition-all ${
-                  selectedOrder?.id === o.id
-                    ? 'bg-[#5A3E7A] text-white border-[#5A3E7A]'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                {o.trackingCode} ({o.customerName})
-              </button>
-            ))}
+        {/* Quick Shortcut for Customer's OWN Last Order Only */}
+        {myLastTracking && (
+          <div className="flex items-center justify-center gap-2 text-xs">
+            <span className="text-slate-400 font-medium">
+              {lang === 'ar' ? 'طلبكِ المسجل بهذا الجهاز:' : 'Your recent order on this device:'}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchCode(myLastTracking);
+                const found = orders.find(o => o.trackingCode.toLowerCase() === myLastTracking.toLowerCase());
+                if (found) {
+                  setSelectedOrder(found);
+                  setSearchNotFound(false);
+                }
+              }}
+              className="px-3 py-1 rounded-full font-bold bg-purple-50 text-[#5A3E7A] border border-purple-200 hover:bg-purple-100 transition-colors"
+            >
+              {myLastTracking}
+            </button>
           </div>
         )}
 
@@ -219,13 +250,61 @@ export const OrderTrackerView: React.FC = () => {
                 </div>
               </div>
 
+              {/* WhatsApp Live Support & Contact Helper */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+                <a
+                  href={`https://wa.me/${activeData.contactInfo.whatsapp}?text=${encodeURIComponent(
+                    lang === 'ar'
+                      ? `مرحباً ${activeData.storeName.ar}، أستفسر عن شحنتي رقم (${selectedOrder.id})، رمز التتبع: (${selectedOrder.trackingCode}). العميل: ${selectedOrder.customerName}`
+                      : `Hello ${activeData.storeName.en}, I have an inquiry about my order (${selectedOrder.id}), tracking: (${selectedOrder.trackingCode}). Customer: ${selectedOrder.customerName}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md min-h-[44px] text-xs cursor-pointer active:scale-95"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>{lang === 'ar' ? 'استفسار فوري عبر واتساب المتجر' : 'Instant Inquiry on WhatsApp'}</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      navigator.clipboard.writeText(selectedOrder.trackingCode);
+                      showToast(lang === 'ar' ? 'تم نسخ رمز التتبع بنجاح!' : 'Tracking code copied!');
+                    } catch {
+                      showToast(selectedOrder.trackingCode);
+                    }
+                  }}
+                  className="w-full sm:w-auto py-3 px-4 bg-purple-50 hover:bg-purple-100 text-[#5A3E7A] font-bold rounded-2xl border border-purple-200 transition-colors flex items-center justify-center gap-1.5 min-h-[44px] text-xs cursor-pointer active:scale-95"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'نسخ رمز التتبع' : 'Copy Code'}</span>
+                </button>
+              </div>
+
             </div>
 
           </div>
+        ) : hasSearched ? (
+          <div className="py-12 text-center bg-white rounded-3xl border border-slate-200 p-6 space-y-2">
+            <AlertCircle className="w-10 h-10 text-amber-400 mx-auto mb-2" />
+            <p className="text-sm font-bold text-slate-700">{lang === 'ar' ? 'لم يتم العثور على شحنة تطابق البحث' : 'No shipment matches your search'}</p>
+            <p className="text-xs text-slate-400">{lang === 'ar' ? 'يرجى التأكد من كتابة رمز التتبع، رقم الطلب، أو رقم هاتفكِ المسجل بدقة.' : 'Please verify the tracking code, order ID, or phone number accurately.'}</p>
+          </div>
         ) : (
-          <div className="py-12 text-center bg-white rounded-3xl border border-slate-200 p-6">
-            <AlertCircle className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm text-slate-600">{lang === 'ar' ? 'لم يتم العثور على شحنة تطابق رقم التتبع المدخل.' : 'No shipment matches this tracking code.'}</p>
+          <div className="py-14 text-center bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 space-y-3 shadow-xs">
+            <div className="w-14 h-14 rounded-2xl bg-purple-50 text-[#5A3E7A] flex items-center justify-center mx-auto mb-2 border border-purple-100">
+              <Package className="w-7 h-7" />
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-800">
+              {lang === 'ar' ? 'بانتظار استعلامكِ عن الشحنة' : 'Ready to Track Your Order'}
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto leading-relaxed">
+              {lang === 'ar' 
+                ? 'أدخلي رمز التتبع المستلم أو رقم الجوال في شريط البحث أعلاه لعرض الجدول الزمني للشحن وحالة التسليم الفورية.' 
+                : 'Enter your tracking code or phone number above to view real-time transit timeline and courier updates.'}
+            </p>
           </div>
         )}
 
