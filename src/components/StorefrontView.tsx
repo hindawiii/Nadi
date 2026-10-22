@@ -251,7 +251,7 @@ export const StorefrontView: React.FC = () => {
               {/* Hero Copy */}
               <div className="lg:col-span-6 space-y-6 text-center lg:text-start">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-100/90 text-[#5A3E7A] text-xs sm:text-sm font-extrabold border border-purple-200/90 shadow-xs backdrop-blur-xs">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-700 animate-pulse" />
+                  <Droplets className="w-3.5 h-3.5 text-[#5A3E7A] shrink-0" />
                   <span>{activeData.storeSlogan ? activeData.storeSlogan[lang] : (lang === 'ar' ? 'إشراقة طبيعية، تليق بك.' : 'Natural radiance, made for you.')}</span>
                 </div>
 

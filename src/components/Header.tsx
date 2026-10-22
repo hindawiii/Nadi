@@ -88,8 +88,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Animated Announcement Text with Smooth Slide Fade */}
-          <div className="flex-1 min-w-0 flex items-center gap-1.5 sm:gap-2 overflow-hidden">
-            <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-300 animate-pulse" />
+          <div className="flex-1 min-w-0 flex items-center overflow-hidden">
             <div className="flex-1 min-w-0 relative h-4.5 sm:h-5 flex items-center">
               {announcementSlides.map((slide, idx) => (
                 <p 
