@@ -34,12 +34,21 @@ export const OrderTrackerView: React.FC = () => {
 
     const cleanQuery = query.replace(/[^a-z0-9]/g, '');
     const cleanDigits = query.replace(/\D/g, '');
+    // Extract core subscriber digits (last 7-8 digits) to match regardless of international or local prefix
+    const queryCoreDigits = cleanDigits.length >= 7 ? cleanDigits.slice(-8) : cleanDigits;
 
     const found = orders.find((o) => {
       const matchTracking = o.trackingCode.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanQuery;
       const matchId = o.id.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanQuery;
-      const matchPhone = cleanDigits.length >= 6 && o.phone.replace(/\D/g, '').includes(cleanDigits);
-      return matchTracking || matchId || matchPhone;
+      
+      const orderDigits = o.phone.replace(/\D/g, '');
+      const orderCoreDigits = orderDigits.length >= 7 ? orderDigits.slice(-8) : orderDigits;
+
+      const matchDirectPhone = cleanDigits.length >= 6 && orderDigits.includes(cleanDigits);
+      const matchReversePhone = cleanDigits.length >= 6 && cleanDigits.includes(orderDigits);
+      const matchCorePhone = queryCoreDigits.length >= 7 && (orderDigits.includes(queryCoreDigits) || orderCoreDigits === queryCoreDigits);
+
+      return matchTracking || matchId || matchDirectPhone || matchReversePhone || matchCorePhone;
     });
 
     if (found) {

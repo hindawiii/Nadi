@@ -1869,27 +1869,32 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       trackingCode,
     };
 
-    // Decrement stock for purchased items
+    // Decrement stock for purchased items across all catalog presets
     setDynamicConfig((prevConfig) => {
       const updatedPresets = { ...prevConfig.presets };
-      const currentPreset = updatedPresets[activePresetId];
-      if (currentPreset && Array.isArray(currentPreset.products)) {
-        const cartQuantities = new Map<string, number>();
-        cart.forEach((item) => {
-          cartQuantities.set(item.product.id, (cartQuantities.get(item.product.id) || 0) + item.quantity);
-        });
+      const cartQuantities = new Map<string, number>();
+      cart.forEach((item) => {
+        cartQuantities.set(item.product.id, (cartQuantities.get(item.product.id) || 0) + item.quantity);
+      });
 
-        currentPreset.products = currentPreset.products.map((p) => {
-          const qtyBought = cartQuantities.get(p.id);
-          if (qtyBought) {
-            return {
-              ...p,
-              stock: Math.max(0, (p.stock || 0) - qtyBought),
-            };
-          }
-          return p;
-        });
-      }
+      // Synchronize stock decrement across all presets to ensure cosmetics & hair devices both update
+      (Object.keys(updatedPresets) as (keyof typeof updatedPresets)[]).forEach((presetKey) => {
+        const preset = updatedPresets[presetKey];
+        if (preset && Array.isArray(preset.products)) {
+          preset.products = preset.products.map((p: Product) => {
+            const qtyBought = cartQuantities.get(p.id);
+            if (qtyBought) {
+              const currentStock = typeof p.stock === 'number' ? p.stock : 10;
+              return {
+                ...p,
+                stock: Math.max(0, currentStock - qtyBought),
+              };
+            }
+            return p;
+          });
+        }
+      });
+
       const nextConfig = { ...prevConfig, presets: updatedPresets };
       try {
         localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(nextConfig));

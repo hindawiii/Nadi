@@ -27,10 +27,44 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, isO
   };
 
   const handleWhatsAppConfirmation = () => {
+    const itemsList = order.items.map(item => `• ${item.productName} (الكمية: ${item.quantity}) - ${item.price}`).join('\n');
     const text = lang === 'ar'
-      ? `مرحباً ${activeData.storeName.ar}، قمت بطلب جديد عبر المتجر.\nرقم الطلب: ${order.id}\nرمز التتبع: ${order.trackingCode}\nالعميل: ${order.customerName}\nالإجمالي: ${order.totalFormatted}\nأرجو تأكيد تجهيز الشحنة!`
-      : `Hello ${activeData.storeName.en}, I just placed an order!\nOrder ID: ${order.id}\nTracking: ${order.trackingCode}\nCustomer: ${order.customerName}\nTotal: ${order.totalFormatted}\nPlease confirm shipment!`;
-    window.open(`https://wa.me/${activeData.contactInfo.whatsapp}?text=${encodeURIComponent(text)}`, '_blank');
+      ? `🛍️ *طلب جديد عبر متجر ${activeData.storeName.ar}*\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `📌 *رقم الطلب:* #${order.id}\n` +
+        `📦 *رمز التتبع المباشر:* ${order.trackingCode}\n` +
+        `📅 *التاريخ:* ${order.date}\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `👤 *بيانات المستلم:*\n` +
+        `• الاسم: ${order.customerName}\n` +
+        `• الهاتف: ${order.phone}\n` +
+        `• العنوان: ${order.address}\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `🛒 *المنتجات المطلوبة:*\n` +
+        `${itemsList}\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `💰 *المبلغ الإجمالي:* ${order.totalFormatted}\n\n` +
+        `✨ *يرجى تأكيد استلام الطلب وتجهيز الشحنة!*`
+      : `🛍️ *New Order from ${activeData.storeName.en}*\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `📌 *Order ID:* #${order.id}\n` +
+        `📦 *Tracking Code:* ${order.trackingCode}\n` +
+        `📅 *Date:* ${order.date}\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `👤 *Recipient:*\n` +
+        `• Name: ${order.customerName}\n` +
+        `• Phone: ${order.phone}\n` +
+        `• Address: ${order.address}\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `🛒 *Items:*\n` +
+        `${order.items.map(item => `• ${item.productName} (Qty: ${item.quantity}) - ${item.price}`).join('\n')}\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `💰 *Total Amount:* ${order.totalFormatted}\n\n` +
+        `✨ *Please confirm and dispatch!*`;
+
+    const whatsappNumber = (activeData.contactInfo.whatsapp || '249912345678').replace(/\D/g, '');
+    const cleanUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
+    window.open(cleanUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (

@@ -135,14 +135,56 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
 
+  // Brute-force lockout protection: 3 failed attempts lock portal for 30 seconds
+  const [failedAttempts, setFailedAttempts] = useState<number>(() => {
+    try {
+      const stored = sessionStorage.getItem(`luxe_auth_fails_${portalType}`);
+      return stored ? parseInt(stored, 10) : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  const [lockoutSeconds, setLockoutSeconds] = useState<number>(() => {
+    try {
+      const lockoutUntil = sessionStorage.getItem(`luxe_auth_lockout_${portalType}`);
+      if (lockoutUntil) {
+        const remaining = Math.ceil((parseInt(lockoutUntil, 10) - Date.now()) / 1000);
+        return remaining > 0 ? remaining : 0;
+      }
+    } catch {}
+    return 0;
+  });
+
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setLockoutSeconds((prev) => {
+        if (prev <= 1) {
+          try {
+            sessionStorage.removeItem(`luxe_auth_lockout_${portalType}`);
+            sessionStorage.setItem(`luxe_auth_fails_${portalType}`, '0');
+          } catch {}
+          setFailedAttempts(0);
+          setHasError(false);
+          setErrorMessage('');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutSeconds, portalType]);
+
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Focus first empty digit or first input on mount
   useEffect(() => {
+    if (lockoutSeconds > 0) return;
     const firstEmpty = digits.findIndex((d) => d === '');
     const targetIdx = firstEmpty === -1 ? 0 : firstEmpty;
     inputRefs.current[targetIdx]?.focus();
-  }, []);
+  }, [lockoutSeconds]);
 
   const handleDigitChange = (index: number, value: string) => {
     setHasError(false);
@@ -223,6 +265,16 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
   };
 
   const validateAndSubmit = (fullPin: string) => {
+    if (lockoutSeconds > 0) {
+      setHasError(true);
+      setErrorMessage(
+        lang === 'ar'
+          ? `البوابة مجمدة مؤقتاً لحماية الأمان. يرجى الانتظار ${lockoutSeconds} ثانية.`
+          : `Security lockout active. Please wait ${lockoutSeconds}s.`
+      );
+      return;
+    }
+
     if (fullPin.length < pinLength) {
       setHasError(true);
       setErrorMessage(
@@ -238,6 +290,11 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
     if (success) {
       setIsSuccess(true);
       setHasError(false);
+      setFailedAttempts(0);
+      try {
+        sessionStorage.removeItem(`luxe_auth_fails_${portalType}`);
+        sessionStorage.removeItem(`luxe_auth_lockout_${portalType}`);
+      } catch {}
 
       // Save preferences in localStorage
       try {
@@ -252,18 +309,40 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
         console.warn('Storage preference error:', err);
       }
     } else {
-      setHasError(true);
-      setIsSuccess(false);
-      setErrorMessage(
-        lang === 'ar'
-          ? `رمز الدخول غير صحيح. الرمز الافتراضي: ${defaultPin}`
-          : `Invalid PIN. Default access key: ${defaultPin}`
-      );
-      // Trigger error vibration/shake and refocus first box
-      setTimeout(() => {
-        inputRefs.current[0]?.focus();
-        setFocusedIndex(0);
-      }, 350);
+      const nextFails = failedAttempts + 1;
+      setFailedAttempts(nextFails);
+      try {
+        sessionStorage.setItem(`luxe_auth_fails_${portalType}`, String(nextFails));
+      } catch {}
+
+      if (nextFails >= 3) {
+        const lockUntil = Date.now() + 30000;
+        try {
+          sessionStorage.setItem(`luxe_auth_lockout_${portalType}`, String(lockUntil));
+        } catch {}
+        setLockoutSeconds(30);
+        setHasError(true);
+        setIsSuccess(false);
+        setErrorMessage(
+          lang === 'ar'
+            ? 'تم تجميد المحاولات مؤقتاً لمدة 30 ثانية لتكرار إدخال رمز خاطئ 3 مرات.'
+            : 'Locked for 30s due to 3 consecutive failed PIN attempts.'
+        );
+      } else {
+        setHasError(true);
+        setIsSuccess(false);
+        const remainingTries = 3 - nextFails;
+        setErrorMessage(
+          lang === 'ar'
+            ? `رمز الدخول غير صحيح. الرمز الافتراضي: ${defaultPin} (متبقي ${remainingTries} ${remainingTries === 1 ? 'محاولة' : 'محاولات'} قبل القفل المؤقت)`
+            : `Invalid PIN. Default: ${defaultPin} (${remainingTries} attempts remaining before lock)`
+        );
+        // Trigger error vibration/shake and refocus first box
+        setTimeout(() => {
+          inputRefs.current[0]?.focus();
+          setFocusedIndex(0);
+        }, 350);
+      }
     }
   };
 
@@ -442,9 +521,11 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
                       onKeyDown={(e) => handleKeyDown(idx, e)}
                       onPaste={handlePaste}
                       onFocus={() => setFocusedIndex(idx)}
-                      autoComplete="off"
+                      disabled={lockoutSeconds > 0}
                       className={`w-full h-14 sm:h-16 text-center text-xl sm:text-2xl font-mono font-black rounded-2xl border transition-all duration-200 outline-none ${
-                        hasError
+                        lockoutSeconds > 0
+                          ? 'border-slate-800 bg-slate-900/40 text-slate-600 cursor-not-allowed opacity-60'
+                          : hasError
                           ? 'border-rose-500 bg-rose-950/30 text-rose-200 ring-2 ring-rose-500/30'
                           : isSuccess
                           ? 'border-emerald-500 bg-emerald-950/30 text-emerald-200 ring-2 ring-emerald-500/30'
@@ -537,15 +618,24 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
             <button
               type="button"
               onClick={triggerAuthentication}
-              disabled={isSuccess}
-              className={`w-full py-4 rounded-2xl font-black text-sm shadow-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer min-h-[48px] active:scale-98 ${primaryBtnColors} ${
-                !isFull ? 'opacity-90' : 'hover:opacity-100 hover:scale-[1.01]'
+              disabled={isSuccess || lockoutSeconds > 0}
+              className={`w-full py-4 rounded-2xl font-black text-sm shadow-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer min-h-[48px] active:scale-98 ${
+                lockoutSeconds > 0
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/60'
+                  : primaryBtnColors
+              } ${
+                !isFull && lockoutSeconds === 0 ? 'opacity-90' : 'hover:opacity-100 hover:scale-[1.01]'
               }`}
             >
               {isSuccess ? (
                 <>
                   <Check className="w-5 h-5 animate-spin" />
                   <span>{lang === 'ar' ? 'جاري الفتح والتوجيه...' : 'Authenticating...'}</span>
+                </>
+              ) : lockoutSeconds > 0 ? (
+                <>
+                  <Lock className="w-4 h-4 text-rose-400" />
+                  <span>{lang === 'ar' ? `مقفول مؤقتاً (${lockoutSeconds} ثانية)` : `Locked (${lockoutSeconds}s)`}</span>
                 </>
               ) : (
                 <>
