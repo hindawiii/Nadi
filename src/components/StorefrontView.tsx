@@ -4,7 +4,7 @@ import {
   Star, CheckCircle2, ChevronRight, ChevronLeft, MessageCircle, Heart, 
   MapPin, Phone, Mail, Award, Droplets, Sun, Sparkle, Shield, 
   Layers, MessageSquarePlus, SlidersHorizontal, Quote, ThumbsUp, Check, BadgeCheck,
-  ZoomIn, Maximize2, X, Plus, Minus, ShoppingBag, Gift
+  ZoomIn, Maximize2, X, Plus, Minus, ShoppingBag, Gift, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useCommerce, SectionId } from '../context/CommerceContext';
 import { ProductCard } from './ProductCard';
@@ -27,6 +27,27 @@ export const StorefrontView: React.FC = () => {
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating'>('featured');
   const [beforeAfterPos, setBeforeAfterPos] = useState<number>(50);
   const [reviewSlide, setReviewSlide] = useState<number>(0);
+
+  // Progressive Disclosure / Accordion Products Pagination: 8 on mobile (4 rows of 2), 12 on tablet/desktop (4 rows of 3)
+  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(() => 
+    typeof window !== 'undefined' ? window.innerWidth < 640 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth < 640);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const defaultBatchSize = isMobileScreen ? 8 : 12;
+  const [visibleProductsCount, setVisibleProductsCount] = useState<number>(defaultBatchSize);
+
+  // Reset pagination on category or skin filter switch
+  useEffect(() => {
+    setVisibleProductsCount(isMobileScreen ? 8 : 12);
+  }, [isMobileScreen, selectedCategory, activeSkinFilter]);
 
   // Diamond Offer interactive states
   const [activePromoSlide, setActivePromoSlide] = useState<number>(0);
@@ -87,10 +108,23 @@ export const StorefrontView: React.FC = () => {
   // Filter products by category and active smart skin routine
   const filteredProducts = products.filter((p) => {
     if (activeSkinFilter) {
-      if (activeSkinFilter === 'hydrated' && !p.id.includes('01') && !p.id.includes('04')) return false;
-      if (activeSkinFilter === 'even' && !p.id.includes('02') && !p.id.includes('04')) return false;
-      if (activeSkinFilter === 'firm' && !p.id.includes('03') && !p.id.includes('04')) return false;
-      if (activeSkinFilter === 'radiant' && !p.id.includes('02') && !p.id.includes('03') && !p.id.includes('04')) return false;
+      const pName = (p.name.ar + ' ' + p.name.en + ' ' + p.tabs.description.ar).toLowerCase();
+      if (activeSkinFilter === 'hydrated') {
+        const matchesHydrated = p.id.includes('01') || p.id.includes('04') || ['sb-06', 'sb-15', 'sb-16', 'sb-22', 'sb-27', 'sb-32'].includes(p.id) || pName.includes('هيالورونيك') || pName.includes('ترطيب') || pName.includes('صبار') || pName.includes('سيراميد');
+        if (!matchesHydrated) return false;
+      }
+      if (activeSkinFilter === 'even') {
+        const matchesEven = p.id.includes('02') || p.id.includes('04') || ['sb-07', 'sb-21', 'sb-25', 'sb-31'].includes(p.id) || pName.includes('فيتامين سي') || pName.includes('نياسيناميد') || pName.includes('تفتيح') || pName.includes('تصبغات');
+        if (!matchesEven) return false;
+      }
+      if (activeSkinFilter === 'firm') {
+        const matchesFirm = p.id.includes('03') || p.id.includes('04') || ['sb-10', 'sb-14', 'sb-19', 'sb-26', 'sb-34'].includes(p.id) || pName.includes('كولاجين') || pName.includes('ريتينول') || pName.includes('ببتيد') || pName.includes('شد');
+        if (!matchesFirm) return false;
+      }
+      if (activeSkinFilter === 'radiant') {
+        const matchesRadiant = p.id.includes('02') || p.id.includes('03') || p.id.includes('04') || ['sb-09', 'sb-12', 'sb-13', 'sb-20', 'sb-30'].includes(p.id) || pName.includes('إشراقة') || pName.includes('نضارة') || pName.includes('ورد') || pName.includes('ذهب');
+        if (!matchesRadiant) return false;
+      }
     }
     if (selectedCategory === 'all') return true;
     if (selectedCategory === 'hair') {
@@ -424,8 +458,8 @@ export const StorefrontView: React.FC = () => {
           )}
         </div>
 
-        {/* 4 Smart Cards: Exactly 4 in a single row on Tablet & Desktop (md:grid-cols-4), and 2 side-by-side on Mobile (grid-cols-2) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+        {/* 4 Smart Cards: Exactly 4 in a single row on all larger devices (sm:grid-cols-4), and 2 on Mobile (grid-cols-2) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-2.5 sm:gap-3.5 lg:gap-4">
           {effectiveSkinDiagnosis.map((type) => {
             const Icon = type.icon;
             const isSelected = activeSkinFilter === type.id;
@@ -601,11 +635,70 @@ export const StorefrontView: React.FC = () => {
         </div>
 
         {/* Product Cards Grid: 2 columns on mobile, strictly 3 columns on tablet & desktop with optimized tight spacing */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-3.5 md:gap-4">
-          {sortedProducts.map((product) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-3.5 md:gap-4 transition-all duration-500 ease-out">
+          {sortedProducts.slice(0, visibleProductsCount).map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
+
+        {/* Progressive Disclosure Accordion Controller */}
+        {sortedProducts.length > defaultBatchSize && (
+          <div className="pt-4 sm:pt-6 flex flex-col items-center justify-center space-y-3 sm:space-y-4 max-w-sm sm:max-w-md mx-auto">
+            {/* Elegant Micro Progress Bar & Live Counter */}
+            <div className="w-full space-y-1.5 text-center">
+              <div className="flex items-center justify-between text-[11px] sm:text-xs font-semibold text-slate-500 px-1">
+                <span>
+                  {lang === 'ar'
+                    ? `تم عرض ${Math.min(visibleProductsCount, sortedProducts.length)} من أصل ${sortedProducts.length} منتجاً`
+                    : `Showing ${Math.min(visibleProductsCount, sortedProducts.length)} of ${sortedProducts.length} products`}
+                </span>
+                <span className="font-bold text-[#5A3E7A]">
+                  {Math.round((Math.min(visibleProductsCount, sortedProducts.length) / sortedProducts.length) * 100)}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-[#5A3E7A] to-purple-500 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${(Math.min(visibleProductsCount, sortedProducts.length) / sortedProducts.length) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons: Accordion Expand & Collapse */}
+            <div className="flex items-center gap-2.5 sm:gap-3 w-full justify-center">
+              {visibleProductsCount < sortedProducts.length && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVisibleProductsCount((prev) => prev + defaultBatchSize);
+                  }}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-xs hover:shadow-md transition-all duration-300 active:scale-95 cursor-pointer min-h-[42px] sm:min-h-[44px]"
+                >
+                  <span>
+                    {lang === 'ar' 
+                      ? `عرض المزيد (+${Math.min(defaultBatchSize, sortedProducts.length - visibleProductsCount)})` 
+                      : `Show More (+${Math.min(defaultBatchSize, sortedProducts.length - visibleProductsCount)})`}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-purple-300" />
+                </button>
+              )}
+
+              {visibleProductsCount > defaultBatchSize && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVisibleProductsCount(defaultBatchSize);
+                    document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 sm:py-3 rounded-full bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs sm:text-sm font-bold shadow-2xs hover:shadow-xs transition-all duration-300 active:scale-95 cursor-pointer min-h-[42px] sm:min-h-[44px]"
+                >
+                  <span>{lang === 'ar' ? 'طي المنتجات' : 'Show Less'}</span>
+                  <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </section>
       ) : null,
 
@@ -913,35 +1006,31 @@ export const StorefrontView: React.FC = () => {
       testimonials: sectionsControl.testimonials ? (
         <>
         <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-4">
-          <div className="space-y-1.5 text-start">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>{lang === 'ar' ? '4.9/5 من أكثر من 500 تقييم موثق' : '4.9/5 from 500+ Verified Reviews'}</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-brand-ar">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 sm:pb-4">
+          <div className="space-y-0.5 sm:space-y-1 text-start">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 font-brand-ar tracking-tight">
               {lang === 'ar' ? 'آراء عملائنا' : 'Customer Reviews'}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500">
+            <p className="text-[11px] sm:text-xs md:text-sm text-slate-500 font-medium">
               {lang === 'ar' 
-                ? 'شهادات حقيقية وموثقة من عميلاتنا في السودان والخليج مع تفاصيل المنتجات المقتناة.'
-                : 'Authentic verified reviews and purchased regimen insights from real buyers.'}
+                ? 'تجارب موثقة من عميلاتنا'
+                : 'Verified client experiences'}
             </p>
           </div>
 
-          {/* Share Experience CTA Button (Safe touch target with safe margin) */}
+          {/* Share Experience CTA Button (Aligned on the exact same row with ample breathing room) */}
           <button
             onClick={() => setIsReviewModalOpen(true)}
-            className="self-start sm:self-auto px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-2 min-h-[44px]"
+            className="shrink-0 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 sm:gap-2 min-h-[38px] sm:min-h-[42px] active:scale-95 cursor-pointer"
           >
-            <MessageSquarePlus className="w-4 h-4 text-slate-950" />
-            <span>{lang === 'ar' ? '+ شاركينا تجربتك' : '+ Share Your Experience'}</span>
+            <MessageSquarePlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-950" />
+            <span>{lang === 'ar' ? '+ شاركينا' : '+ Share'}</span>
           </button>
         </div>
 
-        {/* Smart Luxury Testimonial Cards Carousel: 1 on mobile, 2 on tablet/desktop */}
+        {/* Smart Luxury Testimonial Cards Carousel: 1 on mobile, strictly 2 on all larger devices */}
         <div className="relative">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 sm:gap-6">
             {[effectiveTestimonials[reviewSlide % effectiveTestimonials.length], effectiveTestimonials[(reviewSlide + 1) % effectiveTestimonials.length]].filter(Boolean).map((review, idx) => {
               const reviewId = review.id;
               const hasVoted = !!userVoted[reviewId];
@@ -951,7 +1040,7 @@ export const StorefrontView: React.FC = () => {
                 <div 
                   key={idx} 
                   className={`bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-5 relative overflow-hidden group ${
-                    idx === 1 ? 'hidden md:flex' : 'flex'
+                    idx === 1 ? 'hidden sm:flex' : 'flex'
                   }`}
                 >
                   {/* Subtle Luxury Gradient Accent on Top */}

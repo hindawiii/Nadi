@@ -203,7 +203,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       }}
       className={`group relative bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-200/80 hover:border-purple-300 hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer select-none ${
         isCarouselItem 
-          ? 'shrink-0 snap-start w-[58%] sm:w-[calc((100%-14px)/2)] lg:w-[calc((100%-28px)/3)]' 
+          ? 'shrink-0 snap-start w-[58%] sm:w-[calc((100%-20px)/3)] md:w-[calc((100%-24px)/3)] lg:w-[calc((100%-28px)/3)]' 
           : 'w-full'
       } ${className}`}
     >

@@ -320,14 +320,19 @@ export const HairDevicesSpotlight: React.FC = () => {
   // Filter products based on sub-category
   const filteredProducts = effectiveDevices.filter((item) => {
     if (activeSubCategory === 'all') return true;
+    const subCat = (item as any).subCategory;
+    if (subCat) {
+      return subCat === activeSubCategory;
+    }
+    const name = (item.name.ar + ' ' + item.name.en).toLowerCase();
     if (activeSubCategory === 'waving') {
-      return item.id === 'hd-01' || item.id === 'hd-02' || item.id === 'hd-03';
+      return item.id === 'hd-01' || item.id === 'hd-02' || item.id === 'hd-03' || name.includes('تجعيد') || name.includes('تمويج') || name.includes('waver') || name.includes('curler');
     }
     if (activeSubCategory === 'straightener') {
-      return item.id === 'hd-05' || item.id === 'hd-02';
+      return item.id === 'hd-05' || item.id === 'hd-02' || name.includes('تمليس') || name.includes('فرد') || name.includes('straightener');
     }
     if (activeSubCategory === 'dryer') {
-      return item.id === 'hd-04' || item.id === 'hd-06';
+      return item.id === 'hd-04' || item.id === 'hd-06' || name.includes('مجفف') || name.includes('استشوار') || name.includes('dryer') || name.includes('blowout');
     }
     return true;
   });
@@ -585,9 +590,7 @@ export const HairDevicesSpotlight: React.FC = () => {
             >
               <LayoutGrid className="w-4 h-4 text-[#2B827A]" />
               <span>
-                {lang === 'ar' 
-                  ? `عرض كافة الأجهزة في شبكة (${effectiveDevices.length})` 
-                  : `View All in Grid (${effectiveDevices.length})`}
+                {lang === 'ar' ? 'عرض كافة الأجهزة' : 'View All Devices'}
               </span>
             </button>
           </div>

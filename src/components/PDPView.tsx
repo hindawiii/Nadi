@@ -5,7 +5,8 @@ import {
   Clock, Plus, Check, Share2, Layers, Maximize2, ZoomIn, ZoomOut, X, 
   ChevronLeft, ChevronRight, ArrowLeftRight, ChevronDown, ChevronUp,
   FileText, CheckCircle2, Shield, Award, HelpCircle, SlidersHorizontal,
-  FlaskConical, ThumbsUp, PenLine, Sparkle, Tag, Sparkles as SparklesIcon
+  FlaskConical, ThumbsUp, PenLine, Sparkle, Tag, Sparkles as SparklesIcon,
+  Eye, Flame, Zap, PackageCheck, Gift, Check as CheckIcon, X as CloseIcon, Droplets
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
@@ -25,6 +26,24 @@ export const PDPView: React.FC = () => {
 
   const [selectedImgIndex, setSelectedImgIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+
+  // CRO Bundle & Save Tier State (tier 1 = 1 pack 0% off, tier 2 = 2 packs 10% off, tier 3 = 3 packs 20% off + gift)
+  const [selectedTier, setSelectedTier] = useState<1 | 2 | 3>(1);
+
+  // Dynamic Live Social Proof Viewers (Realistic micro-oscillation)
+  const [liveViewers, setLiveViewers] = useState<number>(() => {
+    return Math.floor(12 + Math.random() * 7); // 12-18 active viewers
+  });
+
+  useEffect(() => {
+    const viewerInterval = setInterval(() => {
+      setLiveViewers(prev => {
+        const delta = Math.random() > 0.5 ? 1 : -1;
+        return Math.max(9, Math.min(24, prev + delta));
+      });
+    }, 4500);
+    return () => clearInterval(viewerInterval);
+  }, []);
 
   // 5-Pillar Accordion State (Description open by default for immediate clarity)
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
@@ -77,10 +96,40 @@ export const PDPView: React.FC = () => {
   }
 
   const isWishlisted = wishlist.includes(product.id);
-  const currentPrice = convertPrice(product.basePriceUSD * quantity);
-  const unitPrice = convertPrice(product.basePriceUSD);
-  const origPrice = product.originalPriceUSD ? convertPrice(product.originalPriceUSD * quantity) : null;
   const isOutOfStock = product.stock === 0;
+
+  // Bundle & Save Tier Calculations:
+  // Tier 1: 1 unit, 0% extra discount
+  // Tier 2: 2 units, 10% extra discount
+  // Tier 3: 3 units, 20% extra discount + Free Luxury Gift
+  const tierDiscountPercent = selectedTier === 3 ? 20 : (selectedTier === 2 ? 10 : 0);
+  const tierItemsCount = selectedTier;
+  const effectiveQuantity = quantity * tierItemsCount;
+  
+  const baseSingleUSD = product.basePriceUSD;
+  const discountedSingleUSD = baseSingleUSD * (1 - tierDiscountPercent / 100);
+  const tierTotalUSD = discountedSingleUSD * effectiveQuantity;
+  const originalTierTotalUSD = (product.originalPriceUSD || baseSingleUSD) * effectiveQuantity;
+
+  const currentPrice = convertPrice(tierTotalUSD);
+  const unitPrice = convertPrice(discountedSingleUSD);
+  const origPrice = convertPrice(originalTierTotalUSD);
+
+  // Dynamic Delivery Estimated Dates (Tomorrow to +2 business days)
+  const today = new Date();
+  const deliveryStart = new Date(today);
+  deliveryStart.setDate(today.getDate() + 1);
+  const deliveryEnd = new Date(today);
+  deliveryEnd.setDate(today.getDate() + 3);
+
+  const deliveryDaysAr = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const deliveryDaysEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const deliveryMonthsAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+  const deliveryMonthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const estDeliveryText = lang === 'ar'
+    ? `${deliveryDaysAr[deliveryStart.getDay()]} ${deliveryStart.getDate()} ${deliveryMonthsAr[deliveryStart.getMonth()]} - ${deliveryDaysAr[deliveryEnd.getDay()]} ${deliveryEnd.getDate()} ${deliveryMonthsAr[deliveryEnd.getMonth()]}`
+    : `${deliveryDaysEn[deliveryStart.getDay()]}, ${deliveryMonthsEn[deliveryStart.getMonth()]} ${deliveryStart.getDate()} - ${deliveryDaysEn[deliveryEnd.getDay()]}, ${deliveryMonthsEn[deliveryEnd.getMonth()]} ${deliveryEnd.getDate()}`;
 
   // Defensive image normalization & fallbacks
   const fallbackImage = "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80";
@@ -261,13 +310,40 @@ export const PDPView: React.FC = () => {
     }
   };
 
-  // WhatsApp personalized message
+  // WhatsApp personalized message with Tier and Package details
   const handleWhatsAppOrder = () => {
     const phone = activeData.contactInfo.whatsapp;
     const storeUrl = window.location.href;
+    const tierLabelAr = selectedTier === 3 
+      ? `باقة التوفير القصوى (3 عبوات + هدية مجانية 🎁 - خصم 20%)` 
+      : (selectedTier === 2 ? `باقة التوفير الأكثر طلباً (عبوتان - خصم 10% ⭐)` : `عبوة واحدة أساسية`);
+    const tierLabelEn = selectedTier === 3 
+      ? `High Value Pack (3 units + Free Gift 🎁 - 20% OFF)` 
+      : (selectedTier === 2 ? `Popular Pack (2 units - 10% OFF ⭐)` : `Single Pack`);
+
     const message = lang === 'ar'
-      ? `مرحباً ${activeData.storeName.ar}، أود الاستفسار وطلب هذا المنتج مباشرة:\n\n*المنتج:* ${product.name.ar}\n*الكمية:* ${quantity}\n*الإجمالي التقريبي:* ${currentPrice.text}\n*الرابط:* ${storeUrl}\n\nيرجى تأكيد التوافر وطريقة الدفع.`
-      : `Hello ${activeData.storeName.en}, I want to order:\n\n*Product:* ${product.name.en}\n*Quantity:* ${quantity}\n*Total:* ${currentPrice.text}\n*Link:* ${storeUrl}\n\nPlease confirm availability and payment options.`;
+      ? `🛍️ *طلب مباشر من متجر ${activeData.storeName.ar}*\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `✨ *المنتج:* ${product.name.ar}\n` +
+        `📦 *الباقة المختارة:* ${tierLabelAr}\n` +
+        `🔢 *الكمية الإجمالية:* ${effectiveQuantity} قطعة\n` +
+        `💰 *السعر الإجمالي:* ${currentPrice.text}\n` +
+        (selectedTier === 3 ? `🎁 *ملاحظة العرض:* مؤهل لهدية العناية الفاخرة المجانية!\n` : '') +
+        `🚚 *موعد التوصيل المتوقع:* ${estDeliveryText}\n` +
+        `🔗 *رابط المنتج:* ${storeUrl}\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `يرجى تأكيد توفر الحجز وبدء الشحن الفوري مع الدفع عند الاستلام!`
+      : `🛍️ *Direct Order from ${activeData.storeName.en}*\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `✨ *Product:* ${product.name.en}\n` +
+        `📦 *Selected Pack:* ${tierLabelEn}\n` +
+        `🔢 *Total Items:* ${effectiveQuantity} items\n` +
+        `💰 *Total Amount:* ${currentPrice.text}\n` +
+        (selectedTier === 3 ? `🎁 *Offer Note:* Qualified for Free Luxury Care Gift!\n` : '') +
+        `🚚 *Est. Delivery:* ${estDeliveryText}\n` +
+        `🔗 *Product Link:* ${storeUrl}\n` +
+        `━━━━━━━━━━━━━━━\n` +
+        `Please confirm availability and dispatch for Cash on Delivery!`;
 
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -479,40 +555,200 @@ export const PDPView: React.FC = () => {
                 />
               </div>
 
-              {/* Urgency & Scarcity Countdown Strip */}
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-amber-600 animate-spin" style={{ animationDuration: '6s' }} />
-                  <span className="font-bold">
-                    {lang === 'ar' ? 'ينتهي العرض الترويجي خلال:' : 'Special deal expires in:'}
-                  </span>
+              {/* 1. CLINICAL & BOTANICAL TRUST BADGES (Micro-Grid below price) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 pb-1">
+                <div className="flex items-center gap-1.5 p-2 rounded-xl bg-purple-50/70 border border-purple-100 text-[11px] font-bold text-[#5A3E7A]">
+                  <Droplets className="w-3.5 h-3.5 shrink-0 text-[#5A3E7A]" />
+                  <span className="truncate">{lang === 'ar' ? 'نقاء نباتي 100%' : '100% Botanical'}</span>
                 </div>
-                <div className="flex items-center gap-1 font-mono font-bold text-sm bg-white px-2.5 py-1 rounded-lg border border-amber-200 text-amber-950">
-                  <span>{String(timeLeft.hours).padStart(2, '0')}</span>:
-                  <span>{String(timeLeft.minutes).padStart(2, '0')}</span>:
-                  <span>{String(timeLeft.seconds).padStart(2, '0')}</span>
+                <div className="flex items-center gap-1.5 p-2 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] font-bold text-emerald-800">
+                  <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                  <span className="truncate">{lang === 'ar' ? 'موصى به طبياً' : 'Doctor Approved'}</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-50/70 border border-amber-100 text-[11px] font-bold text-amber-800">
+                  <Award className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                  <span className="truncate">{lang === 'ar' ? 'ضمان ذهبي معتمد' : 'Certified Quality'}</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-2 rounded-xl bg-sky-50/70 border border-sky-100 text-[11px] font-bold text-sky-800">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0 text-sky-600" />
+                  <span className="truncate">{lang === 'ar' ? 'نتائج فورية ملموسة' : 'Visible Results'}</span>
                 </div>
               </div>
 
-              {/* Stock status indicator */}
-              <div className="text-xs font-semibold">
-                {product.stock > 0 ? (
-                  <span className="text-emerald-700 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    {lang === 'ar' ? `متوفر في المخزون (${product.stock} قطع متبقية)` : `In Stock (${product.stock} items remaining)`}
-                  </span>
-                ) : (
-                  <span className="text-rose-600 flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4" />
-                    {lang === 'ar' ? 'نفد من المخزون حالياً – اطلبه مسبقاً عبر واتساب' : 'Currently Out of Stock – Pre-Order via WhatsApp'}
-                  </span>
-                )}
+              {/* 2. LIVE SOCIAL PROOF & URGENCY STRIP (Real-time Viewers + Recent Orders + Stock Scarcity) */}
+              <div className="p-3 bg-gradient-to-r from-purple-50/90 via-amber-50/70 to-pink-50/80 rounded-2xl border border-purple-100/90 space-y-2 text-xs">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-1.5 text-slate-800 font-extrabold">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>
+                      {lang === 'ar' ? `${liveViewers} عميلة تتصفح هذا المنتج الآن` : `${liveViewers} shoppers viewing right now`}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-amber-800 font-bold bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200/60">
+                    <Flame className="w-3 h-3 text-amber-600 fill-amber-500" />
+                    <span>{lang === 'ar' ? 'تم طلب 38 قطعة هذا الأسبوع' : '38 ordered this week'}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-purple-100/60 text-[11px]">
+                  <div className="flex items-center gap-1 font-bold text-rose-700">
+                    <Zap className="w-3 h-3 fill-rose-500 text-rose-600 animate-pulse" />
+                    <span>
+                      {product.stock > 0
+                        ? (lang === 'ar' ? `سارع! متبقي ${product.stock} قطع فقط في المستودع` : `Hurry! Only ${product.stock} units left in stock`)
+                        : (lang === 'ar' ? 'الكمية نفدت مؤقتاً – حجز مسبق متاح' : 'Out of stock – Pre-order available')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-slate-500">
+                    <Clock className="w-3 h-3 text-slate-400" />
+                    <span>{String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Quantity Selector */}
+              {/* 3. TIERED BUNDLE & SAVE CARDS (Buy More, Save More CRO Architecture) */}
+              <div className="space-y-2.5 pt-1">
+                <div className="flex items-center justify-between text-xs font-black text-slate-900">
+                  <span className="flex items-center gap-1.5">
+                    <PackageCheck className="w-4 h-4 text-[#5A3E7A]" />
+                    <span>{lang === 'ar' ? 'وفّري أكثر مع باقات الكميات التوفيرية:' : 'Bundle & Save: Special Volume Deals:'}</span>
+                  </span>
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
+                    {lang === 'ar' ? 'خصومات تصاعدية فورية' : 'Tiered Instant Savings'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Tier 1: Normal Single Pack */}
+                  <div
+                    onClick={() => setSelectedTier(1)}
+                    className={`p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-start ${
+                      selectedTier === 1
+                        ? 'border-[#5A3E7A] bg-purple-50/50 shadow-sm ring-1 ring-[#5A3E7A]/20'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-slate-400">
+                          {lang === 'ar' ? 'الأساسية' : 'Standard'}
+                        </span>
+                        {selectedTier === 1 && (
+                          <span className="w-4 h-4 rounded-full bg-[#5A3E7A] text-white flex items-center justify-center text-[10px] font-bold">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="font-extrabold text-xs text-slate-900">
+                        {lang === 'ar' ? 'عبوة واحدة' : '1 Bottle'}
+                      </h4>
+                      <p className="text-[10px] text-slate-500">
+                        {lang === 'ar' ? 'شحن قياسي سريع' : 'Standard dispatch'}
+                      </p>
+                    </div>
+                    <div className="pt-2 mt-2 border-t border-slate-100 font-mono font-black text-sm text-slate-900">
+                      {convertPrice(product.basePriceUSD).text}
+                    </div>
+                  </div>
+
+                  {/* Tier 2: Popular Pack of 2 (10% OFF) */}
+                  <div
+                    onClick={() => setSelectedTier(2)}
+                    className={`p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-start ${
+                      selectedTier === 2
+                        ? 'border-emerald-600 bg-emerald-50/50 shadow-md ring-1 ring-emerald-600/30'
+                        : 'border-slate-200 bg-white hover:border-emerald-300'
+                    }`}
+                  >
+                    {/* Popular Ribbon Tag */}
+                    <span className="absolute -top-2.5 end-3 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white shadow-xs">
+                      {lang === 'ar' ? 'الأكثر طلباً ⭐' : 'Most Popular ⭐'}
+                    </span>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-emerald-700">
+                          {lang === 'ar' ? 'وفّري 10%' : 'Save 10%'}
+                        </span>
+                        {selectedTier === 2 && (
+                          <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="font-extrabold text-xs text-slate-900">
+                        {lang === 'ar' ? 'عبوتان (Pack of 2)' : '2 Bottles'}
+                      </h4>
+                      <p className="text-[10px] text-emerald-800 font-semibold">
+                        {lang === 'ar' ? 'توصيل مجاني بالكامل' : '100% Free Shipping'}
+                      </p>
+                    </div>
+                    <div className="pt-2 mt-2 border-t border-slate-100">
+                      <div className="font-mono font-black text-sm text-slate-900">
+                        {convertPrice(product.basePriceUSD * 2 * 0.9).text}
+                      </div>
+                      <div className="text-[9px] text-slate-400 line-through">
+                        {convertPrice(product.basePriceUSD * 2).text}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tier 3: High Value Pack of 3 (20% OFF + Free Luxury Gift) */}
+                  <div
+                    onClick={() => setSelectedTier(3)}
+                    className={`p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-start ${
+                      selectedTier === 3
+                        ? 'border-amber-500 bg-amber-50/60 shadow-md ring-1 ring-amber-500/30'
+                        : 'border-slate-200 bg-white hover:border-amber-300'
+                    }`}
+                  >
+                    {/* Best Value Ribbon Tag */}
+                    <span className="absolute -top-2.5 end-3 px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-500 text-white shadow-xs flex items-center gap-1">
+                      <Gift className="w-2.5 h-2.5" />
+                      <span>{lang === 'ar' ? 'أعلى قيمة 🎁' : 'Best Value 🎁'}</span>
+                    </span>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-amber-800">
+                          {lang === 'ar' ? 'وفّري 20% + هدية' : 'Save 20% + Gift'}
+                        </span>
+                        {selectedTier === 3 && (
+                          <span className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="font-extrabold text-xs text-slate-900">
+                        {lang === 'ar' ? '3 عبوات (Pack of 3)' : '3 Bottles'}
+                      </h4>
+                      <p className="text-[10px] text-amber-900 font-semibold">
+                        {lang === 'ar' ? 'شحن مجاني + هدية مخملية' : 'Free Ship + Free Gift'}
+                      </p>
+                    </div>
+                    <div className="pt-2 mt-2 border-t border-slate-100">
+                      <div className="font-mono font-black text-sm text-slate-900">
+                        {convertPrice(product.basePriceUSD * 3 * 0.8).text}
+                      </div>
+                      <div className="text-[9px] text-slate-400 line-through">
+                        {convertPrice(product.basePriceUSD * 3).text}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. QUANTITY SELECTOR (For Multipliers of selected pack) */}
               {!isOutOfStock && (
-                <div className="flex items-center gap-4 pt-2">
-                  <span className="text-xs font-bold text-slate-700">{lang === 'ar' ? 'الكمية:' : 'Quantity:'}</span>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs font-bold text-slate-700">
+                    {lang === 'ar' ? `مضاعفة الباقة (${effectiveQuantity} قطع إجمالاً):` : `Pack Multiplier (${effectiveQuantity} items total):`}
+                  </span>
                   <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -524,7 +760,7 @@ export const PDPView: React.FC = () => {
                       {quantity}
                     </span>
                     <button
-                      onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                      onClick={() => setQuantity(Math.min(Math.floor((product.stock || 10) / tierItemsCount) || 1, quantity + 1))}
                       className="px-3 py-1.5 hover:bg-slate-200 transition-colors font-bold text-slate-700 min-w-[36px]"
                     >
                       +
@@ -533,20 +769,29 @@ export const PDPView: React.FC = () => {
                 </div>
               )}
 
-              {/* Primary Call to Action Buttons */}
-              <div className="space-y-3 pt-3">
+              {/* 5. PRIMARY CALL TO ACTION BUTTONS (Cart + WhatsApp) */}
+              <div className="space-y-2.5 pt-2">
                 <button
                   onClick={() => {
                     if (isOutOfStock) {
                       handleWhatsAppOrder();
                     } else {
-                      addToCart(product, quantity);
+                      // Add with effective quantity and tier pricing
+                      const tierProduct: Product = {
+                        ...product,
+                        basePriceUSD: discountedSingleUSD,
+                        badge: tierDiscountPercent > 0 ? {
+                          ar: `باقة توفير -${tierDiscountPercent}%`,
+                          en: `Bundle -${tierDiscountPercent}%`
+                        } : product.badge
+                      };
+                      addToCart(tierProduct, effectiveQuantity);
                     }
                   }}
-                  className={`w-full py-3.5 px-6 rounded-2xl font-bold flex items-center justify-center gap-2 text-base transition-all shadow-md min-h-[48px] ${
+                  className={`w-full py-4 px-6 rounded-2xl font-black flex items-center justify-center gap-2 text-base transition-all shadow-md min-h-[50px] cursor-pointer ${
                     isOutOfStock
                       ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                      : 'bg-[#5A3E7A] hover:bg-[#483162] text-white hover:shadow-lg'
+                      : 'bg-[#5A3E7A] hover:bg-[#483162] text-white hover:shadow-xl hover:scale-[1.01] active:scale-98'
                   }`}
                 >
                   {isOutOfStock ? (
@@ -557,7 +802,11 @@ export const PDPView: React.FC = () => {
                   ) : (
                     <>
                       <StoreCartIcon className="w-5 h-5 text-white" />
-                      <span>{lang === 'ar' ? `إضافة للسلة (${currentPrice.text})` : `Add to Bag (${currentPrice.text})`}</span>
+                      <span>
+                        {lang === 'ar'
+                          ? `إضافة للسلة • ${currentPrice.text} ${tierDiscountPercent > 0 ? `(وفرتِ ${tierDiscountPercent}%)` : ''}`
+                          : `Add to Bag • ${currentPrice.text} ${tierDiscountPercent > 0 ? `(Save ${tierDiscountPercent}%)` : ''}`}
+                      </span>
                     </>
                   )}
                 </button>
@@ -565,11 +814,31 @@ export const PDPView: React.FC = () => {
                 {/* Direct Smart WhatsApp Ordering Button */}
                 <button
                   onClick={handleWhatsAppOrder}
-                  className="w-full py-3 px-6 rounded-2xl font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-all flex items-center justify-center gap-2 min-h-[44px]"
+                  className="w-full py-3 px-6 rounded-2xl font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-all flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
                 >
                   <MessageCircle className="w-5 h-5 text-emerald-600" />
                   <span>{lang === 'ar' ? 'اطلب بنقرة واحدة عبر واتساب (دفع عند الاستلام)' : 'One-Click Order via WhatsApp (COD)'}</span>
                 </button>
+              </div>
+
+              {/* 6. DYNAMIC DELIVERY ESTIMATE (Arrival Window) */}
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs text-emerald-950">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-200/80 text-emerald-900 flex items-center justify-center shrink-0">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold block text-slate-900">
+                      {lang === 'ar' ? 'موعد التوصيل المتوقع (شحن سريع):' : 'Estimated Delivery Window:'}
+                    </span>
+                    <span className="text-[11px] text-emerald-800 font-medium">
+                      {lang === 'ar' ? `يصلك بين: ${estDeliveryText}` : `Arrives: ${estDeliveryText}`}
+                    </span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-600 text-white shrink-0">
+                  {selectedTier >= 2 ? (lang === 'ar' ? 'شحن مجاني' : 'FREE Shipping') : (lang === 'ar' ? 'شحن فوري' : 'Express')}
+                </span>
               </div>
 
               {/* Value propositions icons list */}
@@ -1082,6 +1351,112 @@ export const PDPView: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* 7. WHY US VS MARKET COMPETITORS (Comparison Matrix Inspired by CRO High-Converting Stores) */}
+        <div className="mt-10 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
+          <div className="text-center space-y-2 max-w-xl mx-auto">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-purple-100 text-[#5A3E7A] border border-purple-200">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#5A3E7A]" />
+              <span>{lang === 'ar' ? 'معايير الجودة والتميز' : 'Why Choose NADI'}</span>
+            </span>
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 font-brand-ar">
+              {lang === 'ar' ? `لماذا تتفوق مستحضرات ${activeData.storeName.ar} على بدائل السوق؟` : `Why NADI Outperforms Market Alternatives?`}
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500">
+              {lang === 'ar' ? 'مقارنة صريحة توضح التزامنا الصارم بالنقاء العضوي، الفاعلية، والضمان الحقيقي.' : 'An honest comparison highlighting our botanical purity, real results, and certified warranty.'}
+            </p>
+          </div>
+
+          <div className="overflow-x-auto scrollbar-none pt-2">
+            <table className="w-full text-start border-collapse min-w-[500px]">
+              <thead>
+                <tr className="border-b border-slate-200 text-xs sm:text-sm font-black text-slate-500">
+                  <th className="py-3 px-4 text-start font-bold text-slate-600">{lang === 'ar' ? 'المعيار والميزة' : 'Feature / Criterion'}</th>
+                  <th className="py-3 px-4 text-center bg-purple-50/80 text-[#5A3E7A] rounded-t-2xl font-black border-x border-t border-purple-200/80">
+                    <span className="inline-flex items-center gap-1 text-sm font-black">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>{activeData.storeName[lang]}</span>
+                    </span>
+                  </th>
+                  <th className="py-3 px-4 text-center font-bold text-slate-400">{lang === 'ar' ? 'مستحضرات السوق العادية' : 'Market Competitors'}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs sm:text-sm text-slate-700">
+                <tr>
+                  <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                    {lang === 'ar' ? 'المكونات والنقاء النباتي' : 'Botanical Purity & Formulation'}
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-purple-50/40 border-x border-purple-200/60 font-bold text-emerald-800">
+                    <span className="inline-flex items-center gap-1.5 justify-center">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{lang === 'ar' ? 'نباتي نقي 100% بدون كيميائيات ضارة' : '100% Pure Botanical, Zero Harsh Chemicals'}</span>
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-center text-slate-400">
+                    <span className="inline-flex items-center gap-1.5 justify-center text-rose-500 font-semibold">
+                      <CloseIcon className="w-4 h-4 text-rose-500 shrink-0" />
+                      <span>{lang === 'ar' ? 'مركبات مجهولة المصدر ومواد حافظة' : 'Synthetic fillers & harsh preservatives'}</span>
+                    </span>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                    {lang === 'ar' ? 'معاينة الطلب عند الاستلام (COD)' : 'Inspection Upon Delivery (COD)'}
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-purple-50/40 border-x border-purple-200/60 font-bold text-emerald-800">
+                    <span className="inline-flex items-center gap-1.5 justify-center">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{lang === 'ar' ? 'متاح فحص الشحنة والتأكد قبل الدفع' : 'Full inspection before payment allowed'}</span>
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-center text-slate-400">
+                    <span className="inline-flex items-center gap-1.5 justify-center text-rose-500 font-semibold">
+                      <CloseIcon className="w-4 h-4 text-rose-500 shrink-0" />
+                      <span>{lang === 'ar' ? 'دفع مسبق إجباري دون ضمان المعاينة' : 'Mandatory advance pay without inspection'}</span>
+                    </span>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                    {lang === 'ar' ? 'الضمان والاستبدال الذهبي' : 'Warranty & Golden Replacement'}
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-purple-50/40 border-x border-purple-200/60 font-bold text-emerald-800">
+                    <span className="inline-flex items-center gap-1.5 justify-center">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{lang === 'ar' ? 'ضمان سنتين شامل معتمد أو 14 يوماً للاستبدال' : 'Certified 2-Year or 14-Day easy swap'}</span>
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-center text-slate-400">
+                    <span className="inline-flex items-center gap-1.5 justify-center text-rose-500 font-semibold">
+                      <CloseIcon className="w-4 h-4 text-rose-500 shrink-0" />
+                      <span>{lang === 'ar' ? 'بدون ضمان أو إجراءات استرجاع معقدة' : 'No warranty or restrictive policies'}</span>
+                    </span>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                    {lang === 'ar' ? 'الاستشارة والمتابعة بعد البيع' : 'Post-Purchase Expert Consultation'}
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-purple-50/40 border-x border-b border-purple-200/60 font-bold text-emerald-800 rounded-b-2xl">
+                    <span className="inline-flex items-center gap-1.5 justify-center">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{lang === 'ar' ? 'متابعة شخصية مستمرة عبر واتساب مجاناً' : 'Dedicated ongoing WhatsApp care'}</span>
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-center text-slate-400">
+                    <span className="inline-flex items-center gap-1.5 justify-center text-rose-500 font-semibold">
+                      <CloseIcon className="w-4 h-4 text-rose-500 shrink-0" />
+                      <span>{lang === 'ar' ? 'انقطاع التواصل فور تسليم الشحنة' : 'Zero support post-dispatch'}</span>
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 

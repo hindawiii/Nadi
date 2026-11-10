@@ -1,3 +1,7 @@
+import { additionalSkincareProducts } from './skincareCatalog';
+import { additionalHairDevices } from './hairDevicesCatalog';
+import { additionalGiftBundles } from './bundlesCatalog';
+
 export interface ProductTabs {
   description: { ar: string; en: string };
   usage: { ar: string; en: string };
@@ -853,7 +857,10 @@ export const siteConfig: SiteConfig = {
               en: "5/5 Stars. 'Incredibly quiet yet powerful. Dries thick hair in under 8 minutes.'"
             }
           }
-        }
+        },
+        ...additionalSkincareProducts,
+        ...additionalHairDevices,
+        ...additionalGiftBundles
       ]
     },
 
