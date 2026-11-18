@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
-  Sparkles, ShieldCheck, Heart, Eye, Target, 
-  ArrowRight, ArrowLeft, Leaf, Award, CheckCircle2, ChevronLeft, ChevronRight, Home 
+  Droplets, ShieldCheck, Heart, Eye, Target, 
+  ArrowRight, ArrowLeft, Leaf, Award, ChevronLeft, ChevronRight, Home 
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 
@@ -34,7 +34,7 @@ export const AboutView: React.FC = () => {
         ar: 'تركيبات فعّالة تمنح بشرتك إشراقة حقيقية وترطيباً عميقاً تلاحظينه من الأيام الأولى.', 
         en: 'Potent formulations that deliver lasting glow and deep moisture you feel in days.' 
       },
-      icon: Sparkles,
+      icon: Award,
       bg: 'bg-amber-50 text-amber-700 border-amber-100'
     },
     {
@@ -95,7 +95,7 @@ export const AboutView: React.FC = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent" />
             <div className="absolute bottom-4 start-4 bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-purple-100 flex items-center gap-2.5">
-              <Sparkles className="w-4 h-4 text-[#5A3E7A]" />
+              <Droplets className="w-4 h-4 text-[#5A3E7A]" />
               <span className="text-xs font-bold text-slate-800">
                 {lang === 'ar' ? 'نقاء نباتي 100% مستوحى من الطبيعة' : '100% Pure Botanical Radiance'}
               </span>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Leaf } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 
 interface InfiniteBrandTickerProps {
@@ -102,9 +102,9 @@ export const InfiniteBrandTicker: React.FC<InfiniteBrandTickerProps> = ({ classN
                 {item.brand}
               </span>
 
-              {/* Sparkling Four-Point Star Separator */}
+              {/* Subtle Botanical Separator */}
               <span className="text-amber-300/70 text-xs sm:text-sm font-light select-none">
-                ✦
+                •
               </span>
 
               {/* Slogan */}
@@ -114,7 +114,7 @@ export const InfiniteBrandTicker: React.FC<InfiniteBrandTickerProps> = ({ classN
 
               {/* Subtle Botanical / Radiance Badge */}
               <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-white/10 text-amber-100/90 border border-white/10">
-                <Sparkles className="w-3 h-3 text-amber-300 shrink-0" />
+                <Leaf className="w-3 h-3 text-amber-300 shrink-0" />
                 {item.tag}
               </span>
 

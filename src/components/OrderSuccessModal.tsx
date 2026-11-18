@@ -1,9 +1,10 @@
 import React from 'react';
 import { 
   CheckCircle2, Copy, MessageSquare, ArrowLeft, ArrowRight, 
-  Package, MapPin, Phone, User, Calendar, ExternalLink, Sparkles, X, ShoppingBag 
+  Package, MapPin, Phone, User, Calendar, ExternalLink, X, ShoppingBag 
 } from 'lucide-react';
 import { useCommerce, OrderRecord } from '../context/CommerceContext';
+import { openExternalUrl } from '../lib/navigation';
 
 interface OrderSuccessModalProps {
   order: OrderRecord | null;
@@ -44,7 +45,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, isO
         `${itemsList}\n` +
         `━━━━━━━━━━━━━━━\n` +
         `💰 *المبلغ الإجمالي:* ${order.totalFormatted}\n\n` +
-        `✨ *يرجى تأكيد استلام الطلب وتجهيز الشحنة!*`
+        `🌿 *يرجى تأكيد استلام الطلب وتجهيز الشحنة!*`
       : `🛍️ *New Order from ${activeData.storeName.en}*\n` +
         `━━━━━━━━━━━━━━━\n` +
         `📌 *Order ID:* #${order.id}\n` +
@@ -60,11 +61,11 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, isO
         `${order.items.map(item => `• ${item.productName} (Qty: ${item.quantity}) - ${item.price}`).join('\n')}\n` +
         `━━━━━━━━━━━━━━━\n` +
         `💰 *Total Amount:* ${order.totalFormatted}\n\n` +
-        `✨ *Please confirm and dispatch!*`;
+        `🌿 *Please confirm and dispatch!*`;
 
     const whatsappNumber = (activeData.contactInfo.whatsapp || '249912345678').replace(/\D/g, '');
     const cleanUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
-    window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+    openExternalUrl(cleanUrl);
   };
 
   return (
@@ -95,7 +96,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, isO
           </div>
           <div>
             <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-400/30 mb-1">
-              <Sparkles className="w-3 h-3" />
+              <CheckCircle2 className="w-3 h-3" />
               {lang === 'ar' ? 'تم استلام طلبكِ بنجاح' : 'Order Successfully Placed'}
             </span>
             <h2 className="text-xl sm:text-2xl font-black tracking-tight">

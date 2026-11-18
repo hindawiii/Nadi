@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { 
-  Shield, KeyRound, Sparkles, Sliders, Palette, Layout, 
+  Shield, ShieldCheck, KeyRound, Crown, Sliders, Palette, Layout, 
   Eye, EyeOff, Lock, AlertTriangle, Check, RefreshCw, 
-  Smartphone, Watch, Shirt, Glasses, RotateCcw, Layers, Droplets, Star, ShoppingBag, Image,
+  Smartphone, Watch, Shirt, Glasses, RotateCcw, Layers, Droplets, BadgeCheck, ShoppingBag, Image,
   Copy, Trash2, CheckCircle2, ChevronRight, Plus, ExternalLink, Phone, Mail, MapPin, MessageCircle, ArrowUpRight,
-  Download, Upload, Code2, Type, FileJson, CheckCircle, HelpCircle, Sparkle, ArrowUp,
-  Database, Cpu, HardDrive, Terminal, Activity, Undo2, Rocket
+  Download, Upload, Code2, Type, FileJson, CheckCircle, HelpCircle, Wand2, ArrowUp,
+  Database, Cpu, HardDrive, Terminal, Activity, Undo2, Rocket, Flower2, Compass
 } from 'lucide-react';
 import { useCommerce, SectionVisibilityMap } from '../context/CommerceContext';
 import { 
@@ -14,13 +14,14 @@ import {
 } from '../data/siteConfig';
 import { SmartAuthPortal } from './common/SmartAuthPortal';
 import { UnifiedStoreCustomizer } from './UnifiedStoreCustomizer';
+import { ConfirmDialogModal } from './common/ConfirmDialogModal';
 
 export const DeveloperPanel: React.FC = () => {
   const { 
     lang, isDevAuthenticated, loginDeveloper, logoutDeveloper, 
     activePresetId, setActivePresetId, dynamicConfig, setDynamicConfig, 
     clearAllOrders, restoreDefaultOrders,
-    updateDeveloperPin, updateAdminPin, resetDeveloperPinWithMasterKey,
+    updateDeveloperPin, updateAdminPin,
     isDeveloperModeLocked, toggleLockDeveloperMode, setCurrentRoute, navigateTo,
     showToast, sectionsControl, toggleSection, resetSections,
     clonedSections, toggleCloneSection, updateClonedSectionConfig,
@@ -39,6 +40,14 @@ export const DeveloperPanel: React.FC = () => {
     'cosmetics' | 'fashion' | 'eyewear' | 'electronics' | 'golden' | 'templates' | 'security' | 'colors' | 'typography' | 'sections' | 'content'
   >(activePresetId);
   const [isConfirmingRollback, setIsConfirmingRollback] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel: string;
+    variant: 'danger' | 'warning';
+    onConfirm: () => void;
+  } | null>(null);
 
   // Developer & Admin PIN Security States
   const [newDevPin, setNewDevPin] = useState('');
@@ -132,7 +141,7 @@ export const DeveloperPanel: React.FC = () => {
       id: 'cosmetics' as const,
       name: { ar: 'متجر التجميل والعناية (NADI / So Beauty)', en: 'Cosmetics & Skincare (NADI)' },
       desc: { ar: 'تنسيق ناعم، ألوان باستيل لافندر، قسم للبشرة ومقارنة قبل وبعد.', en: 'Pastel lavender, dewy aesthetics, skin routine picker, before/after proof.' },
-      icon: Sparkles,
+      icon: Flower2,
       color: 'from-purple-500 to-pink-500',
       gradientBg: 'from-purple-950/80 via-pink-950/40 to-slate-950 border-purple-500/30'
     },
@@ -175,7 +184,7 @@ export const DeveloperPanel: React.FC = () => {
       key: 'hero',
       title: { ar: 'البنر الرئيسي للهيرو', en: 'Hero Section' },
       desc: { ar: 'العنوان البارز، الشعار الترويجي، وأزرار توجيه العميل المباشرة.', en: 'Primary headline, slogan badge, and main call-to-action buttons.' },
-      icon: Sparkles,
+      icon: Crown,
       tag: { ar: 'رئيسي', en: 'Core' },
       locationHint: { ar: '📍 أعلى الصفحة الرئيسية (قمة المتجر)', en: '📍 Top of Storefront (Above the Fold)' },
       previewImage: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=600&q=80'
@@ -247,7 +256,7 @@ export const DeveloperPanel: React.FC = () => {
       key: 'testimonials',
       title: { ar: 'شهادات وتقييمات العميلات', en: 'Customer Reviews Carousel' },
       desc: { ar: 'شهادات موثقة مع تقييم 5 نجوم وتفاصيل المنتجات المقتناة وزر المشاركة.', en: 'Verified buyer testimonials with product tags, helpful voting & modal submit.' },
-      icon: Star,
+      icon: BadgeCheck,
       tag: { ar: 'تقييمات', en: 'Reviews' },
       locationHint: { ar: '📍 شهادات وتقييمات العميلات الموثقة 5 نجوم', en: '📍 Customer Testimonials & Reviews Carousel' },
       previewImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80'
@@ -458,74 +467,92 @@ export const DeveloperPanel: React.FC = () => {
 
   // One-Click Catalog Wipe for Client Handover
   const handleWipeCatalogForPreset = (presetKey: string) => {
-    if (!window.confirm(lang === 'ar' 
-      ? `تحذير المطور: هل ترغب في تفريغ كتالوج منتجات نظام (${presetKey}) بالكامل لتسليم المتجر لعميل جديد؟`
-      : `Developer Warning: Wipe all products for preset (${presetKey}) to prepare for client handover?`)) {
-      return;
-    }
-    setDynamicConfig((prev) => {
-      const clone = JSON.parse(JSON.stringify(prev));
-      if (clone.presets && clone.presets[presetKey]) {
-        clone.presets[presetKey].products = [];
-      }
-      try {
-        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
-      } catch (_) {}
-      return clone;
+    setConfirmDialog({
+      isOpen: true,
+      title: lang === 'ar' ? 'تفريغ كتالوج النظام' : 'Wipe Preset Catalog',
+      message: lang === 'ar'
+        ? `تحذير المطور: هل ترغب في تفريغ كتالوج منتجات نظام (${presetKey}) بالكامل لتسليم المتجر لعميل جديد؟`
+        : `Developer Warning: Wipe all products for preset (${presetKey}) to prepare for client handover?`,
+      confirmLabel: lang === 'ar' ? 'تفريغ الكتالوج' : 'Wipe Catalog',
+      variant: 'danger',
+      onConfirm: () => {
+        setDynamicConfig((prev) => {
+          const clone = JSON.parse(JSON.stringify(prev));
+          if (clone.presets && clone.presets[presetKey]) {
+            clone.presets[presetKey].products = [];
+          }
+          try {
+            localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+          } catch (_) {}
+          return clone;
+        });
+        showToast(
+          lang === 'ar'
+            ? `تم تفريغ كتالوج منتجات (${presetKey}) بنجاح! المتجر جاهز لإضافة منتجات العميل.`
+            : `Catalog for (${presetKey}) wiped successfully! Ready for client inventory.`
+        );
+      },
     });
-    showToast(
-      lang === 'ar'
-        ? `تم تفريغ كتالوج منتجات (${presetKey}) بنجاح! المتجر جاهز لإضافة منتجات العميل.`
-        : `Catalog for (${presetKey}) wiped successfully! Ready for client inventory.`
-    );
   };
 
   const handleRestoreCatalogForPreset = (presetKey: string) => {
-    if (!window.confirm(lang === 'ar' 
-      ? `هل ترغب في استرجاع المنتجات النموذجية الافتراضية لنظام (${presetKey})؟`
-      : `Restore default demo products for preset (${presetKey})?`)) {
-      return;
-    }
-    setDynamicConfig((prev) => {
-      const clone = JSON.parse(JSON.stringify(prev));
-      const defaultProducts = siteConfig.presets[presetKey as keyof typeof siteConfig.presets]?.products || siteConfig.presets.cosmetics.products;
-      if (clone.presets && clone.presets[presetKey]) {
-        clone.presets[presetKey].products = JSON.parse(JSON.stringify(defaultProducts));
-      }
-      try {
-        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
-      } catch (_) {}
-      return clone;
+    setConfirmDialog({
+      isOpen: true,
+      title: lang === 'ar' ? 'استعادة المنتجات الافتراضية' : 'Restore Default Catalog',
+      message: lang === 'ar'
+        ? `هل ترغب في استرجاع المنتجات النموذجية الافتراضية لنظام (${presetKey})؟`
+        : `Restore default demo products for preset (${presetKey})?`,
+      confirmLabel: lang === 'ar' ? 'استعادة المنتجات' : 'Restore Products',
+      variant: 'warning',
+      onConfirm: () => {
+        setDynamicConfig((prev) => {
+          const clone = JSON.parse(JSON.stringify(prev));
+          const defaultProducts = siteConfig.presets[presetKey as keyof typeof siteConfig.presets]?.products || siteConfig.presets.cosmetics.products;
+          if (clone.presets && clone.presets[presetKey]) {
+            clone.presets[presetKey].products = JSON.parse(JSON.stringify(defaultProducts));
+          }
+          try {
+            localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+          } catch (_) {}
+          return clone;
+        });
+        showToast(
+          lang === 'ar'
+            ? `تمت استعادة المنتجات النموذجية لنظام (${presetKey}) بنجاح!`
+            : `Default demo products for (${presetKey}) restored!`
+        );
+      },
     });
-    showToast(
-      lang === 'ar'
-        ? `تمت استعادة المنتجات النموذجية لنظام (${presetKey}) بنجاح!`
-        : `Default demo products for (${presetKey}) restored!`
-    );
   };
 
   const handleMasterClientHandover = () => {
-    if (!window.confirm(lang === 'ar'
-      ? 'تحذير تصفير شامل: سيتم تفريغ كافة المنتجات والطلبات والتقييمات التجريبية لتسليم المتجر كـ (Zero-State Clean) للعميل، مع الحفاظ على الهوية والألوان والتصميم. هل تود المتابعة؟'
-      : 'Master Zero-State Reset: Wipe demo products, orders, and reviews for clean client handover. Proceed?')) {
-      return;
-    }
-    setDynamicConfig((prev) => {
-      const clone = JSON.parse(JSON.stringify(prev));
-      if (clone.presets && clone.presets[activePresetId]) {
-        clone.presets[activePresetId].products = [];
-        clone.presets[activePresetId].testimonials = [];
-      }
-      try {
-        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
-      } catch (_) {}
-      return clone;
+    setConfirmDialog({
+      isOpen: true,
+      title: lang === 'ar' ? 'التصفير الشامل لتسليم العميل' : 'Master Zero-State Handover Reset',
+      message: lang === 'ar'
+        ? 'تحذير تصفير شامل: سيتم تفريغ كافة المنتجات والطلبات والتقييمات التجريبية لتسليم المتجر كـ (Zero-State Clean) للعميل، مع الحفاظ على الهوية والألوان والتصميم. هل تود المتابعة؟'
+        : 'Master Zero-State Reset: Wipe demo products, orders, and reviews for clean client handover. Proceed?',
+      confirmLabel: lang === 'ar' ? 'تأكيد التصفير الشامل' : 'Confirm Master Reset',
+      variant: 'danger',
+      onConfirm: () => {
+        setDynamicConfig((prev) => {
+          const clone = JSON.parse(JSON.stringify(prev));
+          if (clone.presets && clone.presets[activePresetId]) {
+            clone.presets[activePresetId].products = [];
+            clone.presets[activePresetId].testimonials = [];
+          }
+          try {
+            localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+          } catch (_) {}
+          return clone;
+        });
+        clearAllOrders();
+        showToast(lang === 'ar' ? '🎉 تم التصفير الشامل بنجاح! المتجر جاهز للتسليم الفوري للعميل.' : '🎉 Store reset to zero-state successfully! Ready for client.');
+      },
     });
-    clearAllOrders();
-    showToast(lang === 'ar' ? '🎉 تم التصفير الشامل بنجاح! المتجر جاهز للتسليم الفوري للعميل.' : '🎉 Store reset to zero-state successfully! Ready for client.');
   };
 
   // Template Importer & Code Adapter Helpers
@@ -967,7 +994,7 @@ export const DeveloperPanel: React.FC = () => {
                         }}
                         className="h-11 px-5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-2 cursor-pointer shadow-lg active:scale-95 transition-all"
                       >
-                        <Sparkles className="w-4 h-4 text-purple-950" />
+                        <Wand2 className="w-4 h-4 text-purple-950" />
                         <span>{lang === 'ar' ? 'تمكين قالب هذا المتجر بالمتجر الحي ⚡' : 'Activate On Storefront ⚡'}</span>
                       </button>
                     ) : (
@@ -1148,7 +1175,7 @@ export const DeveloperPanel: React.FC = () => {
                 <div className="flex items-center justify-between px-1">
                   <div>
                     <h3 className="text-lg font-black text-white flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-amber-400" />
+                      <Layout className="w-5 h-5 text-amber-400" />
                       <span>{lang === 'ar' ? `ركن التعديل الموحد الشامل (كامل محتوى متجر ${currentHubMeta.name.ar})` : `Full 13-Corner Linear Customizer (${currentHubMeta.name.en})`}</span>
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">
@@ -1196,7 +1223,7 @@ export const DeveloperPanel: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-amber-400" />
+                    <Compass className="w-5 h-5 text-amber-400" />
                     <span>{lang === 'ar' ? '١. قوالب تجارية حصرية جاهزة للاستيراد الفوري بنقرة واحدة' : '1. Curated Ready-to-Import Commercial Templates'}</span>
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
@@ -1419,7 +1446,7 @@ export const DeveloperPanel: React.FC = () => {
                             onClick={() => loadSavedTemplate(savedTpl.id)}
                             className="flex-1 py-2 px-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer min-h-[38px]"
                           >
-                            <Sparkles className="w-3.5 h-3.5" />
+                            <Wand2 className="w-3.5 h-3.5" />
                             <span>{lang === 'ar' ? 'تفعيل الآن' : 'Load'}</span>
                           </button>
 
@@ -1530,7 +1557,7 @@ export const DeveloperPanel: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-amber-400" />
+                    <Palette className="w-5 h-5 text-amber-400" />
                     <span>{lang === 'ar' ? '١. باليتات الألوان الفاخرة المعتمدة (٦ منظومات متناسقة)' : '1. Curated Luxury Harmonious Palettes (6 Schemes)'}</span>
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
@@ -1764,7 +1791,7 @@ export const DeveloperPanel: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-amber-400" />
+                    <Type className="w-5 h-5 text-amber-400" />
                     <span>{lang === 'ar' ? '١. التوليفات الخطية المتجانسة الأربعة المعتمدة' : '1. Curated Bilingual Font Pairs'}</span>
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
@@ -2006,7 +2033,7 @@ export const DeveloperPanel: React.FC = () => {
                         {isCloned && (
                           <div className="p-2.5 bg-purple-950/70 border border-purple-700/60 rounded-xl text-[11px] text-purple-200 font-bold flex items-center justify-between gap-2 shadow-inner">
                             <div className="flex items-center gap-1.5">
-                              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                              <Layers className="w-3.5 h-3.5 text-purple-400" />
                               <span>{lang === 'ar' ? 'مفعل بنسخة مستنسخة إضافية مخصصة' : 'Custom duplicate instance active'}</span>
                             </div>
                             <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-800 text-purple-100 font-extrabold">
@@ -2072,7 +2099,7 @@ export const DeveloperPanel: React.FC = () => {
                         <div className="mt-3 p-3.5 bg-slate-950/90 border border-purple-500/40 rounded-2xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
                           <div className="flex items-center justify-between pb-1.5 border-b border-purple-900/50">
                             <span className="text-[11px] font-black text-purple-300 flex items-center gap-1.5">
-                              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                              <Layers className="w-3.5 h-3.5 text-purple-400" />
                               <span>{lang === 'ar' ? 'تخصيص نصوص وعناوين النسخة المستنسخة' : 'Customize Cloned Copy Content'}</span>
                             </span>
                             <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-900/80 text-purple-200 border border-purple-600 font-mono">
@@ -2133,7 +2160,7 @@ export const DeveloperPanel: React.FC = () => {
                                 type="text"
                                 value={cloneConfig?.badgeAr || ''}
                                 onChange={(e) => updateClonedSectionConfig(sec.key, { badgeAr: e.target.value, badgeEn: e.target.value })}
-                                placeholder="عرض حصري ✨"
+                                placeholder="عرض حصري"
                                 className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-bold text-purple-300 focus:outline-none focus:ring-1 focus:ring-purple-400"
                               />
                             </div>
@@ -2301,8 +2328,9 @@ export const DeveloperPanel: React.FC = () => {
             {/* Section 2: Hero Section & Banners */}
             <div className="space-y-4 pt-4 border-t border-slate-800">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
-                  🌟 {lang === 'ar' ? '٢. نصوص وبنر الهيرو الرئيسي (Hero Banner & Headlines)' : '2. Hero Banner & Headlines'}
+                <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>{lang === 'ar' ? '٢. نصوص وبنر الهيرو الرئيسي (Hero Banner & Headlines)' : '2. Hero Banner & Headlines'}</span>
                 </h3>
                 <button
                   type="button"
@@ -2615,8 +2643,9 @@ export const DeveloperPanel: React.FC = () => {
             <div className="space-y-4 pt-4 border-t border-slate-800">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
-                    ⭐ {lang === 'ar' ? '٥. شهادات وتقييمات العميلات الحقيقية (Customer Testimonials)' : '5. Customer Testimonials'}
+                  <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <BadgeCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>{lang === 'ar' ? '٥. شهادات وتقييمات العميلات الحقيقية (Customer Testimonials)' : '5. Customer Testimonials'}</span>
                   </h3>
                   <p className="text-[11px] text-slate-400 mt-0.5">
                     {lang === 'ar'
@@ -2825,7 +2854,7 @@ export const DeveloperPanel: React.FC = () => {
               <div className="p-5 bg-slate-950 rounded-2xl border border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="space-y-1 text-start w-full sm:w-auto">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <Shield className="w-4 h-4 text-amber-400" />
                     <span>{lang === 'ar' ? 'إجراءات الحفظ والاسترجاع الفوري' : 'Snapshot & Rollback Actions'}</span>
                   </h3>
                   <p className="text-xs text-slate-400">
@@ -3219,61 +3248,23 @@ export const DeveloperPanel: React.FC = () => {
               </button>
             </form>
 
-            {/* SECTION 4: HARDCODED MASTER EMERGENCY RECOVERY KEY (احتياطي الاحتياطي) */}
-            <div className="bg-slate-950 p-6 rounded-3xl border border-rose-900/60 space-y-5">
+            {/* SECTION 4: CLOUD CRYPTOGRAPHIC & OWNER RECOVERY STATUS */}
+            <div className="bg-slate-950 p-6 rounded-3xl border border-emerald-900/60 space-y-4">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-rose-500/20 text-rose-400 rounded-2xl shrink-0">
-                  <Cpu className="w-8 h-8" />
+                <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-2xl shrink-0">
+                  <ShieldCheck className="w-8 h-8" />
                 </div>
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                      {lang === 'ar' ? 'خطة الطوارئ القصوى (Plan C)' : 'Extreme Emergency Plan C'}
-                    </span>
-                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    {lang === 'ar' ? 'حماية SHA-256 + تحقق المالك' : 'SHA-256 + Owner Google Recovery'}
+                  </span>
                   <h3 className="text-base sm:text-lg font-extrabold text-white">
-                    {lang === 'ar' ? 'مفتاح الطوارئ البرمجي الصلب (Master Recovery Key)' : 'Hardcoded Offline Master Recovery Key'}
+                    {lang === 'ar' ? 'نظام حماية الرموز واستعادة الطوارئ الآمنة' : 'Hardened PIN Cryptography & Owner Recovery'}
                   </h3>
                   <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
                     {lang === 'ar'
-                      ? 'إذا فقدت هاتفك وإيميلك معاً، يمكنك استخدام هذا المفتاح البرمجي الصلب لفك القفل واستعادة رمز المطور فورياً دون الحاجة للإنترنت أو استقبال رسائل.'
-                      : 'If you ever lose access to both phone and email, enter this offline Master Key in the rescue window to override any lock.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-900 border border-rose-950 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-slate-300">
-                    {lang === 'ar' ? 'المفتاح البرمجي الرئيسي الصلب:' : 'Master Hardcoded Emergency Key:'}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-black text-rose-300 bg-rose-950/60 px-3 py-1.5 rounded-xl border border-rose-800/60 tracking-wider" dir="ltr">
-                      {dynamicConfig?.security?.masterRecoveryKey || 'DEV-RESCUE-9988-2026'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(dynamicConfig?.security?.masterRecoveryKey || 'DEV-RESCUE-9988-2026');
-                        showToast(lang === 'ar' ? 'تم نسخ مفتاح الطوارئ الرئيسي للحافظة' : 'Master Key copied to clipboard');
-                      }}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
-                      title={lang === 'ar' ? 'نسخ المفتاح' : 'Copy Key'}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-1">
-                  <p className="font-bold text-slate-300">
-                    {lang === 'ar' ? '📍 أين تجد هذا المفتاح وكلمة السر في الكود المصدري؟' : '📍 Where to find this key and credentials in code?'}
-                  </p>
-                  <p className="font-mono text-amber-400/90 text-[11px]" dir="ltr">
-                    File: src/data/siteConfig.ts &rarr; line 215: developerPin: "998877"
-                  </p>
-                  <p className="font-mono text-amber-400/90 text-[11px]" dir="ltr">
-                    File: src/context/CommerceContext.tsx &rarr; loginDeveloper & masterRecoveryKey
+                      ? 'يتم تشفير كافة رموز الدخول فور تحديثها بخوارزمية SHA-256 مع إزالة مفاتيح الطوارئ المكشوفة. تتم استعادة الوصول عند الطوارئ حصرياً عبر توثيق حساب Google للمالك.'
+                      : 'All administrative and developer PINs are encrypted with salted SHA-256 on update. Emergency recovery is restricted to verified owner Google authentication.'}
                   </p>
                 </div>
               </div>
@@ -3282,6 +3273,17 @@ export const DeveloperPanel: React.FC = () => {
         )}
 
       </div>
+
+      <ConfirmDialogModal
+        isOpen={Boolean(confirmDialog?.isOpen)}
+        title={confirmDialog?.title || ''}
+        message={confirmDialog?.message || ''}
+        confirmLabel={confirmDialog?.confirmLabel || (lang === 'ar' ? 'تأكيد' : 'Confirm')}
+        cancelLabel={lang === 'ar' ? 'إلغاء' : 'Cancel'}
+        variant={confirmDialog?.variant || 'danger'}
+        onConfirm={() => confirmDialog?.onConfirm()}
+        onCancel={() => setConfirmDialog(null)}
+      />
     </div>
   );
 };

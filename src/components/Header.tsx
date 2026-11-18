@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Heart, Search, Globe, ChevronDown, User,
-  Sparkles, Check, Menu, X, ArrowRight, ArrowLeft, Truck, 
-  ChevronRight, Star, ExternalLink, ShieldCheck 
+  Check, Menu
 } from 'lucide-react';
 import { StoreCartIcon } from './common/StoreCartIcon';
 import { useCommerce } from '../context/CommerceContext';
@@ -51,8 +50,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
       en: "Smart Shopping: Save to Wishlist ❤️ • Compare Specs ⚖️ • Order via Cart or WhatsApp 💬"
     },
     {
-      ar: "شحن سريع وعناية نباتية فائقة 🚚 • دفع آمن عند الاستلام أو أونلاين ✨",
-      en: "Fast Delivery & Pure Botanical Care 🚚 • Cash on Delivery or Secure Online Checkout ✨"
+      ar: "شحن سريع وعناية نباتية فائقة 🚚 • دفع آمن عند الاستلام أو أونلاين",
+      en: "Fast Delivery & Pure Botanical Care 🚚 • Cash on Delivery or Secure Online Checkout"
     },
     {
       ar: "مستحضرات نَدِي الأصلية 100% 🌿 • ترطيب يدوم 24 ساعة ونقاء طبيعي",

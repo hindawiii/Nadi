@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Eye, EyeOff, Lock, Phone, Sparkles, Check, AlertCircle, 
+  Eye, EyeOff, Lock, Phone, Check, AlertCircle, 
   ShieldCheck, CheckCircle2, ChevronDown 
 } from 'lucide-react';
 
@@ -137,7 +137,7 @@ export const SmartPasswordInput: React.FC<SmartPasswordInputProps> = ({
               : (isSmartPeekActive ? 'Smart Peek Active (Shows typed digit for 1s then hides securely)' : 'Click to enable smart peek')
           }
         >
-          <Sparkles className={`w-3 h-3 ${isSmartPeekActive ? 'text-[#5A3E7A]' : 'text-slate-400'}`} />
+          <Eye className={`w-3 h-3 ${isSmartPeekActive ? 'text-[#5A3E7A]' : 'text-slate-400'}`} />
           <span>{lang === 'ar' ? (isSmartPeekActive ? 'إظهار ذكي نشط' : 'إظهار ذكي متوقف') : (isSmartPeekActive ? 'Smart Peek On' : 'Smart Peek Off')}</span>
         </button>
       </div>

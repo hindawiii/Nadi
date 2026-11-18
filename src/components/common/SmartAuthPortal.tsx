@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Shield, Lock, KeyRound, Eye, EyeOff, CheckCircle2, 
-  AlertTriangle, ArrowLeft, ArrowRight, Sparkles, Check, 
+  AlertTriangle, ArrowLeft, ArrowRight, Check, 
   RotateCcw, Globe, Store, Terminal, HelpCircle,
   Phone, Mail, X, Key, ShieldCheck, Cpu, Send, RefreshCw
 } from 'lucide-react';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useCommerce } from '../../context/CommerceContext';
-import { deobfuscateKey } from '../../lib/security';
+import { auth } from '../../lib/firebase';
+import { deobfuscateKey, verifySecretSync } from '../../lib/security';
 
 export interface SmartAuthPortalProps {
   portalType: 'admin' | 'developer';
@@ -35,67 +37,66 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
   savedAuthKey,
   savedPinKey,
 }) => {
-  const { lang, setLang, showToast, dynamicConfig, resetDeveloperPinWithMasterKey, loginDeveloper } = useCommerce();
+  const { lang, setLang, showToast, dynamicConfig, resetDeveloperPinWithAdminAuth } = useCommerce();
   const isRtl = lang === 'ar';
 
-  // Developer Emergency Recovery State
+  const isFactoryAdminPinActive =
+    portalType === 'admin' &&
+    verifySecretSync(defaultPin, dynamicConfig?.security?.adminPin || '');
+
+  // Developer Emergency Recovery State (Firebase Google Verified Owner Flow)
   const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
-  const [recoveryTab, setRecoveryTab] = useState<'otp' | 'master_key'>('otp');
-  const [otpSent, setOtpSent] = useState(false);
-  const [activeOtp, setActiveOtp] = useState('');
-  const [otpInput, setOtpInput] = useState('');
-  const [masterKeyInput, setMasterKeyInput] = useState('');
-  const [countdown, setCountdown] = useState(0);
+  const [isGoogleVerifying, setIsGoogleVerifying] = useState(false);
+  const [verifiedOwnerEmail, setVerifiedOwnerEmail] = useState<string | null>(() => {
+    const u = auth.currentUser;
+    return u && u.emailVerified && u.email === 'mohsentiben@gmail.com' ? u.email : null;
+  });
+  const [recoveryNewPin, setRecoveryNewPin] = useState('');
 
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
+  const handleGoogleOwnerVerify = async () => {
+    setIsGoogleVerifying(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const cred = await signInWithPopup(auth, provider);
+      if (cred.user.emailVerified && cred.user.email === 'mohsentiben@gmail.com') {
+        setVerifiedOwnerEmail(cred.user.email);
+        showToast({
+          type: 'success',
+          message: lang === 'ar'
+            ? 'تم التحقق من حساب المالك السحابي بنجاح! أدخل رمز المطور الجديد.'
+            : 'Verified owner Google account! Set your new Developer PIN.',
+        });
+      } else {
+        showToast(
+          lang === 'ar'
+            ? 'هذا الحساب غير مصرح له باستعادة صلاحيات المطور.'
+            : 'This Google account is not authorized as system owner.'
+        );
+      }
+    } catch (err) {
+      console.warn('Google recovery verification aborted or failed:', err);
+      showToast(
+        lang === 'ar'
+          ? 'تعذر إتمام التحقق عبر Google. يرجى التأكد من السماح بالنوافذ المنبثقة والمحاولة مجدداً.'
+          : 'Could not complete Google verification. Please check popup permissions and try again.'
+      );
+    } finally {
+      setIsGoogleVerifying(false);
     }
-  }, [countdown]);
-
-  const handleSendOtp = () => {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setActiveOtp(code);
-    setOtpSent(true);
-    setCountdown(60);
-    const phone = dynamicConfig?.security?.developerRecoveryPhone || '+966 50 889 9772';
-    showToast({
-      type: 'info',
-      message: lang === 'ar'
-        ? `📲 كود التحقق السري لمطور النظام: (${code}) - تم إرساله لهاتف المطور: ${phone}`
-        : `📲 Developer OTP: (${code}) dispatched to phone: ${phone}`
-    });
   };
 
-  const handleVerifyOtp = () => {
-    if (!otpInput || otpInput.trim() !== activeOtp) {
-      showToast(lang === 'ar' ? 'رمز التحقق غير صحيح أو انتهت صلاحيته!' : 'Invalid or expired OTP code!');
+  const handleSubmitRecoveryNewPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(recoveryNewPin.trim())) {
+      showToast(lang === 'ar' ? 'يرجى إدخال رمز جديد مكون من 6 أرقام' : 'Please enter a valid 6-digit PIN');
       return;
     }
-    // Verify developer and authenticate
-    const devPin = dynamicConfig?.security?.developerPin || '998877';
-    loginDeveloper(devPin, true, false);
-    setIsRecoveryModalOpen(false);
-    showToast({
-      type: 'success',
-      message: lang === 'ar' ? '🎉 تم التحقق من هوية المطور بنجاح وفتح لوحة المطور!' : '🎉 Developer identity verified! Console unlocked.'
-    });
-  };
-
-  const handleVerifyMasterKey = () => {
-    const expected = (dynamicConfig?.security?.masterRecoveryKey || 'DEV-RESCUE-9988-2026').trim().toUpperCase();
-    if (!masterKeyInput || masterKeyInput.trim().toUpperCase() !== expected) {
-      showToast(lang === 'ar' ? 'مفتاح الطوارئ الرئيسي غير صحيح!' : 'Invalid Master Emergency Key!');
-      return;
+    const ok = resetDeveloperPinWithAdminAuth(recoveryNewPin.trim());
+    if (ok) {
+      setIsRecoveryModalOpen(false);
+      setRecoveryNewPin('');
     }
-    resetDeveloperPinWithMasterKey(masterKeyInput.trim(), '998877');
-    loginDeveloper('998877', true, false);
-    setIsRecoveryModalOpen(false);
-    showToast({
-      type: 'success',
-      message: lang === 'ar' ? '🔓 تم فك القفل واستعادة رمز المطور الافتراضي (998877) بنجاح!' : '🔓 Unlocked via Master Key! Restored default PIN (998877).'
-    });
   };
 
   // Read saved preferences from LocalStorage
@@ -334,8 +335,8 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
         const remainingTries = 3 - nextFails;
         setErrorMessage(
           lang === 'ar'
-            ? `رمز الدخول غير صحيح. الرمز الافتراضي: ${defaultPin} (متبقي ${remainingTries} ${remainingTries === 1 ? 'محاولة' : 'محاولات'} قبل القفل المؤقت)`
-            : `Invalid PIN. Default: ${defaultPin} (${remainingTries} attempts remaining before lock)`
+            ? `رمز الدخول غير صحيح. (متبقي ${remainingTries} ${remainingTries === 1 ? 'محاولة' : 'محاولات'} قبل القفل المؤقت)`
+            : `Invalid PIN. (${remainingTries} attempts remaining before temporary lock)`
         );
         // Trigger error vibration/shake and refocus first box
         setTimeout(() => {
@@ -461,7 +462,7 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
 
             <div className="space-y-2">
               <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border ${badgeColors}`}>
-                <Sparkles className="w-3.5 h-3.5" />
+                <ShieldCheck className="w-3.5 h-3.5" />
                 <span>{roleBadge[lang]}</span>
               </div>
 
@@ -645,12 +646,12 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
               )}
             </button>
 
-            {/* Recovery / Demo Trigger */}
+            {/* Recovery / Factory Demo Helper */}
             {portalType === 'developer' ? (
               <div className="flex items-center justify-between pt-1 text-[11px]">
                 <span className="flex items-center gap-1 text-slate-500 font-mono text-[10px]">
                   <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-                  <span>2FA & MASTER RESCUE SECURED</span>
+                  <span>SHA-256 & GOOGLE VERIFIED</span>
                 </span>
 
                 <button
@@ -659,15 +660,15 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
                   className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 transition-colors cursor-pointer underline text-[11px]"
                 >
                   <Key className="w-3 h-3" />
-                  <span>{lang === 'ar' ? 'نسيت الرمز؟ بروتوكول طوارئ المطور 🛡️' : 'Developer Emergency Recovery 🛡️'}</span>
+                  <span>{lang === 'ar' ? 'نسيت الرمز؟ استعادة عبر حساب المالك 🛡️' : 'Reset via Verified Owner Account 🛡️'}</span>
                 </button>
               </div>
-            ) : (
+            ) : isFactoryAdminPinActive ? (
               <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
                 <span className="flex items-center gap-1">
                   <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
                   <span>
-                    {lang === 'ar' ? `الرمز الافتراضي: ${defaultPin}` : `Default PIN: ${defaultPin}`}
+                    {lang === 'ar' ? `الرمز الافتراضي الأولي: ${defaultPin}` : `Initial Default PIN: ${defaultPin}`}
                   </span>
                 </span>
 
@@ -679,11 +680,18 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
                   {lang === 'ar' ? 'ملء تجريبي سريع' : 'Quick Auto-fill'}
                 </button>
               </div>
+            ) : (
+              <div className="flex items-center justify-center pt-1 text-[11px] text-slate-500">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                  <span>{lang === 'ar' ? 'محمي برمز خاص مشفر SHA-256' : 'Protected by custom SHA-256 PIN'}</span>
+                </span>
+              </div>
             )}
           </div>
         </div>
 
-        {/* DEVELOPER EMERGENCY RECOVERY MODAL */}
+        {/* DEVELOPER EMERGENCY RECOVERY MODAL (Verified Google Owner Only) */}
         {isRecoveryModalOpen && portalType === 'developer' && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
             <div 
@@ -706,151 +714,67 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-black text-white">
-                    {lang === 'ar' ? 'بروتوكول طوارئ المطور (Dev Rescue)' : 'Developer Emergency Recovery'}
+                    {lang === 'ar' ? 'استعادة رمز المطور السحابية' : 'Verified Owner PIN Recovery'}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    {lang === 'ar' ? 'استعادة الوصول الحصري لمطور النظام' : 'Exclusive recovery for system developer'}
+                    {lang === 'ar' ? 'يتطلب التحقق الفعلي من حساب Google المعتمد للمالك' : 'Requires verified owner Google authentication'}
                   </p>
                 </div>
               </div>
 
-              {/* Tabs Switcher */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-2xl border border-slate-800 text-xs font-bold">
-                <button
-                  type="button"
-                  onClick={() => setRecoveryTab('otp')}
-                  className={`py-2 px-3 rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
-                    recoveryTab === 'otp'
-                      ? 'bg-amber-500 text-slate-950 font-black shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>{lang === 'ar' ? 'كود التحقق (2FA)' : 'OTP (2FA)'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRecoveryTab('master_key')}
-                  className={`py-2 px-3 rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
-                    recoveryTab === 'master_key'
-                      ? 'bg-amber-500 text-slate-950 font-black shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Key className="w-3.5 h-3.5" />
-                  <span>{lang === 'ar' ? 'المفتاح الصلب بالكود' : 'Master Code Key'}</span>
-                </button>
-              </div>
-
-              {/* TAB 1: 2FA OTP TO REGISTERED DEVELOPER */}
-              {recoveryTab === 'otp' && (
+              {!verifiedOwnerEmail ? (
                 <div className="space-y-4 pt-1">
-                  <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2 text-xs">
-                    <div className="flex items-center justify-between text-slate-400">
-                      <span>{lang === 'ar' ? 'رقم هاتف المطور المسجل:' : 'Registered Dev Phone:'}</span>
-                      <span className="font-mono font-bold text-amber-300" dir="ltr">
-                        {dynamicConfig?.security?.developerRecoveryPhone || '+966 50 889 9772'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-slate-400">
-                      <span>{lang === 'ar' ? 'البريد الإلكتروني:' : 'Dev Email:'}</span>
-                      <span className="font-mono text-slate-300" dir="ltr">
-                        {dynamicConfig?.security?.developerRecoveryEmail || 'dev.core@luxe-ecommerce.pro'}
-                      </span>
-                    </div>
+                  <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+                    {lang === 'ar'
+                      ? 'لحماية متجرك، تم إلغاء مفاتيح الطوارئ المكشوفة. يرجى تسجيل الدخول بحساب Google المالك لتعيين رمز مطور جديد مشفر.'
+                      : 'For storefront security, static bypass keys are disabled. Sign in with the verified owner Google account to set a new encrypted PIN.'}
                   </div>
-
-                  {!otpSent ? (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-950/50 min-h-[44px]"
-                    >
-                      <Send className="w-4 h-4" />
-                      <span>{lang === 'ar' ? 'إرسال رمز التحقق السري الآن' : 'Dispatch Verification Code Now'}</span>
-                    </button>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-300">
-                          {lang === 'ar' ? 'أدخل رمز التحقق (6 أرقام):' : 'Enter 6-digit OTP code:'}
-                        </label>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={6}
-                          value={otpInput}
-                          onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
-                          placeholder="مثال: 482910"
-                          className="w-full h-12 text-center font-mono text-xl font-black rounded-2xl bg-slate-950 border border-amber-500/50 text-white outline-none focus:ring-2 focus:ring-amber-400"
-                          dir="ltr"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={handleVerifyOtp}
-                          className="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
-                        >
-                          <Check className="w-4 h-4" />
-                          <span>{lang === 'ar' ? 'تأكيد الرمز والدخول' : 'Verify & Enter'}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleSendOtp}
-                          disabled={countdown > 0}
-                          className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer min-h-[44px]"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                          <span>{countdown > 0 ? `${countdown}s` : (lang === 'ar' ? 'إعادة الإرسال' : 'Resend')}</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleGoogleOwnerVerify}
+                    disabled={isGoogleVerifying}
+                    className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-950/50 min-h-[44px]"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>
+                      {isGoogleVerifying
+                        ? (lang === 'ar' ? 'جاري التحقق عبر Google...' : 'Verifying with Google...')
+                        : (lang === 'ar' ? 'توثيق حساب المالك عبر Google' : 'Verify Owner via Google')}
+                    </span>
+                  </button>
                 </div>
-              )}
-
-              {/* TAB 2: HARDCODED MASTER RESCUE KEY (احتياطي الاحتياطي) */}
-              {recoveryTab === 'master_key' && (
-                <div className="space-y-4 pt-1">
-                  <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-xs text-amber-200 leading-relaxed space-y-1.5">
-                    <div className="flex items-center gap-1.5 font-bold text-amber-300">
-                      <Cpu className="w-4 h-4 shrink-0" />
-                      <span>{lang === 'ar' ? 'طريقة احتياطي الاحتياطي البرمجية:' : 'Hardcoded Offline Rescue Protocol:'}</span>
-                    </div>
-                    <p className="text-[11px] text-slate-300">
-                      {lang === 'ar'
-                        ? 'في حال فقدت الوصول للهاتف والإيميل، يمكنك إدخال المفتاح الرئيسي المسجل في الكود المصدري للمشروع (src/data/siteConfig.ts) لفك القفل واستعادة رمز المطور فوراً.'
-                        : 'If phone and email are inaccessible, enter the Master Rescue Key embedded in the project source code (src/data/siteConfig.ts).'}
-                    </p>
+              ) : (
+                <form onSubmit={handleSubmitRecoveryNewPin} className="space-y-4 pt-1">
+                  <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span className="truncate font-mono" dir="ltr">{verifiedOwnerEmail}</span>
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-300">
-                      {lang === 'ar' ? 'مفتاح الطوارئ البرمجي (Master Recovery Key):' : 'Master Code Recovery Key:'}
+                      {lang === 'ar' ? 'رمز المطور الجديد (6 أرقام):' : 'New Developer PIN (6 digits):'}
                     </label>
                     <input
-                      type="text"
-                      value={masterKeyInput}
-                      onChange={(e) => setMasterKeyInput(e.target.value)}
-                      placeholder="DEV-RESCUE-9988-2026"
-                      className="w-full h-12 px-4 font-mono text-sm font-bold rounded-2xl bg-slate-950 border border-amber-500/50 text-white outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-slate-600"
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={recoveryNewPin}
+                      onChange={(e) => setRecoveryNewPin(e.target.value.replace(/\D/g, ''))}
+                      placeholder="••••••"
+                      className="w-full h-12 text-center font-mono text-xl font-black rounded-2xl bg-slate-950 border border-amber-500/50 text-white outline-none focus:ring-2 focus:ring-amber-400"
                       dir="ltr"
                     />
                   </div>
 
                   <button
-                    type="button"
-                    onClick={handleVerifyMasterKey}
-                    className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-950/50 min-h-[44px]"
+                    type="submit"
+                    disabled={recoveryNewPin.length !== 6}
+                    className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black text-xs flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                   >
-                    <Key className="w-4 h-4" />
-                    <span>{lang === 'ar' ? 'فك القفل واستعادة رمز المطور (998877)' : 'Rescue & Restore Default PIN'}</span>
+                    <Check className="w-4 h-4" />
+                    <span>{lang === 'ar' ? 'تعيين الرمز الجديد وفتح اللوحة' : 'Save New PIN & Unlock'}</span>
                   </button>
-                </div>
+                </form>
               )}
             </div>
           </div>

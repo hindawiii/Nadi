@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { 
   GripVertical, ArrowUp, ArrowDown, 
-  RotateCcw, Sparkles, Layers, RefreshCw, Shield, 
-  Droplets, ShoppingBag, Flame, Star, SplitSquareVertical,
-  CheckCircle2, ExternalLink
+  RotateCcw, Crown, Layers, RefreshCw, Shield, 
+  Droplets, ShoppingBag, Flame, BadgeCheck, SplitSquareVertical,
+  CheckCircle2, ExternalLink, Megaphone
 } from 'lucide-react';
 import { useCommerce, SectionId } from '../../context/CommerceContext';
 
@@ -21,7 +21,7 @@ export const sectionsMetadata: Record<SectionId, SectionMeta> = {
     id: 'hero',
     title: { ar: 'البنر الرئيسي للهيرو', en: 'Hero Section' },
     desc: { ar: 'العنوان البارز، الشعار الترويجي، صورة الواجهة، وأزرار توجيه العميل.', en: 'Headline, slogan badge, main visuals & CTA buttons.' },
-    icon: Sparkles,
+    icon: Crown,
     tag: { ar: 'واجهة رئيسية', en: 'Main Hero' },
     color: 'from-purple-500 to-indigo-600'
   },
@@ -69,7 +69,7 @@ export const sectionsMetadata: Record<SectionId, SectionMeta> = {
     id: 'promoBanner',
     title: { ar: 'البنر الترويجي والعرض الماسي', en: 'Promo Banner & Diamond Offer' },
     desc: { ar: 'العرض الحصري، بطاقات الهدايا المجانية، ومجمع البكج المتكامل.', en: 'Exclusive campaign, complimentary velvet gifts & package offer.' },
-    icon: Sparkles,
+    icon: Megaphone,
     tag: { ar: 'عرض حصري', en: 'Campaign' },
     color: 'from-fuchsia-500 to-pink-600'
   },
@@ -85,7 +85,7 @@ export const sectionsMetadata: Record<SectionId, SectionMeta> = {
     id: 'testimonials',
     title: { ar: 'آراء وتقييمات العميلات', en: 'Verified Reviews & Testimonials' },
     desc: { ar: 'عرض آراء العميلات الحقيقية، النجوم، وتجارب الشراء المؤكدة.', en: 'Real verified reviews, buyer ratings, and experience testimonials.' },
-    icon: Star,
+    icon: BadgeCheck,
     tag: { ar: 'تجارب حقيقية', en: 'Social Proof' },
     color: 'from-amber-400 to-amber-600'
   }

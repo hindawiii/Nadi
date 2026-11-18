@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { 
-  ChevronLeft, ChevronRight, LayoutGrid, SlidersHorizontal, ChevronUp
+  ChevronLeft, ChevronRight, LayoutGrid, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
@@ -388,7 +388,7 @@ export const HairDevicesSpotlight: React.FC = () => {
   return (
     <section 
       id="hair-devices-section"
-      className="max-w-7xl mx-auto px-4 sm:px-6 my-10 sm:my-16 space-y-8 select-none relative"
+      className="max-w-7xl mx-auto px-2.5 sm:px-6 my-10 sm:my-16 space-y-8 select-none relative"
       aria-label={lang === 'ar' ? 'قسم أجهزة الشعر' : 'Hair Styling Devices Section'}
     >
       {/* 1. TOP TRIO BRAND BANNERS (Matching Photo 1: Siltek, Okema, Clara) */}
@@ -592,13 +592,14 @@ export const HairDevicesSpotlight: React.FC = () => {
               <span>
                 {lang === 'ar' ? 'عرض كافة الأجهزة' : 'View All Devices'}
               </span>
+              <ChevronDown className="w-4 h-4 text-slate-500" />
             </button>
           </div>
         </div>
       ) : (
         <div className="space-y-4 pt-2">
-          {/* Autonomous Adaptive Grid: Strictly 2 columns on mobile, strictly 3 columns on all other devices */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-2.5 sm:gap-4 animate-in fade-in duration-300">
+          {/* Autonomous Adaptive Grid: Strictly 2 columns on mobile (gap-2), 3 columns on larger devices */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-2 sm:gap-3.5 animate-in fade-in duration-300">
             {filteredProducts.map((product) => (
               <ProductCard 
                 key={product.id} 
@@ -619,8 +620,7 @@ export const HairDevicesSpotlight: React.FC = () => {
               }}
               className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#2B827A] bg-white hover:bg-slate-50 border border-slate-200/90 hover:border-[#2B827A]/40 transition-all py-2 px-5 rounded-full min-h-[42px] shadow-sm hover:shadow active:scale-95 cursor-pointer"
             >
-              <SlidersHorizontal className="w-4 h-4 text-[#2B827A]" />
-              <span>{lang === 'ar' ? 'عرض أقل (العودة للشريط الأفقي)' : 'Show Less (Carousel)'}</span>
+              <span>{lang === 'ar' ? 'عرض أقل' : 'Show Less'}</span>
               <ChevronUp className="w-4 h-4 text-slate-500" />
             </button>
           </div>

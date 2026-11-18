@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, CheckCircle2, Clock, Truck, Package, MapPin, 
-  Phone, Calendar, AlertCircle, ArrowLeft, ArrowRight, MessageSquare, Copy 
+  Phone, Calendar, AlertCircle, ArrowLeft, ArrowRight, MessageSquare, Copy, ShieldCheck, Loader2 
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
+import { getTrackingByCodeFromCloud, PublicTrackingRecord } from '../services/orderService';
 
 export const OrderTrackerView: React.FC = () => {
-  const { lang, orders, setCurrentRoute, navigateTo, activeData, showToast } = useCommerce();
+  const { lang, orders, navigateTo, activeData, showToast } = useCommerce();
   const isRtl = lang === 'ar';
   
   const [searchCode, setSearchCode] = useState('');
@@ -20,23 +21,37 @@ export const OrderTrackerView: React.FC = () => {
     } catch (_) {}
     return null;
   });
+  const [cloudTracking, setCloudTracking] = useState<PublicTrackingRecord | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchNotFound, setSearchNotFound] = useState(false);
 
   // Retrieve customer's own last tracking code if available
   const myLastTracking = typeof window !== 'undefined' ? localStorage.getItem('luxe_my_last_tracking') : null;
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Hydrate customer's own recent tracking status from non-PII /tracking doc on mount if missing locally
+  useEffect(() => {
+    if (!selectedOrder && myLastTracking) {
+      let active = true;
+      getTrackingByCodeFromCloud(myLastTracking).then((res) => {
+        if (active && res) {
+          setCloudTracking(res);
+        }
+      }).catch(() => {});
+      return () => { active = false; };
+    }
+  }, [myLastTracking, selectedOrder]);
+
+  const lookupTracking = async (rawQuery: string) => {
     setHasSearched(true);
-    const query = searchCode.trim().toLowerCase();
+    const query = rawQuery.trim().toLowerCase();
     if (!query) return;
 
     const cleanQuery = query.replace(/[^a-z0-9]/g, '');
     const cleanDigits = query.replace(/\D/g, '');
-    // Extract core subscriber digits (last 7-8 digits) to match regardless of international or local prefix
     const queryCoreDigits = cleanDigits.length >= 7 ? cleanDigits.slice(-8) : cleanDigits;
 
+    // 1. Check current device session orders first
     const found = orders.find((o) => {
       const matchTracking = o.trackingCode.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanQuery;
       const matchId = o.id.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanQuery;
@@ -53,13 +68,35 @@ export const OrderTrackerView: React.FC = () => {
 
     if (found) {
       setSelectedOrder(found);
+      setCloudTracking(null);
       setSearchNotFound(false);
       showToast(lang === 'ar' ? `تم العثور على الشحنة #${found.id}` : `Shipment #${found.id} found`);
-    } else {
-      setSelectedOrder(null);
-      setSearchNotFound(true);
-      showToast(lang === 'ar' ? 'لم يتم العثور على شحنة تطابق البحث' : 'No shipment found matching query');
+      return;
     }
+
+    // 2. Query single sanitized /tracking/{trackingCode} cloud document (no collection scan, no PII exposed)
+    setIsSearching(true);
+    try {
+      const cloudRecord = await getTrackingByCodeFromCloud(rawQuery);
+      if (cloudRecord) {
+        setSelectedOrder(null);
+        setCloudTracking(cloudRecord);
+        setSearchNotFound(false);
+        showToast(lang === 'ar' ? `تم العثور على الشحنة #${cloudRecord.orderId}` : `Shipment #${cloudRecord.orderId} found`);
+      } else {
+        setSelectedOrder(null);
+        setCloudTracking(null);
+        setSearchNotFound(true);
+        showToast(lang === 'ar' ? 'لم يتم العثور على شحنة تطابق البحث' : 'No shipment found matching query');
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    void lookupTracking(searchCode);
   };
 
   const steps = [
@@ -79,7 +116,8 @@ export const OrderTrackerView: React.FC = () => {
     }
   };
 
-  const activeIndex = selectedOrder ? getStepIndex(selectedOrder.status) : 0;
+  const activeTracking = selectedOrder || cloudTracking;
+  const activeIndex = activeTracking ? getStepIndex(activeTracking.status) : 0;
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 sm:py-12">
@@ -107,8 +145,8 @@ export const OrderTrackerView: React.FC = () => {
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
             {lang === 'ar'
-              ? 'أدخلي رقم التتبع الخاص بكِ (مثل TRK-98241) أو رقم الطلب أو رقم الهاتف المسجل لمعرفة خط سير شحنتكِ.'
-              : 'Enter your tracking code, order ID, or registered phone number to view real-time delivery status.'}
+              ? 'أدخلي رقم التتبع الخاص بكِ (مثل TRK-98241) لمتابعة خط سير شحنتكِ الفوري من السحابة بأمان تام.'
+              : 'Enter your tracking code (e.g., TRK-98241) to securely view real-time cloud delivery updates.'}
           </p>
         </div>
 
@@ -120,15 +158,17 @@ export const OrderTrackerView: React.FC = () => {
               type="text"
               value={searchCode}
               onChange={(e) => setSearchCode(e.target.value)}
-              placeholder={lang === 'ar' ? 'رقم التتبع (TRK-...) أو رقم الطلب أو الهاتف...' : 'Tracking code, order ID, or phone...'}
+              placeholder={lang === 'ar' ? 'أدخلي رمز التتبع (TRK-...)...' : 'Enter tracking code (TRK-...)...'}
               className="w-full ps-11 pe-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] shadow-sm min-h-[48px]"
             />
           </div>
           <button
             type="submit"
-            className="px-6 py-3 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-2xl text-sm font-bold shadow-md transition-colors min-h-[48px] cursor-pointer active:scale-95 shrink-0"
+            disabled={isSearching}
+            className="px-6 py-3 bg-[#5A3E7A] hover:bg-[#483162] disabled:opacity-60 text-white rounded-2xl text-sm font-bold shadow-md transition-colors min-h-[48px] cursor-pointer active:scale-95 shrink-0 flex items-center gap-2"
           >
-            {lang === 'ar' ? 'بحث' : 'Track'}
+            {isSearching && <Loader2 className="w-4 h-4 animate-spin" />}
+            <span>{lang === 'ar' ? 'بحث' : 'Track'}</span>
           </button>
         </form>
 
@@ -142,38 +182,41 @@ export const OrderTrackerView: React.FC = () => {
               type="button"
               onClick={() => {
                 setSearchCode(myLastTracking);
-                const found = orders.find(o => o.trackingCode.toLowerCase() === myLastTracking.toLowerCase());
-                if (found) {
-                  setSelectedOrder(found);
-                  setSearchNotFound(false);
-                }
+                void lookupTracking(myLastTracking);
               }}
-              className="px-3 py-1 rounded-full font-bold bg-purple-50 text-[#5A3E7A] border border-purple-200 hover:bg-purple-100 transition-colors"
+              className="px-3 py-1 rounded-full font-bold bg-purple-50 text-[#5A3E7A] border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer"
             >
               {myLastTracking}
             </button>
           </div>
         )}
 
-        {/* Selected Order Card */}
-        {selectedOrder ? (
+        {/* Active Shipment Status Card (Full local receipt OR Sanitized Non-PII cloud tracking) */}
+        {activeTracking ? (
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-8">
             
             {/* Order meta bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 gap-4">
               <div>
                 <span className="text-xs text-slate-400 font-semibold uppercase">{lang === 'ar' ? 'رقم التتبع السريع' : 'Tracking Code'}</span>
-                <h3 className="text-xl font-extrabold text-[#5A3E7A] font-mono">{selectedOrder.trackingCode}</h3>
+                <h3 className="text-xl font-extrabold text-[#5A3E7A] font-mono">{activeTracking.trackingCode}</h3>
               </div>
-              <div className="flex items-center gap-3 text-xs text-slate-600">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
                 <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{selectedOrder.date}</span>
+                  <span>{activeTracking.date}</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                  <Phone className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{selectedOrder.phone}</span>
-                </div>
+                {selectedOrder ? (
+                  <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                    <Phone className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{selectedOrder.phone}</span>
+                  </div>
+                ) : cloudTracking ? (
+                  <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl border border-emerald-200 font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{lang === 'ar' ? `طلب #${cloudTracking.orderId}` : `Order #${cloudTracking.orderId}`}</span>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -221,51 +264,85 @@ export const OrderTrackerView: React.FC = () => {
 
             {/* Order Details & Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100">
-              
-              {/* Delivery Details */}
-              <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-purple-600" />
-                  <span>{lang === 'ar' ? 'عنوان وتفاصيل المستلم:' : 'Recipient & Address:'}</span>
-                </h4>
-                <p className="text-sm font-bold text-slate-800">{selectedOrder.customerName}</p>
-                <p className="text-xs text-slate-600 leading-relaxed">{selectedOrder.address}</p>
-              </div>
-
-              {/* Items in order */}
-              <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  {lang === 'ar' ? 'المنتجات المطلوبة:' : 'Ordered Items:'}
-                </h4>
-                <div className="space-y-2">
-                  {selectedOrder.items.map((it, idx) => (
-                    <div key={idx} className="flex justify-between text-xs">
-                      <span className="text-slate-700 font-medium">
-                        {it.quantity}x {it.productName}
-                      </span>
-                      <span className="text-slate-900 font-bold">{it.price}</span>
-                    </div>
-                  ))}
-                  {selectedOrder.promoCode && (
-                    <div className="flex justify-between text-xs text-emerald-600 font-bold">
-                      <span>{lang === 'ar' ? 'كود الخصم المطبق:' : 'Applied Promo:'}</span>
-                      <span className="bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">{selectedOrder.promoCode}</span>
-                    </div>
-                  )}
-                  <div className="pt-2 border-t border-slate-200 flex justify-between font-extrabold text-sm text-slate-900">
-                    <span>{lang === 'ar' ? 'الإجمالي عند الاستلام:' : 'Total due on delivery:'}</span>
-                    <span className="text-[#5A3E7A]">{selectedOrder.totalFormatted}</span>
+              {selectedOrder ? (
+                <>
+                  {/* Full Session Delivery Details */}
+                  <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-purple-600" />
+                      <span>{lang === 'ar' ? 'عنوان وتفاصيل المستلم:' : 'Recipient & Address:'}</span>
+                    </h4>
+                    <p className="text-sm font-bold text-slate-800">{selectedOrder.customerName}</p>
+                    <p className="text-xs text-slate-600 leading-relaxed">{selectedOrder.address}</p>
                   </div>
-                </div>
-              </div>
+
+                  {/* Items in order */}
+                  <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      {lang === 'ar' ? 'المنتجات المطلوبة:' : 'Ordered Items:'}
+                    </h4>
+                    <div className="space-y-2">
+                      {selectedOrder.items.map((it, idx) => (
+                        <div key={idx} className="flex justify-between text-xs">
+                          <span className="text-slate-700 font-medium">
+                            {it.quantity}x {it.productName}
+                          </span>
+                          <span className="text-slate-900 font-bold">{it.price}</span>
+                        </div>
+                      ))}
+                      {selectedOrder.promoCode && (
+                        <div className="flex justify-between text-xs text-emerald-600 font-bold">
+                          <span>{lang === 'ar' ? 'كود الخصم المطبق:' : 'Applied Promo:'}</span>
+                          <span className="bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">{selectedOrder.promoCode}</span>
+                        </div>
+                      )}
+                      <div className="pt-2 border-t border-slate-200 flex justify-between font-extrabold text-sm text-slate-900">
+                        <span>{lang === 'ar' ? 'الإجمالي عند الاستلام:' : 'Total due on delivery:'}</span>
+                        <span className="text-[#5A3E7A]">{selectedOrder.totalFormatted}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : cloudTracking ? (
+                <>
+                  {/* Privacy-Protected Cloud Tracking Summary */}
+                  <div className="space-y-3 bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200/80">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>{lang === 'ar' ? 'حماية الخصوصية السحابية' : 'Cloud Privacy Protection'}</span>
+                    </h4>
+                    <p className="text-xs text-emerald-900/90 leading-relaxed">
+                      {lang === 'ar'
+                        ? 'حفاظاً على سرية بياناتكِ، يتم إخفاء الاسم ورقم الهاتف والعنوان عند التتبع العام وإظهار حالة الشحن المعتمدة فقط.'
+                        : 'To protect your personal information, recipient name, phone, and address are masked on public tracking lookups.'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      {lang === 'ar' ? 'ملخص الشحنة:' : 'Shipment Summary:'}
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">{lang === 'ar' ? 'رقم الطلب المرجعي:' : 'Order ID:'}</span>
+                        <span className="font-mono font-bold text-slate-900">{cloudTracking.orderId}</span>
+                      </div>
+                      <div className="pt-2 border-t border-slate-200 flex justify-between font-extrabold text-sm text-slate-900">
+                        <span>{lang === 'ar' ? 'الإجمالي المعتمد:' : 'Verified Total:'}</span>
+                        <span className="text-[#5A3E7A]">{cloudTracking.totalFormatted}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : null}
 
               {/* WhatsApp Live Support & Contact Helper */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3 md:col-span-2">
                 <a
                   href={`https://wa.me/${activeData.contactInfo.whatsapp}?text=${encodeURIComponent(
                     lang === 'ar'
-                      ? `مرحباً ${activeData.storeName.ar}، أستفسر عن شحنتي رقم (${selectedOrder.id})، رمز التتبع: (${selectedOrder.trackingCode}). العميل: ${selectedOrder.customerName}`
-                      : `Hello ${activeData.storeName.en}, I have an inquiry about my order (${selectedOrder.id}), tracking: (${selectedOrder.trackingCode}). Customer: ${selectedOrder.customerName}`
+                      ? `مرحباً ${activeData.storeName.ar}، أستفسر عن شحنتي رقم (${selectedOrder ? selectedOrder.id : cloudTracking?.orderId})، رمز التتبع: (${activeTracking.trackingCode}).`
+                      : `Hello ${activeData.storeName.en}, I have an inquiry about my order (${selectedOrder ? selectedOrder.id : cloudTracking?.orderId}), tracking: (${activeTracking.trackingCode}).`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -279,10 +356,10 @@ export const OrderTrackerView: React.FC = () => {
                   type="button"
                   onClick={() => {
                     try {
-                      navigator.clipboard.writeText(selectedOrder.trackingCode);
+                      navigator.clipboard.writeText(activeTracking.trackingCode);
                       showToast(lang === 'ar' ? 'تم نسخ رمز التتبع بنجاح!' : 'Tracking code copied!');
                     } catch {
-                      showToast(selectedOrder.trackingCode);
+                      showToast(activeTracking.trackingCode);
                     }
                   }}
                   className="w-full sm:w-auto py-3 px-4 bg-purple-50 hover:bg-purple-100 text-[#5A3E7A] font-bold rounded-2xl border border-purple-200 transition-colors flex items-center justify-center gap-1.5 min-h-[44px] text-xs cursor-pointer active:scale-95"
@@ -295,7 +372,7 @@ export const OrderTrackerView: React.FC = () => {
             </div>
 
           </div>
-        ) : hasSearched ? (
+        ) : hasSearched && searchNotFound && !isSearching ? (
           <div className="py-12 text-center bg-white rounded-3xl border border-slate-200 p-6 space-y-2">
             <AlertCircle className="w-10 h-10 text-amber-400 mx-auto mb-2" />
             <p className="text-sm font-bold text-slate-700">{lang === 'ar' ? 'لم يتم العثور على شحنة تطابق البحث' : 'No shipment matches your search'}</p>

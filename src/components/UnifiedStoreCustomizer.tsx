@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { 
-  Sparkles, Layers, Image as ImageIcon, MapPin, 
+  Crown, Layers, Image as ImageIcon, MapPin, 
   RotateCcw, Upload, ArrowUpRight, MessageCircle, 
-  Phone, Mail, CheckCircle2, Star, ShieldCheck, 
+  Phone, Mail, CheckCircle2, BadgeCheck, ShieldCheck, 
   Droplets, ExternalLink, ArrowRight, ArrowLeft,
   ChevronDown, ChevronUp, ShoppingBag, Plus, Trash2,
-  Sliders, Award, Truck, Check, HelpCircle, Undo2, X
+  Sliders, Award, Truck, Check, HelpCircle, Undo2, X,
+  Wand2, Eye, SplitSquareVertical, Megaphone, Compass
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { siteConfig, Product } from '../data/siteConfig';
@@ -144,7 +145,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
         return {
           name: { ar: 'كتالوج الإطلالات وتنسيق الأزياء', en: 'Lookbook & Outfit Styling' },
           desc: { ar: 'تنسيق أزياء الموسم، تفاصيل الأقمشة، ومجموعات الموديل التحريرية', en: 'Curated seasonal outfits, fabric composition & editorial looks' },
-          icon: Sparkles
+          icon: Wand2
         };
       case 'electronics':
         return {
@@ -156,7 +157,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
         return {
           name: { ar: 'أبعاد الإطارات وعدسات الحماية (AR)', en: 'Frame Specs & AR Optics' },
           desc: { ar: 'مقاسات الإطارات التيتانيوم، حماية الأشعة فوق البنفسجية، وتجربة الـ AR', en: 'Titanium frame sizing, UV400 lens grades & AR try-on' },
-          icon: Star
+          icon: Eye
         };
       default:
         return {
@@ -227,17 +228,17 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
 
   // The 13 Sequential Corners Definition (Context-Aware for all 4 global niches)
   const cornersList = [
-    { id: 'corner-1', num: 1, name: { ar: 'شريط الإعلانات العلوي', en: 'Top Announcement Bar' }, icon: Sparkles },
+    { id: 'corner-1', num: 1, name: { ar: 'شريط الإعلانات العلوي', en: 'Top Announcement Bar' }, icon: Megaphone },
     { id: 'corner-2', num: 2, name: { ar: 'الهيدر وشعار وهوية المتجر', en: 'Header & Store Branding' }, icon: Award },
     { id: 'corner-3', num: 3, name: { ar: 'البنر الترحيبي الرئيسي', en: 'Hero Banner Section' }, icon: Layers },
     { id: 'corner-4', num: 4, name: { ar: 'شريط الماركات المتحرك', en: 'Infinite Brand Ticker' }, icon: Sliders },
-    { id: 'corner-5', num: 5, name: { ar: 'تصنيفات وتبويبات المتجر', en: 'Categories Navigation' }, icon: ShoppingBag },
+    { id: 'corner-5', num: 5, name: { ar: 'تصنيفات وتبويبات المتجر', en: 'Categories Navigation' }, icon: Compass },
     { id: 'corner-6', num: 6, name: c6Info.name, icon: c6Info.icon },
     { id: 'corner-7', num: 7, name: { ar: 'كتالوج المنتجات والمخزون', en: 'Products Catalog & Pricing' }, icon: ShoppingBag },
     { id: 'corner-8', num: 8, name: { ar: 'بنرات العروض المزدوجة', en: 'Dual Campaign Banners' }, icon: ImageIcon },
-    { id: 'corner-9', num: 9, name: c9Info.name, icon: Sparkles },
-    { id: 'corner-10', num: 10, name: c10Info.name, icon: Star },
-    { id: 'corner-11', num: 11, name: { ar: 'آراء وتقييمات العملاء', en: 'Customer Testimonials' }, icon: Star },
+    { id: 'corner-9', num: 9, name: c9Info.name, icon: Crown },
+    { id: 'corner-10', num: 10, name: c10Info.name, icon: SplitSquareVertical },
+    { id: 'corner-11', num: 11, name: { ar: 'آراء وتقييمات العملاء', en: 'Customer Testimonials' }, icon: BadgeCheck },
     { id: 'corner-12', num: 12, name: { ar: 'شريط مزايا المتجر والثقة', en: 'Store Value Props' }, icon: ShieldCheck },
     { id: 'corner-13', num: 13, name: { ar: 'التذييل ومعلومات التواصل', en: 'Footer & WhatsApp' }, icon: Phone },
   ];
@@ -368,7 +369,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-amber-300">
-                <Sparkles className="w-3.5 h-3.5" />
+                <Crown className="w-3.5 h-3.5" />
                 <span>{activePreset.nicheLabel?.[lang] || activePreset.storeName?.[lang] || effectivePresetId}</span>
               </div>
               {isCurrentActive ? (
@@ -411,7 +412,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
                 }}
                 className="h-11 px-5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
               >
-                <Sparkles className="w-4 h-4 text-purple-900" />
+                <Wand2 className="w-4 h-4 text-purple-900" />
                 <span>{lang === 'ar' ? 'تمكين القالب بالمتجر الحي ⚡' : 'Activate On Storefront ⚡'}</span>
               </button>
             ) : effectivePresetId !== 'cosmetics' ? (
@@ -530,7 +531,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
               </span>
               <div>
                 <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  <Megaphone className="w-4 h-4 text-purple-600" />
                   <span>{lang === 'ar' ? 'الركن الأول: شريط الإعلانات الترويجي العلوي' : 'Corner 1: Top Announcement Bar'}</span>
                 </h2>
                 <p className="text-xs text-slate-500">
@@ -1062,7 +1063,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
             </p>
             <div className="flex flex-wrap gap-2">
               <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-800 shadow-2xs">
-                {lang === 'ar' ? '✨ كافة المنتجات' : '✨ All Products'}
+                {lang === 'ar' ? 'كافة المنتجات' : 'All Products'}
               </span>
               <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-800 shadow-2xs">
                 {lang === 'ar' ? '🌿 العناية بالبشرة' : '🌿 Skincare Formulations'}
@@ -1309,7 +1310,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
               </span>
               <div>
                 <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <Crown className="w-4 h-4 text-amber-500" />
                   <span>{lang === 'ar' ? `الركن التاسع: ${c9Info.name.ar}` : `Corner 9: ${c9Info.name.en}`}</span>
                 </h2>
                 <p className="text-xs text-slate-500">
@@ -1429,7 +1430,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
               </span>
               <div>
                 <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Star className="w-4 h-4 text-purple-600" />
+                  <SplitSquareVertical className="w-4 h-4 text-purple-600" />
                   <span>{lang === 'ar' ? `الركن العاشر: ${c10Info.name.ar}` : `Corner 10: ${c10Info.name.en}`}</span>
                 </h2>
                 <p className="text-xs text-slate-500">
@@ -1512,7 +1513,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
               </span>
               <div>
                 <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <BadgeCheck className="w-4 h-4 text-amber-600" />
                   <span>{lang === 'ar' ? 'الركن الحادي عشر: آراء وتقييمات العملاء الموثقة' : 'Corner 11: Customer Testimonials'}</span>
                 </h2>
                 <p className="text-xs text-slate-500">

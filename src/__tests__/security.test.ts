@@ -1,37 +1,46 @@
 import { describe, it, expect } from 'vitest';
-import { hashSecret, verifySecret, obfuscateKey, deobfuscateKey } from '../lib/security';
+import {
+  hashSecret,
+  verifySecret,
+  hashSecretSync,
+  verifySecretSync,
+  obfuscateKey,
+  deobfuscateKey
+} from '../lib/security';
 
 describe('Security & Cryptographic Hashing Engine', () => {
-  it('should generate consistent and non-empty SHA-256 hashes for a given PIN', async () => {
+  it('should generate consistent and identical SHA-256 hashes across sync and async implementations', async () => {
     const pin = '2026';
-    const hash1 = await hashSecret(pin);
-    const hash2 = await hashSecret(pin);
+    const hashAsync1 = await hashSecret(pin);
+    const hashAsync2 = await hashSecret(pin);
+    const hashSync = hashSecretSync(pin);
 
-    expect(hash1).toBeTruthy();
-    expect(typeof hash1).toBe('string');
-    expect(hash1).toBe(hash2);
-    expect(hash1).not.toBe(pin);
+    expect(hashAsync1).toBeTruthy();
+    expect(typeof hashAsync1).toBe('string');
+    expect(hashAsync1).toBe(hashAsync2);
+    expect(hashSync).toBe(hashAsync1);
+    expect(hashSync).not.toBe(pin);
   });
 
-  it('should verify correct secrets and reject incorrect secrets', async () => {
-    const correctPin = '2026';
-    const wrongPin = '1234';
-    const hashed = await hashSecret(correctPin);
+  it('should verify correct secrets and reject old or incorrect secrets synchronously & asynchronously', async () => {
+    const updatedPin = '7391';
+    const oldDefaultPin = '2026';
+    const hashed = hashSecretSync(updatedPin);
 
-    const isMatch = await verifySecret(correctPin, hashed);
-    const isWrongMatch = await verifySecret(wrongPin, hashed);
+    expect(verifySecretSync(updatedPin, hashed)).toBe(true);
+    expect(verifySecretSync(oldDefaultPin, hashed)).toBe(false);
+    expect(verifySecretSync('   ', hashed)).toBe(false);
 
-    expect(isMatch).toBe(true);
-    expect(isWrongMatch).toBe(false);
+    expect(await verifySecret(updatedPin, hashed)).toBe(true);
+    expect(await verifySecret(oldDefaultPin, hashed)).toBe(false);
   });
 
   it('should maintain backward compatibility with legacy plain-text PINs', async () => {
     const legacyPin = '2026';
-    const isDirectMatch = await verifySecret('2026', legacyPin);
-    const isDifferent = await verifySecret('9999', legacyPin);
-
-    expect(isDirectMatch).toBe(true);
-    expect(isDifferent).toBe(false);
+    expect(await verifySecret('2026', legacyPin)).toBe(true);
+    expect(await verifySecret('9999', legacyPin)).toBe(false);
+    expect(verifySecretSync('2026', legacyPin)).toBe(true);
+    expect(verifySecretSync('9999', legacyPin)).toBe(false);
   });
 
   it('should correctly obfuscate and deobfuscate sensitive keys in storage', () => {
@@ -46,10 +55,10 @@ describe('Security & Cryptographic Hashing Engine', () => {
   });
 
   it('should gracefully handle empty or invalid inputs', async () => {
-    const emptyHash = await hashSecret('');
-    expect(emptyHash).toBe('');
-
-    const emptyVerify = await verifySecret('', '');
-    expect(emptyVerify).toBe(false);
+    expect(await hashSecret('')).toBe('');
+    expect(hashSecretSync('   ')).toBe('');
+    expect(await verifySecret('', '')).toBe(false);
+    expect(verifySecretSync('', '')).toBe(false);
   });
 });
+

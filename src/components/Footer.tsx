@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
-  Sparkles, ShieldCheck, Truck, RotateCcw, MapPin, 
-  Phone, Mail, Home, Package, ShoppingBag,
+  Compass, Leaf, ShieldCheck, Truck, RotateCcw, MapPin, 
+  Phone, Mail, Home, Package,
   Info, MessageSquare, CheckCircle2,
   Wallet, Instagram, Facebook
 } from 'lucide-react';
@@ -12,7 +12,7 @@ export const Footer: React.FC = () => {
   const isRtl = lang === 'ar';
 
   return (
-    <footer className="relative bg-gradient-to-b from-[#5A3E7A] via-[#483162] to-[#2E1840] text-white pt-12 sm:pt-14 pb-10 overflow-hidden select-none border-t border-purple-800/40">
+    <footer className="relative bg-gradient-to-b from-[#5A3E7A] via-[#483162] to-[#2E1840] text-white pt-12 sm:pt-14 pb-24 sm:pb-14 overflow-hidden select-none border-t border-purple-800/40">
       {/* Subtle ambient lighting */}
       <div className="absolute top-0 start-1/2 -translate-x-1/2 w-full max-w-7xl h-36 bg-purple-400/10 blur-3xl pointer-events-none" />
 
@@ -86,7 +86,7 @@ export const Footer: React.FC = () => {
           {/* Section 2: تسوّق واكتشف (Shop & Discover) */}
           <div className="flex flex-col items-center sm:items-start text-center sm:text-start space-y-3 w-full">
             <h4 className="text-sm font-extrabold text-white flex items-center justify-center sm:justify-start gap-2 pb-2.5 border-b border-white/15 w-full">
-              <Sparkles className="w-4 h-4 text-purple-300" />
+              <Compass className="w-4 h-4 text-purple-300" />
               <span>{lang === 'ar' ? 'تسوّق واكتشف' : 'Shop & Discover'}</span>
             </h4>
             <ul className="space-y-2 text-xs text-purple-100/90 font-medium w-full">
@@ -123,7 +123,7 @@ export const Footer: React.FC = () => {
                   }} 
                   className="hover:text-amber-300 transition-colors flex items-center justify-center sm:justify-start gap-2.5 py-1.5 text-center sm:text-start w-full group min-h-[40px]"
                 >
-                  <Sparkles className="w-4 h-4 text-purple-300 group-hover:text-amber-300 shrink-0 transition-colors" />
+                  <Leaf className="w-4 h-4 text-emerald-300 group-hover:text-amber-300 shrink-0 transition-colors" />
                   <span>{lang === 'ar' ? 'العناية الطبيعية بالبشرة' : 'Natural Skincare Solutions'}</span>
                 </button>
               </li>
@@ -212,29 +212,33 @@ export const Footer: React.FC = () => {
                   href={`https://api.whatsapp.com/send?phone=${activeData.contactInfo.whatsapp.replace(/[^0-9]/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-md transition-transform hover:scale-110"
+                  className="w-11 h-11 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-md transition-transform hover:scale-110"
                   aria-label="WhatsApp"
                 >
                   <MessageSquare className="w-4 h-4" />
                 </a>
-                <a
-                  href="https://instagram.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center shadow-md transition-transform hover:scale-110 border border-white/20"
-                  aria-label="Instagram"
-                >
-                  <Instagram className="w-4 h-4" />
-                </a>
-                <a
-                  href="https://facebook.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center shadow-md transition-transform hover:scale-110 border border-white/20"
-                  aria-label="Facebook"
-                >
-                  <Facebook className="w-4 h-4" />
-                </a>
+                {(activeData.contactInfo.instagramUrl ?? 'https://instagram.com') && (
+                  <a
+                    href={activeData.contactInfo.instagramUrl || 'https://instagram.com'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center shadow-md transition-transform hover:scale-110 border border-white/20"
+                    aria-label="Instagram"
+                  >
+                    <Instagram className="w-4 h-4" />
+                  </a>
+                )}
+                {(activeData.contactInfo.facebookUrl ?? 'https://facebook.com') && (
+                  <a
+                    href={activeData.contactInfo.facebookUrl || 'https://facebook.com'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center shadow-md transition-transform hover:scale-110 border border-white/20"
+                    aria-label="Facebook"
+                  >
+                    <Facebook className="w-4 h-4" />
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -297,7 +301,7 @@ export const Footer: React.FC = () => {
 
             {/* Bravo (برافو / Bravo Pay) */}
             <div className="h-9 px-3 rounded-xl bg-white text-indigo-700 font-black text-xs flex items-center gap-1.5 shadow-xs border border-slate-200">
-              <span className="w-3.5 h-3.5 rounded-full bg-indigo-600 text-white font-black text-[9px] flex items-center justify-center">★</span>
+              <span className="w-3.5 h-3.5 rounded-full bg-indigo-600 text-white font-black text-[9px] flex items-center justify-center">B</span>
               <span className="text-[11px] font-extrabold">
                 {lang === 'ar' ? 'برافو' : 'Bravo'}
               </span>

@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { 
-  Heart, Star, MessageCircle, 
-  Sparkles, AlertCircle, Check, ShieldCheck, Award, ArrowLeftRight
+  Heart, BadgeCheck, 
+  Gift, Check, ShieldCheck, Award, ArrowLeftRight
 } from 'lucide-react';
 import { Product } from '../data/siteConfig';
 import { useCommerce } from '../context/CommerceContext';
 import { StoreCartIcon } from './common/StoreCartIcon';
 import { SmartDiscountBadge } from './common/SmartDiscountBadge';
+import { WhatsAppIcon } from './icons/WhatsAppIcon';
+import { openExternalUrl } from '../lib/navigation';
 
 export interface ProductCardProps {
   product: Product;
@@ -115,7 +117,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     setActiveImgIndex(idx);
   };
 
-  // Dynamic Trust Badge Detection
+  // Compact Mobile-Safe Category Label (prevents harsh "..." truncation next to rating badge)
+  const getCompactCategoryLabel = (rawCat: string) => {
+    if (!rawCat) return '';
+    if (lang === 'ar') {
+      if (rawCat.includes('بكجات')) return 'بكجات وعروض';
+      if (rawCat.includes('العناية بالبشرة') || rawCat.includes('عناية بالبشرة')) return 'عناية بالبشرة';
+      if (rawCat.includes('أجهزة')) return 'أجهزة الشعر';
+    } else {
+      if (rawCat.toLowerCase().includes('bundle') || rawCat.toLowerCase().includes('gift')) return 'Gift Sets';
+      if (rawCat.toLowerCase().includes('skin')) return 'Skincare';
+      if (rawCat.toLowerCase().includes('hair') || rawCat.toLowerCase().includes('device')) return 'Hair Devices';
+    }
+    return rawCat;
+  };
+
+  // Dynamic Trust Badge Detection (concise phrasing so it reads in full on narrow mobile cards)
   const getSmartTrustBadge = () => {
     const cat = product.category?.ar || '';
     const name = product.name?.ar || '';
@@ -133,16 +150,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     ) {
       return {
         icon: ShieldCheck,
-        text: { ar: 'ضمان سنتين شامل معتمد 🛡️', en: 'Certified 2-Year Warranty 🛡️' },
+        text: { ar: 'ضمان سنتين شامل', en: '2-Yr Warranty' },
         className: 'text-emerald-700 bg-emerald-50/90 border-emerald-200/80',
       };
     }
 
-    // Bundles & Value Gift Boxes
     if (cat.includes('بكجات') || cat.includes('بوكس') || product.bundle) {
       return {
-        icon: Sparkles,
-        text: { ar: 'بوكس توفير متكامل + هدية 🎁', en: 'Value Bundle + Free Gift 🎁' },
+        icon: Gift,
+        text: { ar: 'بوكس توفير + هدية', en: 'Bundle + Free Gift' },
         className: 'text-amber-800 bg-amber-50/90 border-amber-200/80',
       };
     }
@@ -150,7 +166,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     // Default Skincare / Botanical Formulations
     return {
       icon: Award,
-      text: { ar: 'نقاء نباتي أصلي 100% 🌿', en: '100% Pure Botanical Purity 🌿' },
+      text: { ar: 'نقاء نباتي أصلي', en: '100% Botanical' },
       className: 'text-purple-900 bg-purple-50/90 border-purple-200/80',
     };
   };
@@ -166,11 +182,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     const storeName = activeData?.storeName?.[lang] || (lang === 'ar' ? 'نَـــــدِي' : 'NADI');
     
     const message = lang === 'ar'
-      ? `مرحباً ${storeName}، أود طلب المنتج التالي:\n\n*المنتج:* ${product.name.ar}\n*السعر:* ${currentPrice.text}\n*الضمان/الأصالة:* ${trustBadge.text.ar}\n*الرابط:* ${storeUrl}#${product.id}\n\nهل المنتج متوفر للشحن الفوري؟`
-      : `Hello ${storeName}, I would like to order:\n\n*Product:* ${product.name.en}\n*Price:* ${currentPrice.text}\n*Trust:* ${trustBadge.text.en}\n*Link:* ${storeUrl}#${product.id}\n\nIs it available for instant delivery?`;
+      ? `مرحباً ${storeName}، أود طلب المنتج التالي:\n\n*المنتج:* ${product.name.ar}\n*السعر:* ${currentPrice.text}\n*الضمان/الأصالة:* ${trustBadge.text.ar}\n*الرابط:* ${storeUrl}/product/${product.id}\n\nهل المنتج متوفر للشحن الفوري؟`
+      : `Hello ${storeName}, I would like to order:\n\n*Product:* ${product.name.en}\n*Price:* ${currentPrice.text}\n*Trust:* ${trustBadge.text.en}\n*Link:* ${storeUrl}/product/${product.id}\n\nIs it available for instant delivery?`;
 
     const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+    openExternalUrl(`https://wa.me/${phone}?text=${encoded}`);
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -236,9 +252,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               lang={lang}
               size="xs"
               variant="rose"
-              className="rounded-tl-none rounded-tr-none rounded-bl-none rounded-ee-xl shadow-xs"
+              className="rounded-none rounded-ee-xl shadow-xs"
             />
           </div>
+
+          {/* Top-End: Edge-Fused Glass Wishlist Tab (Mirrors Discount Ribbon Alignment at top-0) */}
+          <button
+            type="button"
+            onClick={handleWishlistClick}
+            className={`absolute top-0 end-0 z-10 h-7 w-8 sm:h-8 sm:w-9 rounded-none rounded-es-xl backdrop-blur-md border-b border-s shadow-xs transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-95 after:content-[''] after:absolute after:-inset-2 ${
+              isWishlisted
+                ? 'bg-rose-50/95 border-rose-200/90 text-rose-500'
+                : 'bg-white/90 hover:bg-white border-slate-200/80 text-slate-500 hover:text-rose-500'
+            }`}
+            aria-label={lang === 'ar' ? 'إضافة إلى المفضلة' : 'Add to Wishlist'}
+            title={lang === 'ar' ? 'إضافة إلى المفضلة' : 'Add to Wishlist'}
+          >
+            <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${isWishlisted ? 'fill-current scale-105' : 'group-hover:scale-105'}`} />
+          </button>
 
           {/* Interactive Multi-Image Switcher Dots (Minimalist line indicators at absolute bottom) */}
           {hasMultipleImages && (
@@ -277,76 +308,62 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* 2. METADATA & CONTENT AREA (Tight, Balanced & Clean) */}
         <div className="p-2 sm:p-3 space-y-1 sm:space-y-1.5 text-start">
-          {/* Category, Rating & Heart Wishlist Row (Perfect harmony below image) */}
-          <div className="flex items-center justify-between text-[10px] sm:text-xs text-slate-400">
-            <span className="truncate max-w-[45%] font-medium">{product.category[lang]}</span>
+          {/* Category & Rating Row */}
+          <div className="flex items-center justify-between gap-1 text-[10px] sm:text-xs text-slate-500">
+            <span className="truncate font-semibold text-slate-500">
+              {getCompactCategoryLabel(product.category[lang])}
+            </span>
             
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Star Rating */}
-              <div className="flex items-center gap-1 text-amber-500">
-                <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
-                <span className="font-bold text-slate-800 text-[11px] sm:text-xs">{product.rating}</span>
-                <span className="text-slate-400 text-[9px] sm:text-[10px]">({product.reviewsCount})</span>
-              </div>
-
-              {/* Seamless Wishlist Heart Button (Clean, accessible, zero image clutter) */}
-              <button
-                type="button"
-                onClick={handleWishlistClick}
-                className={`p-1 rounded-full transition-all hover:scale-110 active:scale-95 ${
-                  isWishlisted
-                    ? 'text-rose-500'
-                    : 'text-slate-300 hover:text-rose-500'
-                }`}
-                aria-label={lang === 'ar' ? 'إضافة إلى المفضلة' : 'Add to Wishlist'}
-                title={lang === 'ar' ? 'إضافة إلى المفضلة' : 'Add to Wishlist'}
-              >
-                <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isWishlisted ? 'fill-current' : ''}`} />
-              </button>
+            {/* Numeric Verified Rating (Zero-Star Luxe) */}
+            <div className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 rounded-md bg-purple-50/90 text-[#5A3E7A] border border-purple-200/60 shrink-0">
+              <BadgeCheck className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 shrink-0" />
+              <span className="font-bold text-slate-800 text-[10px] sm:text-xs tabular-nums">{product.rating}</span>
+              <span className="text-slate-400 text-[9px] sm:text-[10px] tabular-nums">({product.reviewsCount})</span>
             </div>
           </div>
 
           {/* Product Title */}
-          <h3 className="font-extrabold text-slate-900 text-xs sm:text-base leading-snug line-clamp-2 min-h-[32px] sm:min-h-[40px] group-hover:text-theme-primary transition-colors">
+          <h3 className="font-extrabold text-slate-900 text-[12.5px] sm:text-base leading-snug line-clamp-2 min-h-[34px] sm:min-h-[42px] group-hover:text-theme-primary transition-colors">
             {product.name[lang]}
           </h3>
 
           {/* Unified Smart Trust & Guarantee Badge */}
-          <div className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg border text-[9px] sm:text-[11px] font-bold max-w-full ${trustBadge.className}`}>
+          <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg border text-[10px] sm:text-[11px] font-bold max-w-full ${trustBadge.className}`}>
             <TrustIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
             <span className="truncate">{trustBadge.text[lang]}</span>
           </div>
 
           {/* Dynamic Pricing Row + Elegant Scarcity Indicator */}
-          <div className="pt-1 flex items-baseline gap-1.5 sm:gap-2 justify-between flex-wrap">
-            <div className="flex items-baseline gap-1 sm:gap-2">
-              <span className="text-sm sm:text-lg font-black text-slate-900 tracking-tight">
+          <div className="pt-0.5 space-y-1">
+            <div className="flex items-baseline gap-1.5 flex-wrap">
+              <span className="text-[13.5px] sm:text-lg font-black text-slate-900 tracking-tight whitespace-nowrap tabular-nums">
                 {currentPrice.text}
               </span>
               {origPrice && (
-                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 line-through">
+                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 line-through whitespace-nowrap tabular-nums">
                   {origPrice.text}
                 </span>
               )}
             </div>
 
-            {/* Elegant Micro-Scarcity Indicator (Clean typography instead of blocking banner) */}
             {isScarcity && (
-              <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                {lang === 'ar' ? `متبقي ${product.stock}` : `${product.stock} left`}
-              </span>
+              <div>
+                <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/70 whitespace-nowrap">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  {lang === 'ar' ? `متبقي ${product.stock}` : `${product.stock} left`}
+                </span>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* 3. UNIFIED ACTION ROW (Balanced 3-Button Single Row: Cart + Compare + WhatsApp) */}
-      <div className="px-2 pb-2 sm:px-3 sm:pb-3 pt-2 border-t border-slate-100 flex items-center gap-1 sm:gap-1.5">
-        {/* Main CTA: Add to Bag (Icon-only on mobile to fit 3 buttons, expands with text on tablet/desktop) */}
+      {/* 3. UNIFIED ACTION ROW (Balanced 3-Button Single Row with 44px Accessible Touch Targets) */}
+      <div className="px-2 pb-2.5 sm:px-3 sm:pb-3 pt-2 border-t border-slate-100 flex items-center gap-1.5">
+        {/* Main CTA: Add to Bag */}
         <button
           onClick={handleAddToCart}
-          className={`flex-1 min-w-0 py-2 sm:py-2.5 px-2 rounded-xl sm:rounded-2xl font-bold flex items-center justify-center gap-1.5 transition-all min-h-[36px] sm:min-h-[42px] shadow-sm ${
+          className={`flex-1 min-w-0 py-2 sm:py-2.5 px-2 rounded-xl sm:rounded-2xl font-bold flex items-center justify-center gap-1.5 transition-all min-h-[44px] shadow-sm cursor-pointer ${
             justAdded
               ? 'bg-emerald-600 text-white shadow-emerald-600/20'
               : isOutOfStock
@@ -358,17 +375,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         >
           {justAdded ? (
             <>
-              <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 animate-in zoom-in" />
+              <Check className="w-4 h-4 shrink-0 animate-in zoom-in" />
               <span className="hidden sm:inline text-xs sm:text-sm">{lang === 'ar' ? 'تمت الإضافة ✓' : 'Added ✓'}</span>
             </>
           ) : isOutOfStock ? (
             <>
-              <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <WhatsAppIcon variant="white" className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline text-xs sm:text-sm truncate">{lang === 'ar' ? 'حجز بالواتساب' : 'WhatsApp'}</span>
             </>
           ) : (
             <>
-              <StoreCartIcon className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 shrink-0 text-white" />
+              <StoreCartIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0 text-white" />
               <span className="hidden sm:inline text-xs sm:text-sm truncate">{lang === 'ar' ? 'إضافة للسلة' : 'Add to Bag'}</span>
             </>
           )}
@@ -384,7 +401,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }
             setIsCompareModalOpen(true);
           }}
-          className={`w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center relative min-h-[36px] min-w-[36px] sm:min-h-[42px] sm:min-w-[42px] shadow-2xs hover:scale-105 active:scale-95 ${
+          className={`w-11 h-11 shrink-0 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center relative min-h-[44px] min-w-[44px] shadow-2xs hover:scale-105 active:scale-95 cursor-pointer ${
             isCompared
               ? 'bg-[#5A3E7A] text-white border-[#5A3E7A] shadow-purple-900/20'
               : 'bg-purple-50/80 hover:bg-purple-100 text-[#5A3E7A] border-purple-200/80'
@@ -392,19 +409,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           title={lang === 'ar' ? 'مقارنة هذا المنتج' : 'Compare Specs'}
           aria-label={lang === 'ar' ? 'مقارنة هذا المنتج' : 'Compare Specs'}
         >
-          <ArrowLeftRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <ArrowLeftRight className="w-4 h-4" />
         </button>
 
-        {/* Quick Direct WhatsApp Order Button */}
+        {/* Quick Direct WhatsApp Order Button (Official Brand Icon) */}
         <button
           type="button"
           onClick={handleWhatsAppOrder}
-          className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl sm:rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors flex items-center justify-center relative min-h-[36px] min-w-[36px] sm:min-h-[42px] sm:min-w-[42px] shadow-2xs hover:scale-105 active:scale-95"
+          className="w-11 h-11 shrink-0 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50/90 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/90 transition-all flex items-center justify-center relative min-h-[44px] min-w-[44px] shadow-2xs hover:shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
           title={lang === 'ar' ? 'طلب مباشر وسريع عبر واتساب' : 'Direct WhatsApp Order'}
           aria-label="Direct WhatsApp Order"
         >
-          <span className="absolute top-1.5 end-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-          <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <span className="absolute top-1 end-1 w-1.5 h-1.5 rounded-full bg-[#25D366] animate-ping" />
+          <WhatsAppIcon variant="gradient" className="w-4 h-4 sm:w-[18px] sm:h-[18px] relative z-10" />
         </button>
       </div>
     </div>

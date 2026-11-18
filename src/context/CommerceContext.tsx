@@ -11,6 +11,7 @@ import {
   sanitizeProductDefensively,
   GoldenSnapshotMeta
 } from '../data/goldenStoreConfig';
+import { onAuthStateChanged } from 'firebase/auth';
 import { 
   getOrdersFromCloud, 
   persistOrderToCloud, 
@@ -19,8 +20,9 @@ import {
   subscribeToCloudOrders
 } from '../services/orderService';
 import { persistReviewToCloud, subscribeToCloudReviews } from '../services/reviewService';
-import { testConnection } from '../lib/firebase';
-import { obfuscateKey, deobfuscateKey } from '../lib/security';
+import { testConnection, auth } from '../lib/firebase';
+import { hashSecretSync, verifySecretSync, obfuscateKey } from '../lib/security';
+import { hairStylingDevices } from '../components/HairDevicesSpotlight';
 
 export interface CartItem {
   product: Product;
@@ -43,6 +45,7 @@ export interface OrderRecord {
   currency: string;
   status: 'received' | 'processing' | 'dispatched' | 'delivered';
   trackingCode: string;
+  ownerUid?: string;
 }
 
 export interface PlaceOrderParams {
@@ -123,8 +126,10 @@ interface CommerceContextType {
   isCompareModalOpen: boolean;
   setIsCompareModalOpen: (open: boolean) => void;
   
-  // Auth PINs
+  // Auth PINs & Verified Cloud Admin Session
   isAdminAuthenticated: boolean;
+  isCloudAdminVerified: boolean;
+  firebaseAdminEmail: string | null;
   loginAdmin: (pin: string, rememberLogin?: boolean, rememberPin?: boolean) => boolean;
   logoutAdmin: () => void;
   updateAdminPin: (newPin: string) => boolean;
@@ -133,7 +138,7 @@ interface CommerceContextType {
   loginDeveloper: (pin: string, rememberLogin?: boolean, rememberPin?: boolean) => boolean;
   logoutDeveloper: () => void;
   updateDeveloperPin: (newPin: string) => boolean;
-  resetDeveloperPinWithMasterKey: (masterKey: string, newPin?: string) => boolean;
+  resetDeveloperPinWithAdminAuth: (newPin: string) => boolean;
   
   // Self Destruct / Lock Mode
   isDeveloperModeLocked: boolean;
@@ -465,7 +470,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   // Persistent Wishlist in LocalStorage
-  const [wishlist, setWishlist] = useState<string[]>(() => {
+  const [rawWishlist, setWishlist] = useState<string[]>(() => {
     try {
       const saved = safeStorage.getItem(STORAGE_KEY_WISHLIST);
       if (saved) {
@@ -475,8 +480,19 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (e) {
       console.error('Failed to load wishlist from storage', e);
     }
-    return ['sb-01'];
+    return [];
   });
+
+  const activePresetIdRef = useRef(activePresetId);
+  activePresetIdRef.current = activePresetId;
+
+  const [isCloudAdminVerified, setIsCloudAdminVerified] = useState<boolean>(false);
+  const [firebaseAdminEmail, setFirebaseAdminEmail] = useState<string | null>(null);
+
+  const activePresetProductsForWishlist = dynamicConfig.presets[activePresetId]?.products || [];
+  const wishlist = rawWishlist.filter(
+    (id) => activePresetProductsForWishlist.some((p) => p.id === id) || (activePresetId === 'cosmetics' && id.startsWith('hd-'))
+  );
 
   // Product Comparison State
   const [comparisonList, setComparisonList] = useState<string[]>(() => {
@@ -565,14 +581,14 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [cart]);
 
-  // Sync wishlist to storage
+  // Sync raw wishlist to storage
   useEffect(() => {
     try {
-      safeStorage.setItem(STORAGE_KEY_WISHLIST, JSON.stringify(wishlist));
+      safeStorage.setItem(STORAGE_KEY_WISHLIST, JSON.stringify(rawWishlist));
     } catch (e) {
       console.error(e);
     }
-  }, [wishlist]);
+  }, [rawWishlist]);
 
   // Section Visibility Management (Single Source of Truth for Developer Panel)
   const defaultSections: SectionVisibilityMap = {
@@ -616,7 +632,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     showToast(lang === 'ar' ? 'تمت إعادة ضبط جميع الأقسام' : 'All sections restored to default');
   };
 
-  // Dynamic Section Layout Ordering: productsCatalog -> hairDevices -> promoBanner (Diamond Offer)
+  // Dynamic Section Layout Ordering: routineDiagnosis -> productsCatalog -> hairDevices -> promoBanner
   const defaultSectionsOrder: SectionId[] = [
     'hero',
     'brandTicker',
@@ -639,7 +655,9 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const validSet = new Set(defaultSectionsOrder);
           const filtered = parsed.filter((id): id is SectionId => validSet.has(id));
           defaultSectionsOrder.forEach(id => {
-            if (!filtered.includes(id)) filtered.push(id);
+            if (!filtered.includes(id)) {
+              filtered.push(id);
+            }
           });
           return filtered;
         }
@@ -724,8 +742,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           titleEn: current.titleEn || (title ? `Cloned: ${title}` : 'Custom Cloned Section'),
           subtitleAr: current.subtitleAr || 'محتوى مخصص إضافي لعرض مميزات وعروض حصرية للعملاء',
           subtitleEn: current.subtitleEn || 'Custom secondary showcase with tailored highlights',
-          badgeAr: current.badgeAr || 'نسخة إضافية ✨',
-          badgeEn: current.badgeEn || 'Featured Extra ✨',
+          badgeAr: current.badgeAr || 'نسخة إضافية',
+          badgeEn: current.badgeEn || 'Featured Extra',
         }
       };
       try {
@@ -1085,7 +1103,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         en: 'Just now' 
       },
       comment: { ar: review.comment.trim(), en: review.comment.trim() },
-      badge: { ar: 'مشتري حقيقي موثق ⭐', en: 'Verified Real Buyer ⭐' },
+      badge: { ar: 'مشتري حقيقي موثق ✓', en: 'Verified Real Buyer ✓' },
       rating: review.rating || 5,
       status: 'pending' as const
     };
@@ -1113,8 +1131,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     showToast(
       lang === 'ar' 
-        ? 'شكراً لكِ! تم إرسال تقييمكِ بنجاح وهو الآن بانتظار مراجعة الإدارة وسيظهر قريباً في المتجر 🌟' 
-        : 'Thank you! Your review has been submitted and is awaiting admin approval 🌟'
+        ? 'شكراً لكِ! تم إرسال تقييمكِ بنجاح وهو الآن بانتظار مراجعة الإدارة وسيظهر قريباً في المتجر' 
+        : 'Thank you! Your review has been submitted and is awaiting admin approval'
     );
   };
 
@@ -1155,92 +1173,114 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const cached = safeStorage.getItem('luxe_cached_orders');
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (_) {}
-    return defaultOrdersPreset;
+    return [];
   });
 
-  // Synchronize orders with Firestore Cloud Database (Initial fetch & Real-time subscription)
+  // Synchronize Firestore Cloud Database gated strictly by Auth State (Admin gets orders + all reviews; Public gets approved reviews only)
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
     let isMounted = true;
-    (async () => {
-      try {
-        await testConnection();
-        const cloudOrders = await getOrdersFromCloud();
-        if (isMounted) {
-          if (Array.isArray(cloudOrders) && cloudOrders.length > 0) {
-            setOrders(cloudOrders);
-            safeStorage.setItem('luxe_cached_orders', JSON.stringify(cloudOrders));
-          } else {
-            // Only seed Firestore if this is a first-time setup and not cleared by admin
-            const seededStatus = safeStorage.getItem('luxe_orders_seeded_flag');
-            const hasSeededOnce = safeStorage.getItem('luxe_has_seeded_once');
-            if (seededStatus !== 'cleared' && !hasSeededOnce) {
-              safeStorage.setItem('luxe_has_seeded_once', 'true');
-              for (const item of defaultOrdersPreset) {
-                await persistOrderToCloud(item);
-              }
-            } else {
-              setOrders([]);
-              safeStorage.removeItem('luxe_cached_orders');
-            }
-          }
-        }
-        // Attach real-time subscription for live cloud updates
-        unsubscribe = subscribeToCloudOrders((liveOrders) => {
-          if (isMounted && Array.isArray(liveOrders) && liveOrders.length > 0) {
-            setOrders(liveOrders);
-            safeStorage.setItem('luxe_cached_orders', JSON.stringify(liveOrders));
-          }
-        });
+    let unsubOrders: (() => void) | undefined;
+    let unsubReviews: (() => void) | undefined;
 
-        // Attach real-time subscription for live cloud customer reviews
-        const unsubReviews = subscribeToCloudReviews((cloudReviews) => {
+    testConnection().catch(() => {});
+
+    const unsubAuth = onAuthStateChanged(auth, async (fbUser) => {
+      if (!isMounted) return;
+      if (unsubOrders) {
+        unsubOrders();
+        unsubOrders = undefined;
+      }
+      if (unsubReviews) {
+        unsubReviews();
+        unsubReviews = undefined;
+      }
+
+      const verifiedAdmin = Boolean(
+        fbUser && fbUser.emailVerified && fbUser.email === 'mohsentiben@gmail.com'
+      );
+      setIsCloudAdminVerified(verifiedAdmin);
+      setFirebaseAdminEmail(fbUser?.email || null);
+
+      // Attach live reviews subscription (approved-only for public visitors; all statuses for verified Admin)
+      unsubReviews = subscribeToCloudReviews(
+        (cloudReviews) => {
           if (!isMounted || !Array.isArray(cloudReviews) || cloudReviews.length === 0) return;
+          const targetPresetKey = activePresetIdRef.current;
           setDynamicConfig((prev) => {
             const clone = JSON.parse(JSON.stringify(prev));
-            const currentTestimonials = clone.presets[activePresetId]?.testimonials || [];
-            
-            const mappedNew = cloudReviews.map((cr) => ({
+            const currentTestimonials = clone.presets[targetPresetKey]?.testimonials || [];
+
+            const mappedCloud = cloudReviews.map((cr) => ({
               id: cr.id,
               name: { ar: cr.name, en: cr.name },
               city: { ar: cr.city || 'الخرطوم', en: cr.city || 'Khartoum' },
               avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
               purchasedProduct: { ar: 'مشتريات معتمدة من المتجر', en: 'Verified Store Order', id: 'verified' },
-              date: { ar: 'تقييم سحابي موثق ⭐', en: 'Verified Cloud Review ⭐' },
+              date: { ar: 'تقييم سحابي موثق ✓', en: 'Verified Cloud Review ✓' },
               comment: { ar: cr.comment, en: cr.comment },
               badge: { ar: 'تقييم معتمد ✓', en: 'Verified Review ✓' },
               rating: cr.rating || 5,
-              status: 'approved' as const
+              status: cr.status || ('pending' as const),
             }));
 
+            const existingIds = new Set(currentTestimonials.map((t: any) => String(t.id)));
             const existingComments = new Set(currentTestimonials.map((t: any) => t.comment?.ar || t.comment));
-            const freshItems = mappedNew.filter(m => !existingComments.has(m.comment.ar));
+            let changed = false;
 
-            if (freshItems.length > 0) {
-              clone.presets[activePresetId].testimonials = [...freshItems, ...currentTestimonials];
+            const updatedTestimonials = currentTestimonials.map((t: any) => {
+              const match = mappedCloud.find((mc) => String(mc.id) === String(t.id));
+              if (match && match.status !== t.status) {
+                changed = true;
+                return { ...t, status: match.status };
+              }
+              return t;
+            });
+
+            const freshItems = mappedCloud.filter(
+              (m) => !existingIds.has(String(m.id)) && !existingComments.has(m.comment.ar)
+            );
+
+            if (freshItems.length > 0 || changed) {
+              clone.presets[targetPresetKey].testimonials = [...freshItems, ...updatedTestimonials];
               return clone;
             }
             return prev;
           });
-        });
+        },
+        undefined,
+        verifiedAdmin
+      );
 
-        const originalUnsub = unsubscribe;
-        unsubscribe = () => {
-          if (originalUnsub) originalUnsub();
-          if (unsubReviews) unsubReviews();
-        };
-      } catch (err) {
-        console.warn('Could not sync orders from cloud:', err);
+      // Private full-orders stream is strictly reserved for verified Admin sessions
+      if (verifiedAdmin) {
+        try {
+          const cloudOrders = await getOrdersFromCloud();
+          if (isMounted && Array.isArray(cloudOrders)) {
+            setOrders(cloudOrders);
+            safeStorage.setItem('luxe_cached_orders', JSON.stringify(cloudOrders));
+          }
+          unsubOrders = subscribeToCloudOrders((liveOrders) => {
+            if (isMounted && Array.isArray(liveOrders)) {
+              setOrders(liveOrders);
+              safeStorage.setItem('luxe_cached_orders', JSON.stringify(liveOrders));
+            }
+          });
+        } catch (err) {
+          console.warn('Could not sync admin cloud orders:', err);
+        }
       }
-    })();
-    return () => { 
-      isMounted = false; 
-      if (unsubscribe) unsubscribe();
+    });
+
+    return () => {
+      isMounted = false;
+      unsubAuth();
+      if (unsubOrders) unsubOrders();
+      if (unsubReviews) unsubReviews();
     };
-  }, [activePresetId]);
+  }, []);
 
   // Persist language and update document direction
   const setLang = (l: 'ar' | 'en') => {
@@ -1547,9 +1587,17 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
+        const bestUnitPriceUSD = Math.min(existing.product.basePriceUSD, product.basePriceUSD);
         return prev.map((item) =>
           item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
+            ? {
+                ...item,
+                product:
+                  bestUnitPriceUSD < item.product.basePriceUSD
+                    ? { ...item.product, basePriceUSD: bestUnitPriceUSD }
+                    : item.product,
+                quantity: item.quantity + quantity,
+              }
             : item
         );
       }
@@ -1656,8 +1704,13 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const addAllWishlistToCart = () => {
-    const allProducts = dynamicConfig.presets[activePresetId].products;
-    const itemsToAdd = allProducts.filter((p) => wishlist.includes(p.id));
+    const presetProducts = dynamicConfig.presets[activePresetId]?.products || [];
+    const baseIds = new Set(presetProducts.map((p) => p.id));
+    const catalogPool =
+      activePresetId === 'cosmetics'
+        ? [...presetProducts, ...hairStylingDevices.filter((hd) => !baseIds.has(hd.id))]
+        : presetProducts;
+    const itemsToAdd = catalogPool.filter((p) => wishlist.includes(p.id));
     if (itemsToAdd.length === 0) return;
 
     itemsToAdd.forEach((prod) => {
@@ -1697,9 +1750,9 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const loginAdmin = (pin: string, rememberLogin: boolean = false, rememberPin: boolean = false) => {
     const cleanPin = pin.trim();
     const storedPin = dynamicConfig.security.adminPin;
-    const isDirectMatch = cleanPin === storedPin || cleanPin === '2026';
+    const isMatched = verifySecretSync(cleanPin, storedPin);
 
-    if (isDirectMatch) {
+    if (isMatched) {
       setIsAdminAuthenticated(true);
       if (rememberLogin) {
         safeStorage.setItem('luxe_admin_auth_saved', 'true');
@@ -1722,23 +1775,22 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       showToast(lang === 'ar' ? 'رمز لوحة التحكم يجب أن يتكون من 4 أرقام عددية تماماً' : 'Admin PIN must be exactly 4 numeric digits');
       return false;
     }
+    const hashedPin = hashSecretSync(cleanPin);
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev));
       if (!clone.security) {
         clone.security = { ...siteConfig.security };
       }
-      clone.security.adminPin = cleanPin;
+      clone.security.adminPin = hashedPin;
       try {
         localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
       } catch (e) {}
       return clone;
     });
     try {
-      if (localStorage.getItem('luxe_admin_saved_pin')) {
-        localStorage.setItem('luxe_admin_saved_pin', obfuscateKey(cleanPin));
-      }
+      localStorage.removeItem('luxe_admin_saved_pin');
     } catch (_) {}
-    showToast(lang === 'ar' ? `تم تحديث رمز الأدمن السري الجديد (${cleanPin}) بنجاح!` : `Admin PIN updated to (${cleanPin}) successfully!`);
+    showToast(lang === 'ar' ? 'تم تحديث وتشفير رمز الأدمن السري الجديد بنجاح!' : 'Admin PIN updated and encrypted successfully!');
     return true;
   };
 
@@ -1749,12 +1801,10 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const loginDeveloper = (pin: string, rememberLogin: boolean = false, rememberPin: boolean = false) => {
     const cleanPin = pin.trim();
-    const currentPin = dynamicConfig.security.developerPin;
-    const masterEmergencyKey = dynamicConfig.security.masterRecoveryKey || 'DEV-RESCUE-9988-2026';
-    const isHardcodedFallback = cleanPin === '998877';
-    const isMasterKey = cleanPin.toUpperCase() === masterEmergencyKey.toUpperCase();
+    const storedPin = dynamicConfig.security.developerPin;
+    const isMatched = verifySecretSync(cleanPin, storedPin);
 
-    if (cleanPin === currentPin || isHardcodedFallback || isMasterKey) {
+    if (isMatched) {
       setIsDevAuthenticated(true);
       if (rememberLogin) {
         safeStorage.setItem('luxe_dev_auth_saved', 'true');
@@ -1762,7 +1812,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         safeStorage.removeItem('luxe_dev_auth_saved');
       }
       if (rememberPin) {
-        safeStorage.setItem('luxe_dev_saved_pin', obfuscateKey(cleanPin === currentPin ? cleanPin : currentPin));
+        safeStorage.setItem('luxe_dev_saved_pin', obfuscateKey(cleanPin));
       } else {
         safeStorage.removeItem('luxe_dev_saved_pin');
       }
@@ -1777,39 +1827,13 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       showToast(lang === 'ar' ? 'رمز المطور يجب أن يتكون من 6 أرقام عددية تماماً' : 'Developer PIN must be exactly 6 numeric digits');
       return false;
     }
+    const hashedPin = hashSecretSync(cleanPin);
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev));
       if (!clone.security) {
         clone.security = { ...siteConfig.security };
       }
-      clone.security.developerPin = cleanPin;
-      try {
-        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
-      } catch (e) {}
-      return clone;
-    });
-    try {
-      if (localStorage.getItem('luxe_dev_saved_pin')) {
-        localStorage.setItem('luxe_dev_saved_pin', obfuscateKey(cleanPin));
-      }
-    } catch (_) {}
-    showToast(lang === 'ar' ? `تم تحديث رمز المطور السري الجديد (${cleanPin}) بنجاح!` : `Developer PIN updated to (${cleanPin}) successfully!`);
-    return true;
-  };
-
-  const resetDeveloperPinWithMasterKey = (masterKey: string, newPin?: string): boolean => {
-    const expectedKey = (dynamicConfig.security.masterRecoveryKey || 'DEV-RESCUE-9988-2026').trim().toUpperCase();
-    if (masterKey.trim().toUpperCase() !== expectedKey) {
-      showToast(lang === 'ar' ? 'مفتاح الطوارئ الرئيسي غير صحيح!' : 'Invalid Master Emergency Key!');
-      return false;
-    }
-    const targetPin = (newPin && /^\d{6}$/.test(newPin.trim())) ? newPin.trim() : '998877';
-    setDynamicConfig((prev) => {
-      const clone = JSON.parse(JSON.stringify(prev));
-      if (!clone.security) {
-        clone.security = { ...siteConfig.security };
-      }
-      clone.security.developerPin = targetPin;
+      clone.security.developerPin = hashedPin;
       try {
         localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
       } catch (e) {}
@@ -1818,7 +1842,41 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       localStorage.removeItem('luxe_dev_saved_pin');
     } catch (_) {}
-    showToast(lang === 'ar' ? `تم فك القفل واستعادة رمز المطور بنجاح (${targetPin})!` : `Developer PIN restored via Master Key (${targetPin})!`);
+    showToast(lang === 'ar' ? 'تم تحديث وتشفير رمز المطور السري الجديد بنجاح!' : 'Developer PIN updated and encrypted successfully!');
+    return true;
+  };
+
+  const resetDeveloperPinWithAdminAuth = (newPin: string): boolean => {
+    const fbUser = auth.currentUser;
+    const isVerifiedOwner = Boolean(
+      fbUser && fbUser.emailVerified && fbUser.email === 'mohsentiben@gmail.com'
+    );
+    if (!isVerifiedOwner) {
+      showToast(lang === 'ar' ? 'يجب توثيق هوية المالك عبر Google أولاً لاستعادة الرمز.' : 'Verified owner Google login required to reset PIN.');
+      return false;
+    }
+    const cleanPin = newPin.trim();
+    if (!/^\d{6}$/.test(cleanPin)) {
+      showToast(lang === 'ar' ? 'يرجى إدخال رمز جديد مكون من 6 أرقام' : 'Please enter a valid 6-digit numeric PIN');
+      return false;
+    }
+    const hashedPin = hashSecretSync(cleanPin);
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      if (!clone.security) {
+        clone.security = { ...siteConfig.security };
+      }
+      clone.security.developerPin = hashedPin;
+      try {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
+      } catch (e) {}
+      return clone;
+    });
+    try {
+      localStorage.removeItem('luxe_dev_saved_pin');
+    } catch (_) {}
+    setIsDevAuthenticated(true);
+    showToast(lang === 'ar' ? 'تم تعيين رمز المطور الجديد بنجاح بعد التحقق السحابي!' : 'Developer PIN securely updated after Google verification!');
     return true;
   };
 
@@ -1867,6 +1925,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       currency,
       status: 'received',
       trackingCode,
+      ...(auth.currentUser?.uid ? { ownerUid: auth.currentUser.uid } : {}),
     };
 
     // Decrement stock for purchased items across all catalog presets
@@ -1913,7 +1972,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       safeStorage.setItem('luxe_my_last_tracking', trackingCode);
     } catch (_) {}
 
-    // Cloud Firestore persistence (asynchronous with error safety)
+    // Cloud Firestore persistence (orders + sanitized tracking doc)
     persistOrderToCloud(newOrder).catch((err) => {
       console.warn('Could not persist order to Firestore in background:', err);
     });
@@ -1925,23 +1984,24 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const updateOrderStatus = (orderId: string, status: OrderRecord['status']) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
     setOrders((prev) => {
       const next = prev.map((o) => (o.id === orderId ? { ...o, status } : o));
       safeStorage.setItem('luxe_cached_orders', JSON.stringify(next));
       return next;
     });
-    updateOrderStatusInCloud(orderId, status).catch((err) => {
+    updateOrderStatusInCloud(orderId, status, targetOrder?.trackingCode).catch((err) => {
       console.warn('Could not update order status in cloud:', err);
     });
     showToast(lang === 'ar' ? 'تم تحديث حالة الطلب سحابياً بنجاح' : 'Order status updated in cloud');
   };
 
   const clearAllOrders = () => {
-    const existingIds = orders.map((o) => o.id);
+    const targets = orders.map((o) => ({ id: o.id, trackingCode: o.trackingCode }));
     setOrders([]);
     safeStorage.removeItem('luxe_cached_orders');
     safeStorage.setItem('luxe_orders_seeded_flag', 'cleared');
-    clearAllOrdersFromCloud(existingIds).catch((err) => {
+    clearAllOrdersFromCloud(targets).catch((err) => {
       console.warn('Could not clear orders from cloud:', err);
     });
     showToast(lang === 'ar' ? 'تم تفريغ سجل الطلبات بالكامل بنجاح' : 'All orders have been cleared');
@@ -2042,6 +2102,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isCompareModalOpen,
         setIsCompareModalOpen,
         isAdminAuthenticated,
+        isCloudAdminVerified,
+        firebaseAdminEmail,
         loginAdmin,
         logoutAdmin,
         updateAdminPin,
@@ -2049,7 +2111,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         loginDeveloper,
         logoutDeveloper,
         updateDeveloperPin,
-        resetDeveloperPinWithMasterKey,
+        resetDeveloperPinWithAdminAuth,
         isDeveloperModeLocked,
         toggleLockDeveloperMode,
         orders,

@@ -1,21 +1,24 @@
 import React from 'react';
 import { 
   Heart, ShoppingBag, ArrowLeft, ArrowRight, Trash2, 
-  Sparkles, Check, Star, ShieldCheck, ArrowUpRight 
+  Check, ShieldCheck, ArrowUpRight 
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
 import { ProductCard } from './ProductCard';
+import { hairStylingDevices } from './HairDevicesSpotlight';
 
 export const WishlistView: React.FC = () => {
   const { 
     lang, wishlist, toggleWishlist, clearWishlist, 
-    addAllWishlistToCart, activeData, convertPrice, 
+    addAllWishlistToCart, activeData, activePresetId, convertPrice, 
     addToCart, openProductPDP, navigateTo 
   } = useCommerce();
 
   const isRtl = lang === 'ar';
-  const allProducts = activeData.products;
+  const allProducts = activePresetId === 'cosmetics'
+    ? [...activeData.products, ...hairStylingDevices]
+    : activeData.products;
   const wishlistedProducts = allProducts.filter((p) => wishlist.includes(p.id));
 
   return (
@@ -82,7 +85,7 @@ export const WishlistView: React.FC = () => {
                 onClick={addAllWishlistToCart}
                 className="px-6 py-2.5 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-full text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 min-h-[44px]"
               >
-                <Sparkles className="w-4 h-4 text-amber-300" />
+                <ShoppingBag className="w-4 h-4 text-amber-300" />
                 <span>{lang === 'ar' ? 'نقل الكل إلى السلة' : 'Move All to Bag'}</span>
               </button>
             </div>

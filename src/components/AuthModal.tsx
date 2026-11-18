@@ -1,37 +1,85 @@
 import React, { useState } from 'react';
-import { X, Mail, Sparkles, Check } from 'lucide-react';
+import { X } from 'lucide-react';
+import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import { useCommerce } from '../context/CommerceContext';
 import { SmartPasswordInput } from './SmartInputField';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, setIsAuthModalOpen, lang, showToast } = useCommerce();
+  const { isAuthModalOpen, setIsAuthModalOpen, lang, showToast, navigateTo } = useCommerce();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isAuthModalOpen) return null;
 
-  const handleGoogleSignIn = () => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsAuthModalOpen(false);
-      showToast(lang === 'ar' ? 'تم تسجيل الدخول بنجاح عبر حساب Google' : 'Signed in successfully with Google');
-    }, 600);
+  const getFirebaseError = (code: string) => {
+    switch (code) {
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return lang === 'ar' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة' : 'Invalid email or password';
+      case 'auth/popup-closed-by-user':
+        return lang === 'ar' ? 'تم إغلاق نافذة تسجيل الدخول' : 'Sign-in window closed';
+      case 'auth/popup-blocked':
+        return lang === 'ar' ? 'المتصفح حظر النافذة المنبثقة، يرجى السماح بها' : 'Sign-in popup blocked by browser';
+      default:
+        return lang === 'ar' ? 'تعذر تسجيل الدخول حالياً، يرجى التحقق من البيانات والاتصال' : 'Could not sign in right now, please check credentials and connection';
+    }
   };
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleGoogleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const res = await signInWithPopup(auth, provider);
+      const resolvedName = res.user.displayName || res.user.email?.split('@')[0] || (lang === 'ar' ? 'عميلة المتجر' : 'Customer');
+      try {
+        localStorage.setItem('luxe_customer_user', JSON.stringify({
+          uid: res.user.uid,
+          email: res.user.email,
+          name: resolvedName,
+          photoURL: res.user.photoURL,
+          provider: 'google',
+          authenticatedAt: new Date().toISOString()
+        }));
+      } catch (_) {}
+      setIsAuthModalOpen(false);
+      showToast(lang === 'ar' ? `مرحباً بكِ ${resolvedName}! تم تسجيل الدخول عبر Google` : `Welcome ${resolvedName}! Signed in with Google`);
+    } catch (err: any) {
+      showToast(getFirebaseError(err?.code || ''));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       showToast(lang === 'ar' ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور' : 'Please provide email and password');
       return;
     }
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const res = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const resolvedName = res.user.displayName || email.split('@')[0];
+      try {
+        localStorage.setItem('luxe_customer_user', JSON.stringify({
+          uid: res.user.uid,
+          email: res.user.email,
+          name: resolvedName,
+          provider: 'email',
+          authenticatedAt: new Date().toISOString()
+        }));
+      } catch (_) {}
       setIsAuthModalOpen(false);
-      showToast(lang === 'ar' ? 'مرحباً بك! تم تسجيل دخولك بنجاح' : 'Welcome back! You are logged in');
-    }, 600);
+      showToast(lang === 'ar' ? 'مرحباً بكِ! تم تسجيل دخولكِ بنجاح' : 'Welcome back! You are logged in');
+    } catch (err: any) {
+      showToast(getFirebaseError(err?.code || ''));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -42,8 +90,9 @@ export const AuthModal: React.FC = () => {
       >
         {/* Close Button with Safe Distance */}
         <button
+          type="button"
           onClick={() => setIsAuthModalOpen(false)}
-          className="absolute top-4 end-4 w-11 h-11 rounded-full text-slate-400 hover:text-slate-700 bg-slate-100/70 hover:bg-slate-200/80 transition-colors flex items-center justify-center min-w-[44px] min-h-[44px] z-10"
+          className="absolute top-4 end-4 w-11 h-11 rounded-full text-slate-400 hover:text-slate-700 bg-slate-100/70 hover:bg-slate-200/80 transition-colors flex items-center justify-center min-w-[44px] min-h-[44px] z-10 cursor-pointer"
           aria-label="Close"
         >
           <X className="w-5 h-5" />
@@ -61,11 +110,11 @@ export const AuthModal: React.FC = () => {
 
         {/* Google One-Click Login */}
         <button
+          type="button"
           onClick={handleGoogleSignIn}
           disabled={isSubmitting}
-          className="w-full py-3 px-4 rounded-2xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-sm flex items-center justify-center gap-3 transition-all min-h-[48px] shadow-xs"
+          className="w-full py-3 px-4 rounded-2xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60 text-slate-700 font-bold text-sm flex items-center justify-center gap-3 transition-all min-h-[48px] shadow-xs cursor-pointer"
         >
-          {/* Google G Logo */}
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
               fill="#4285F4"
@@ -129,7 +178,7 @@ export const AuthModal: React.FC = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3.5 bg-[#5A3E7A] hover:bg-[#493163] text-white font-extrabold rounded-2xl text-sm shadow-md transition-all flex items-center justify-center gap-2 min-h-[48px]"
+            className="w-full py-3.5 bg-[#5A3E7A] hover:bg-[#493163] disabled:opacity-60 text-white font-extrabold rounded-2xl text-sm shadow-md transition-all flex items-center justify-center gap-2 min-h-[48px] cursor-pointer"
           >
             <span>{isSubmitting ? (lang === 'ar' ? 'جاري التحقق...' : 'Signing in...') : (lang === 'ar' ? 'دخول' : 'Sign In')}</span>
           </button>
@@ -140,16 +189,21 @@ export const AuthModal: React.FC = () => {
           <p className="text-slate-500">
             <span>{lang === 'ar' ? 'ليس لديك حساب؟ ' : "Don't have an account? "}</span>
             <button
-              onClick={() => showToast(lang === 'ar' ? 'يمكنك المتابعة والتسوق كزائر، أو تسجيل الدخول السريع عبر Google.' : 'You can checkout as guest or sign in with Google.')}
-              className="text-[#5A3E7A] font-bold hover:underline"
+              type="button"
+              onClick={() => {
+                setIsAuthModalOpen(false);
+                navigateTo('login');
+              }}
+              className="text-[#5A3E7A] font-bold hover:underline cursor-pointer"
             >
               {lang === 'ar' ? 'أنشئ حساباً' : 'Create one'}
             </button>
           </p>
 
           <button
+            type="button"
             onClick={() => setIsAuthModalOpen(false)}
-            className="text-slate-400 hover:text-slate-600 transition-colors"
+            className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
           >
             {lang === 'ar' ? 'العودة للرئيسية' : 'Return to Home'}
           </button>

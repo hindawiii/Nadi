@@ -2,28 +2,33 @@
   "entities": {
     "order": {
       "title": "Order",
-      "description": "Store customer order record for e-commerce purchases",
+      "description": "Private customer order record containing PII (admin or authenticated owner only)",
       "type": "object",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique order ID (e.g. ORD-2026-108)"
+          "description": "Unique order ID (e.g. ORD-2026-108)",
+          "maxLength": 64
         },
         "date": {
           "type": "string",
-          "description": "Formatted date and time of the order"
+          "description": "Formatted date and time of the order",
+          "maxLength": 64
         },
         "customerName": {
           "type": "string",
-          "description": "Full name of the customer"
+          "description": "Full name of the customer",
+          "maxLength": 120
         },
         "phone": {
           "type": "string",
-          "description": "Contact phone number of the customer"
+          "description": "Contact phone number of the customer",
+          "maxLength": 40
         },
         "address": {
           "type": "string",
-          "description": "Delivery address of the customer"
+          "description": "Delivery address of the customer",
+          "maxLength": 300
         },
         "items": {
           "type": "array",
@@ -31,15 +36,30 @@
         },
         "totalFormatted": {
           "type": "string",
-          "description": "Formatted order total with currency symbol"
+          "description": "Formatted order total with currency symbol",
+          "maxLength": 60
         },
         "totalUSD": {
           "type": "number",
           "description": "Order total in USD"
         },
+        "discountAmountUSD": {
+          "type": "number",
+          "description": "Applied discount amount in USD"
+        },
+        "shippingFeeUSD": {
+          "type": "number",
+          "description": "Shipping fee in USD"
+        },
+        "promoCode": {
+          "type": "string",
+          "description": "Optional applied promo code",
+          "maxLength": 32
+        },
         "currency": {
           "type": "string",
-          "description": "Currency code (e.g. SDG, SAR, USD, AED)"
+          "description": "Currency code (e.g. SDG, SAR, USD, AED)",
+          "maxLength": 16
         },
         "status": {
           "type": "string",
@@ -48,11 +68,18 @@
         },
         "trackingCode": {
           "type": "string",
-          "description": "Public parcel tracking code (e.g. TRK-98241)"
+          "description": "Public parcel tracking code (e.g. TRK-98241)",
+          "maxLength": 64
+        },
+        "ownerUid": {
+          "type": "string",
+          "description": "Optional Firebase Auth UID of authenticated customer",
+          "maxLength": 128
         },
         "createdAt": {
           "type": "string",
-          "description": "ISO timestamp of creation"
+          "description": "ISO timestamp of creation",
+          "maxLength": 64
         }
       },
       "required": [
@@ -65,9 +92,57 @@
         "trackingCode"
       ]
     },
+    "tracking": {
+      "title": "PublicOrderTracking",
+      "description": "Sanitized public shipment status record (strictly free of customer PII)",
+      "type": "object",
+      "properties": {
+        "trackingCode": {
+          "type": "string",
+          "description": "Public parcel tracking code (document ID)",
+          "maxLength": 64
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference order ID",
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "enum": ["received", "processing", "dispatched", "delivered"],
+          "description": "Fulfillment progress status"
+        },
+        "date": {
+          "type": "string",
+          "description": "Order date string",
+          "maxLength": 64
+        },
+        "totalFormatted": {
+          "type": "string",
+          "description": "Formatted order total without PII",
+          "maxLength": 60
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last status update",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation",
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "trackingCode",
+        "orderId",
+        "status",
+        "totalFormatted"
+      ]
+    },
     "review": {
-      "title": "Customer Review",
-      "description": "Verified or submitted customer review",
+      "title": "CustomerReview",
+      "description": "Customer testimonial awaiting moderation or published to storefront",
       "type": "object",
       "properties": {
         "id": {
@@ -76,36 +151,70 @@
         },
         "name": {
           "type": "string",
-          "description": "Reviewer display name"
+          "description": "Reviewer display name",
+          "maxLength": 80
         },
         "city": {
           "type": "string",
-          "description": "Reviewer city"
+          "description": "Reviewer city",
+          "maxLength": 80
         },
         "comment": {
           "type": "string",
-          "description": "Review comment body"
+          "description": "Review comment body",
+          "maxLength": 1000
         },
         "rating": {
           "type": "number",
           "description": "Rating score between 1 and 5"
         },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "description": "Moderation status enforced by security rules"
+        },
         "createdAt": {
           "type": "string",
-          "description": "Creation timestamp"
+          "description": "Creation timestamp",
+          "maxLength": 64
         }
       },
-      "required": ["name", "city", "comment", "rating"]
+      "required": ["name", "city", "comment", "rating", "status"]
+    },
+    "admin": {
+      "title": "AdminRole",
+      "description": "Store administrator authorization record",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Verified administrator email"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin"],
+          "description": "Role designation"
+        }
+      },
+      "required": ["email", "role"]
     }
   },
   "firestore": {
     "/orders/{orderId}": {
       "schema": "order",
-      "description": "Customer purchase orders collection with live tracking"
+      "description": "Private customer orders with PII — readable/listable/updatable only by verified Admin or matching ownerUid on get"
+    },
+    "/tracking/{trackingCode}": {
+      "schema": "tracking",
+      "description": "Public non-PII tracking projection lookup by exact trackingCode only (no list)"
     },
     "/reviews/{reviewId}": {
       "schema": "review",
-      "description": "Product and store customer reviews collection"
+      "description": "Customer reviews — public reads restricted to status == 'approved'; creates forced to 'pending'"
+    },
+    "/admins/{uid}": {
+      "schema": "admin",
+      "description": "Admin role membership documents"
     }
   }
 }

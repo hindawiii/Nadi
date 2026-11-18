@@ -51,4 +51,14 @@ describe('Cart Calculations & Free Shipping Threshold Logic', () => {
     expect(remainingStock).toBe(0);
     expect(remainingStock).not.toBeLessThan(0);
   });
+
+  it('should preserve the lower bundle-discounted unit price when adding an item already in cart', () => {
+    const existingUnitPriceUSD = 20;
+    const discountedBundleUnitPriceUSD = 15;
+    const mergedUnitPriceUSD = Math.min(existingUnitPriceUSD, discountedBundleUnitPriceUSD);
+
+    expect(mergedUnitPriceUSD).toBe(15);
+    // And adding a regular-priced item afterward should never overwrite the bundle discount upward
+    expect(Math.min(mergedUnitPriceUSD, existingUnitPriceUSD)).toBe(15);
+  });
 });

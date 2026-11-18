@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  X, Star, Trash2, Plus, Sparkles, ArrowLeftRight 
+  X, BadgeCheck, Trash2, Plus, Layers, ArrowLeftRight 
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { StoreCartIcon } from './common/StoreCartIcon';
@@ -135,7 +135,7 @@ export const CompareModal: React.FC = () => {
               {/* Contextual Banner for Single Selection */}
               {comparedProducts.length === 1 && (
                 <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-100/90 to-purple-50 border border-purple-200 flex items-center gap-2.5 shadow-2xs">
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#5A3E7A] shrink-0" />
+                  <ArrowLeftRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#5A3E7A] shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
                       {lang === 'ar' 
@@ -216,10 +216,10 @@ export const CompareModal: React.FC = () => {
                           </h4>
                         </div>
 
-                        {/* Rating */}
-                        <div className="flex items-center gap-1 text-amber-500">
-                          <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-current shrink-0" />
-                          <span className="text-[11px] sm:text-xs font-bold text-slate-800">{p.rating}</span>
+                        {/* Numeric Rating */}
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-[#5A3E7A] border border-purple-200/70">
+                          <BadgeCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                          <span className="text-[11px] sm:text-xs font-bold text-slate-800">{p.rating} / 5</span>
                           <span className="text-[9px] sm:text-[11px] text-slate-400">({p.reviewsCount})</span>
                         </div>
 
@@ -317,7 +317,7 @@ export const CompareModal: React.FC = () => {
                 <div className="pt-3 sm:pt-6 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-2.5">
                     <h4 className="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#5A3E7A]" />
+                      <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#5A3E7A]" />
                       <span>{lang === 'ar' ? 'منتجات مقترحة للمقارنة الفورية:' : 'Suggested to Compare:'}</span>
                     </h4>
                     <span className="text-[10px] sm:text-[11px] text-slate-400">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, X, Share, PlusSquare, Sparkles, Smartphone, CheckCircle2 } from 'lucide-react';
+import { Download, X, Share, PlusSquare, Smartphone, CheckCircle2 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { useCommerce } from '../context/CommerceContext';
 
@@ -30,10 +30,10 @@ export const PWAInstallBanner: React.FC = () => {
 
   return (
     <>
-      {/* Floating Bottom Promotional Install Banner */}
+      {/* Floating Bottom Promotional Install Banner (cleared above mobile FAB corner zone) */}
       <aside 
         aria-label={lang === 'ar' ? 'تثبيت التطبيق' : 'Install Application'}
-        className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:end-6 sm:max-w-md z-45 animate-in slide-in-from-bottom-5 duration-300"
+        className="fixed bottom-20 inset-x-3 sm:bottom-6 sm:inset-x-auto sm:start-6 sm:max-w-sm z-45 animate-in slide-in-from-bottom-5 duration-300"
       >
         <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-purple-200/80 shadow-2xl p-4 sm:p-4.5 flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
@@ -45,8 +45,8 @@ export const PWAInstallBanner: React.FC = () => {
                   alt="NADI App Icon" 
                   className="w-full h-full object-cover"
                 />
-                <span className="absolute -bottom-1 -end-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center">
-                  <Sparkles className="w-2.5 h-2.5 text-purple-950" />
+                <span className="absolute -bottom-1 -end-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="w-2.5 h-2.5 text-white" />
                 </span>
               </div>
 

@@ -149,6 +149,16 @@ export interface PresetNiche {
     phone: string;
     email: string;
     whatsapp: string;
+    instagramUrl?: string;
+    facebookUrl?: string;
+    paymentWallets?: {
+      binancePayId: string;
+      redotPayId: string;
+      paypalEmail: string;
+      bankakAccount: string;
+      cashiNumber: string;
+      bravoNumber: string;
+    };
   };
   aboutStory: {
     title: { ar: string; en: string };
@@ -210,7 +220,6 @@ export interface SiteConfig {
     isDeveloperModeLocked: boolean;
     developerRecoveryPhone?: string;
     developerRecoveryEmail?: string;
-    masterRecoveryKey?: string;
   };
   currencies: Record<string, CurrencyConfig>;
   presets: Record<'cosmetics' | 'fashion' | 'eyewear' | 'electronics', PresetNiche>;
@@ -222,8 +231,7 @@ export const siteConfig: SiteConfig = {
     developerPin: "998877",
     isDeveloperModeLocked: false,
     developerRecoveryPhone: "+966 50 889 9772",
-    developerRecoveryEmail: "dev.core@luxe-ecommerce.pro",
-    masterRecoveryKey: "DEV-RESCUE-9988-2026",
+    developerRecoveryEmail: "mohsentiben@gmail.com",
   },
   
   currencies: {
@@ -257,8 +265,8 @@ export const siteConfig: SiteConfig = {
           en: "Smart Shopping: Save to Wishlist ❤️ • Compare Specs ⚖️ • Order via Cart or WhatsApp 💬"
         },
         {
-          ar: "شحن سريع وعناية نباتية فائقة 🚚 • دفع آمن عند الاستلام أو أونلاين ✨",
-          en: "Fast Delivery & Pure Botanical Care 🚚 • Cash on Delivery or Secure Online Checkout ✨"
+          ar: "شحن سريع وعناية نباتية فائقة 🚚 • دفع آمن عند الاستلام أو أونلاين 🌿",
+          en: "Fast Delivery & Pure Botanical Care 🚚 • Cash on Delivery or Secure Online Checkout 🌿"
         },
         {
           ar: "مستحضرات نَدِي الأصلية 100% 🌿 • ترطيب يدوم 24 ساعة ونقاء طبيعي",
@@ -388,7 +396,7 @@ export const siteConfig: SiteConfig = {
           desc: { ar: 'زيوت اللافندر والورد لنضارة فورية وإشراقة طبيعية تدوم.', en: 'Lavender & Rose extracts for healthy glow.' },
           image: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=800&q=80',
           fallbackImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80',
-          badge: { ar: 'إشراقة طبيعية ✨', en: 'Natural Glow ✨' },
+          badge: { ar: 'إشراقة طبيعية', en: 'Natural Glow' },
           bg: 'bg-rose-50/70 border-rose-200/80 hover:border-rose-400 text-rose-900',
           badgeColor: 'bg-rose-600 text-white'
         }
@@ -447,7 +455,7 @@ export const siteConfig: SiteConfig = {
       },
       valueProps: [
         {
-          icon: "Sparkles",
+          icon: "Award",
           title: { ar: "نتائج فعّالة", en: "Effective Results" },
           desc: { ar: "منتجات مصنوعة بعناية لأفضل النتائج المستدامة.", en: "Crafted with botanical care for visible results." },
         },
@@ -472,6 +480,16 @@ export const siteConfig: SiteConfig = {
         phone: "+249900713251",
         email: "nadi.skincare@gmail.com",
         whatsapp: "249900713251",
+        instagramUrl: "https://instagram.com",
+        facebookUrl: "https://facebook.com",
+        paymentWallets: {
+          binancePayId: "829104432",
+          redotPayId: "19482015",
+          paypalEmail: "nadi.skincare@gmail.com",
+          bankakAccount: "2891044",
+          cashiNumber: "07040 2787 05198",
+          bravoNumber: "0900713251",
+        },
       },
       aboutStory: {
         title: { ar: "قصّة نَدِي - NADI", en: "The NADI Story" },
@@ -892,7 +910,7 @@ export const siteConfig: SiteConfig = {
       },
       valueProps: [
         {
-          icon: "Sparkles",
+          icon: "Award",
           title: { ar: "خامات إيطالية نقية", en: "Italian Fabrics" },
           desc: { ar: "أقمشة مستوردة ومصنوعة بأعلى مقاييس الحياكة العالمية.", en: "Mastercrafted from premium virgin wool and silks." },
         },
@@ -1044,7 +1062,7 @@ export const siteConfig: SiteConfig = {
       },
       valueProps: [
         {
-          icon: "Sparkles",
+          icon: "Award",
           title: { ar: "محاكي الواقع المعزز (AR)", en: "AR Camera Try-On" },
           desc: { ar: "شاهدي كيف تبدو النظارة على وجهك مباشرة بكاميرا الجوال.", en: "Live virtual mirror right through your browser." },
         },
@@ -1192,7 +1210,7 @@ export const siteConfig: SiteConfig = {
       },
       valueProps: [
         {
-          icon: "Sparkles",
+          icon: "Award",
           title: { ar: "أحدث معالجات 2026", en: "2026 Chipsets" },
           desc: { ar: "استجابة فائقة السرعة وتوافق سلس مع كافة أنظمة Android و iOS.", en: "Blazing responsiveness with cross-platform pairing." },
         },
@@ -1553,7 +1571,7 @@ export const curatedImportableTemplates: ImportableTemplate[] = [
       },
       valueProps: [
         {
-          icon: 'Sparkles',
+          icon: 'Award',
           title: { ar: 'ثبات يدوم 72 ساعة', en: '72-Hour Longevity' },
           desc: { ar: 'تركيز زيتي عالي Pure Extrait de Parfum.', en: 'Concentrated pure perfume oil extracts.' }
         },
@@ -1704,7 +1722,7 @@ export const curatedImportableTemplates: ImportableTemplate[] = [
           desc: { ar: 'رقم ليزري محفور وشهادة نقاء رسمية.', en: 'Laser-inscribed authenticity seal.' }
         },
         {
-          icon: 'Sparkles',
+          icon: 'Award',
           title: { ar: 'ذهب عيار 18 نقي', en: '18K Solid Gold' },
           desc: { ar: 'مختوم وموثق بموازين الدمغة الدولية.', en: 'Officially hallmarked fine gold alloys.' }
         },
@@ -1811,7 +1829,7 @@ export const curatedImportableTemplates: ImportableTemplate[] = [
       },
       valueProps: [
         {
-          icon: 'Sparkles',
+          icon: 'Award',
           title: { ar: 'تحميص طازج أسبوعي', en: 'Weekly Fresh Roast' },
           desc: { ar: 'يصلك تاريخ التحميص مطبوعاً على كل كيس.', en: 'Exact roast date stamped on every valve pouch.' }
         },

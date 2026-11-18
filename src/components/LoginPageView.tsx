@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { 
-  Mail, Lock, User, Phone, ArrowLeft, ArrowRight, 
-  Sparkles, ShieldCheck, CheckCircle2, 
-  ShoppingBag, KeyRound, Smartphone, Key
+  Mail, User, ArrowLeft, ArrowRight, 
+  Droplets, ShieldCheck, CheckCircle2, 
+  ShoppingBag, KeyRound 
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
-import { SmartPasswordInput, SmartPinOtpInput, SmartPhoneInput } from './SmartInputField';
+import { SmartPasswordInput, SmartPhoneInput } from './SmartInputField';
 import { auth } from '../lib/firebase';
 import { 
   GoogleAuthProvider, 
@@ -17,14 +17,12 @@ import {
 } from 'firebase/auth';
 
 type AuthTab = 'signin' | 'register' | 'forgot';
-type SignInMethod = 'password' | 'phone_pin';
 
 export const LoginPageView: React.FC = () => {
   const { lang, activeData, navigateTo, showToast, cartCount } = useCommerce();
   const isRtl = lang === 'ar';
 
   const [activeTab, setActiveTab] = useState<AuthTab>('signin');
-  const [signInMethod, setSignInMethod] = useState<SignInMethod>('password');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
@@ -33,7 +31,6 @@ export const LoginPageView: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [pinCode, setPinCode] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
 
   // Helper to resolve Firebase error codes to friendly bilingual messages
@@ -82,8 +79,8 @@ export const LoginPageView: React.FC = () => {
 
       showToast(
         lang === 'ar' 
-          ? `مرحباً بكِ مجدداً ${resolvedName}! تم تسجيل دخولكِ بنجاح عبر حساب Google ✨` 
-          : `Welcome back ${resolvedName}! Signed in successfully with Google ✨`
+          ? `مرحباً بكِ مجدداً ${resolvedName}! تم تسجيل دخولكِ بنجاح عبر حساب Google` 
+          : `Welcome back ${resolvedName}! Signed in successfully with Google`
       );
 
       if (cartCount > 0) {
@@ -113,77 +110,42 @@ export const LoginPageView: React.FC = () => {
     e.preventDefault();
 
     if (activeTab === 'signin') {
-      if (signInMethod === 'password') {
-        if (!email || !password) {
-          showToast(lang === 'ar' ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور' : 'Please provide both email and password');
-          return;
-        }
+      if (!email || !password) {
+        showToast(lang === 'ar' ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور' : 'Please provide both email and password');
+        return;
+      }
 
-        setIsSubmitting(true);
+      setIsSubmitting(true);
+      try {
+        const res = await signInWithEmailAndPassword(auth, email.trim(), password);
+        const resolvedName = res.user.displayName || email.split('@')[0];
+
         try {
-          const res = await signInWithEmailAndPassword(auth, email.trim(), password);
-          const resolvedName = res.user.displayName || email.split('@')[0];
+          localStorage.setItem('luxe_customer_user', JSON.stringify({
+            uid: res.user.uid,
+            email: res.user.email,
+            name: resolvedName,
+            provider: 'email',
+            authenticatedAt: new Date().toISOString()
+          }));
+        } catch (_) {}
 
-          try {
-            localStorage.setItem('luxe_customer_user', JSON.stringify({
-              uid: res.user.uid,
-              email: res.user.email,
-              name: resolvedName,
-              provider: 'email',
-              authenticatedAt: new Date().toISOString()
-            }));
-          } catch (_) {}
+        showToast(
+          lang === 'ar' 
+            ? `أهلاً بكِ مجدداً في ${activeData.storeName.ar}! تم تسجيل الدخول بنجاح` 
+            : `Welcome back to ${activeData.storeName.en}! Signed in successfully`
+        );
 
-          showToast(
-            lang === 'ar' 
-              ? `أهلاً بكِ مجدداً في ${activeData.storeName.ar}! تم تسجيل الدخول بنجاح ✨` 
-              : `Welcome back to ${activeData.storeName.en}! Signed in successfully ✨`
-          );
-
-          if (cartCount > 0) {
-            navigateTo('cart');
-          } else {
-            navigateTo('store');
-          }
-        } catch (err: any) {
-          console.warn('Sign-in error:', err);
-          showToast(getFirebaseAuthErrorMessage(err?.code || ''));
-        } finally {
-          setIsSubmitting(false);
+        if (cartCount > 0) {
+          navigateTo('cart');
+        } else {
+          navigateTo('store');
         }
-      } else {
-        // Phone + PIN Sign-in
-        if (!phoneNumber || pinCode.length < 4) {
-          showToast(lang === 'ar' ? 'يرجى إدخال رقم الهاتف ورمز الدخول المكون من 4 أرقام' : 'Please provide phone number and 4-digit PIN');
-          return;
-        }
-
-        setIsSubmitting(true);
-        try {
-          const resolvedName = phoneNumber;
-          try {
-            localStorage.setItem('luxe_customer_user', JSON.stringify({
-              phone: phoneNumber,
-              name: resolvedName,
-              provider: 'phone_pin',
-              authenticatedAt: new Date().toISOString()
-            }));
-          } catch (_) {}
-
-          showToast(
-            lang === 'ar' 
-              ? `أهلاً بكِ في ${activeData.storeName.ar}! تم تسجيل الدخول بنجاح عبر رقم الجوال ✨` 
-              : `Welcome to ${activeData.storeName.en}! Phone login verified ✨`
-          );
-
-          if (cartCount > 0) {
-            navigateTo('cart');
-          } else {
-            navigateTo('store');
-          }
-        } finally {
-          setIsSubmitting(false);
-        }
+      } catch (err: any) {
+        console.warn('Sign-in error:', err);
+        showToast(getFirebaseAuthErrorMessage(err?.code || ''));
+      } finally {
+        setIsSubmitting(false);
       }
     } else if (activeTab === 'register') {
       if (!fullName || !email || !password) {
@@ -316,7 +278,7 @@ export const LoginPageView: React.FC = () => {
             </div>
           )}
           <p className="text-xs text-[#5A3E7A] mt-2 font-bold flex items-center gap-1.5">
-            <Sparkles className="w-3 h-3 text-purple-600" />
+            <Droplets className="w-3 h-3 text-purple-600" />
             <span>{activeData.storeSlogan ? activeData.storeSlogan[lang] : (lang === 'ar' ? 'إشراقة طبيعية، تليق بك.' : 'Natural radiance, made for you.')}</span>
           </p>
         </div>
@@ -414,37 +376,6 @@ export const LoginPageView: React.FC = () => {
           </div>
         )}
 
-        {/* Sub-toggle for Sign In: Email vs Quick Phone & PIN */}
-        {activeTab === 'signin' && (
-          <div className="flex items-center gap-2 p-1 bg-purple-50/60 rounded-xl mb-4 border border-purple-100">
-            <button
-              type="button"
-              onClick={() => setSignInMethod('password')}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                signInMethod === 'password'
-                  ? 'bg-white text-[#5A3E7A] shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <Mail className="w-3.5 h-3.5" />
-              <span>{lang === 'ar' ? 'البريد وكلمة المرور' : 'Email & Password'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSignInMethod('phone_pin')}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                signInMethod === 'phone_pin'
-                  ? 'bg-white text-[#5A3E7A] shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>{lang === 'ar' ? 'الجوال ورمز PIN' : 'Mobile & PIN'}</span>
-            </button>
-          </div>
-        )}
-
         {/* Main Authentication Forms */}
         <form onSubmit={handleSubmit} className="space-y-4">
           
@@ -468,48 +399,23 @@ export const LoginPageView: React.FC = () => {
             </div>
           )}
 
-          {/* SIGN IN (Password Mode) or REGISTER or FORGOT: Email Address */}
-          {((activeTab === 'signin' && signInMethod === 'password') || activeTab === 'register' || activeTab === 'forgot') && (
-            <div className="space-y-1.5 text-start">
-              <label className="text-xs font-bold text-slate-700 block">
-                {lang === 'ar' ? 'البريد الإلكتروني' : 'Email Address'} <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative flex items-center">
-                <Mail className="w-4 h-4 text-slate-400 absolute start-3.5 pointer-events-none" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  required
-                  className="w-full ps-10 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:bg-white text-slate-900 transition-all min-h-[48px]"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* SIGN IN (Phone Mode): Smart Phone & PIN */}
-          {activeTab === 'signin' && signInMethod === 'phone_pin' && (
-            <div className="space-y-4">
-              <SmartPhoneInput
-                value={phoneNumber}
-                onChange={setPhoneNumber}
-                lang={lang}
-                required={true}
-                label={lang === 'ar' ? 'رقم الجوال المسجل' : 'Registered Mobile Number'}
-              />
-
-              <SmartPinOtpInput
-                length={4}
-                value={pinCode}
-                onChange={setPinCode}
-                lang={lang}
-                onComplete={() => {
-                  showToast(lang === 'ar' ? 'تم اكتمال رمز PIN! اضغط على زر الدخول' : 'PIN entered! Click Sign In');
-                }}
+          {/* Email Address (All Auth Tabs) */}
+          <div className="space-y-1.5 text-start">
+            <label className="text-xs font-bold text-slate-700 block">
+              {lang === 'ar' ? 'البريد الإلكتروني' : 'Email Address'} <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative flex items-center">
+              <Mail className="w-4 h-4 text-slate-400 absolute start-3.5 pointer-events-none" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                required
+                className="w-full ps-10 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:bg-white text-slate-900 transition-all min-h-[48px]"
               />
             </div>
-          )}
+          </div>
 
           {/* REGISTER: Smart Phone Number */}
           {activeTab === 'register' && (
@@ -522,8 +428,8 @@ export const LoginPageView: React.FC = () => {
             />
           )}
 
-          {/* SIGN IN (Password Mode): Smart Password with Transient Masking */}
-          {activeTab === 'signin' && signInMethod === 'password' && (
+          {/* SIGN IN: Smart Password with Transient Masking */}
+          {activeTab === 'signin' && (
             <div className="space-y-1 text-start">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -624,11 +530,7 @@ export const LoginPageView: React.FC = () => {
               </span>
             ) : (
               <span>
-                {activeTab === 'signin' && (
-                  signInMethod === 'password'
-                    ? (lang === 'ar' ? 'تسجيل الدخول الفوري' : 'Sign In Now')
-                    : (lang === 'ar' ? 'التحقق وتسجيل الدخول' : 'Verify & Sign In')
-                )}
+                {activeTab === 'signin' && (lang === 'ar' ? 'تسجيل الدخول الفوري' : 'Sign In Now')}
                 {activeTab === 'register' && (lang === 'ar' ? 'إنشاء حسابك الفاخر' : 'Create Luxury Account')}
                 {activeTab === 'forgot' && (lang === 'ar' ? 'إرسال رابط استعادة الحساب' : 'Send Recovery Link')}
               </span>

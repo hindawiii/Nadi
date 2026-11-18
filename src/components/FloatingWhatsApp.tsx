@@ -145,6 +145,9 @@ export const FloatingWhatsApp: React.FC = () => {
     ? position.x < (typeof window !== 'undefined' ? window.innerWidth / 2 : 300)
     : isRtl;
 
+  const isStartHalf = isRtl ? !isLeftHalf : isLeftHalf;
+  const labelSideClass = isStartHalf ? 'start-full ms-3' : 'end-full me-3';
+
   const isTopHalf = position !== null
     ? position.y < 240
     : false;
@@ -465,8 +468,8 @@ export const FloatingWhatsApp: React.FC = () => {
           touchAction: 'none',
         } : undefined}
         className={!position 
-          ? "fixed bottom-6 end-6 z-50 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center select-none touch-none" 
-          : "fixed z-50 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center select-none touch-none"}
+          ? "fixed bottom-4 end-4 sm:bottom-6 sm:end-6 z-50 w-12 h-12 sm:w-[52px] sm:h-[52px] flex items-center justify-center select-none touch-none" 
+          : "fixed z-50 w-12 h-12 sm:w-[52px] sm:h-[52px] flex items-center justify-center select-none touch-none"}
       >
         
         {/* ========================================================================= */}
@@ -475,8 +478,8 @@ export const FloatingWhatsApp: React.FC = () => {
         {/* Action icons are locked in the center, text badges float to the safe side */}
         {/* ========================================================================= */}
         <div 
-          className={`absolute inset-x-0 w-full flex flex-col gap-3 items-center transition-all duration-300 ease-out z-50 ${
-            isTopHalf ? 'top-full mt-3 origin-top' : 'bottom-full mb-3 origin-bottom'
+          className={`absolute inset-x-0 w-full flex flex-col gap-2.5 items-center transition-all duration-300 ease-out z-50 ${
+            isTopHalf ? 'top-full mt-2.5 origin-top' : 'bottom-full mb-2.5 origin-bottom'
           } ${
             isMenuOpen 
               ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' 
@@ -484,25 +487,23 @@ export const FloatingWhatsApp: React.FC = () => {
           }`}
         >
           {/* OPTION 1: DIRECT PHONE CALL -> OPENS LUXURY SMART MODAL */}
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shrink-0">
+          <div className="relative w-12 h-12 sm:w-[52px] sm:h-[52px] flex items-center justify-center shrink-0">
             {/* The Circle Action Button: Centered dead-on in the vertical column directly above the FAB */}
             <button
               type="button"
               onClick={handleOpenPhoneModal}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-950/25 border-2 border-white dark:border-slate-800 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-950/25 border-2 border-white dark:border-slate-800 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
               title={lang === 'ar' ? `عرض رقم الهاتف: ${directPhone}` : `View Phone: ${directPhone}`}
               aria-label="Direct Phone Modal"
             >
-              <Phone className="w-5 h-5 sm:w-6 sm:h-6 fill-current drop-shadow-xs" />
+              <Phone className="w-5 h-5 fill-current drop-shadow-xs" />
             </button>
 
             {/* The Text Badge: Side-anchored to the circle, always pointing towards the screen center */}
             <button 
               type="button"
               onClick={handleOpenPhoneModal}
-              className={`absolute top-1/2 -translate-y-1/2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-xl border border-emerald-100 dark:border-emerald-900/40 text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap max-w-[calc(100vw-96px)] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-700 transition-all flex items-center gap-2 cursor-pointer active:scale-95 z-20 ${
-                isLeftHalf ? 'left-full ml-3' : 'right-full mr-3'
-              }`}
+              className={`absolute top-1/2 -translate-y-1/2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-xl border border-emerald-100 dark:border-emerald-900/40 text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap max-w-[calc(100vw-88px)] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-700 transition-all flex items-center gap-2 cursor-pointer active:scale-95 z-20 ${labelSideClass}`}
             >
               <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="truncate">{lang === 'ar' ? 'عرض الرقم والاتصال' : 'View Phone & Call'}</span>
@@ -511,12 +512,12 @@ export const FloatingWhatsApp: React.FC = () => {
           </div>
 
           {/* OPTION 2: WHATSAPP CHAT */}
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shrink-0">
+          <div className="relative w-12 h-12 sm:w-[52px] sm:h-[52px] flex items-center justify-center shrink-0">
             {/* The Circle Action Button: Centered dead-on in the vertical column directly above the FAB */}
             <button
               type="button"
               onClick={handleOpenWhatsApp}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-[#25D366] via-[#128C7E] to-[#075E54] text-white shadow-xl shadow-emerald-950/25 border-2 border-white dark:border-slate-800 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-[#25D366] via-[#128C7E] to-[#075E54] text-white shadow-xl shadow-emerald-950/25 border-2 border-white dark:border-slate-800 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
               title={lang === 'ar' ? 'محادثة واتساب سريعة' : 'WhatsApp Instant Chat'}
               aria-label="WhatsApp Instant Chat"
             >
@@ -533,9 +534,7 @@ export const FloatingWhatsApp: React.FC = () => {
             <button 
               type="button"
               onClick={handleOpenWhatsApp}
-              className={`absolute top-1/2 -translate-y-1/2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-xl border border-emerald-100 dark:border-emerald-900/40 text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap max-w-[calc(100vw-96px)] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-700 transition-all flex items-center gap-2 cursor-pointer active:scale-95 z-20 ${
-                isLeftHalf ? 'left-full ml-3' : 'right-full mr-3'
-              }`}
+              className={`absolute top-1/2 -translate-y-1/2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-xl border border-emerald-100 dark:border-emerald-900/40 text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap max-w-[calc(100vw-96px)] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-700 transition-all flex items-center gap-2 cursor-pointer active:scale-95 z-20 ${labelSideClass}`}
             >
               <svg viewBox="0 0 24 24" className="w-4 h-4 fill-[#25D366] shrink-0" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.04 14.69 2 12.04 2ZM12.05 20.16C10.57 20.16 9.12 19.76 7.85 19L7.55 18.82L4.43 19.64L5.26 16.6L5.06 16.29C4.24 14.98 3.8 13.47 3.8 11.91C3.8 7.37 7.5 3.67 12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.16 12.05 20.16ZM16.57 14.41C16.32 14.28 15.1 13.68 14.88 13.6C14.65 13.52 14.49 13.48 14.32 13.73C14.16 13.98 13.69 14.53 13.55 14.69C13.41 14.86 13.26 14.88 13.01 14.75C12.77 14.63 11.98 14.37 11.04 13.53C10.31 12.88 9.81 12.07 9.67 11.83C9.53 11.58 9.65 11.45 9.77 11.33C9.88 11.22 10.02 11.04 10.14 10.9C10.26 10.76 10.3 10.66 10.38 10.5C10.46 10.33 10.42 10.19 10.36 10.07C10.3 9.94 9.81 8.74 9.61 8.25C9.41 7.77 9.21 7.83 9.06 7.83C8.92 7.82 8.76 7.82 8.59 7.82C8.43 7.82 8.16 7.88 7.94 8.13C7.71 8.37 7.08 8.96 7.08 10.17C7.08 11.38 7.96 12.54 8.09 12.71C8.21 12.87 9.82 15.36 12.3 16.42C12.89 16.67 13.35 16.83 13.71 16.94C14.3 17.13 14.84 17.1 15.27 17.04C15.75 16.97 16.74 16.44 16.94 15.86C17.15 15.28 17.15 14.79 17.09 14.69C17.02 14.59 16.82 14.53 16.57 14.41Z" />
@@ -550,9 +549,7 @@ export const FloatingWhatsApp: React.FC = () => {
         {/* Side-anchored to the main FAB: floats inward to screen center              */}
         {/* ========================================================================= */}
         <div 
-          className={`absolute top-1/2 -translate-y-1/2 transition-all duration-300 ease-out overflow-hidden flex items-center pointer-events-none z-20 ${
-            isLeftHalf ? 'left-full ml-3' : 'right-full mr-3'
-          } ${
+          className={`absolute top-1/2 -translate-y-1/2 transition-all duration-300 ease-out overflow-hidden flex items-center pointer-events-none z-20 ${labelSideClass} ${
             shouldShowTooltip
               ? 'max-w-xs opacity-100 scale-100 pointer-events-auto' 
               : 'max-w-0 opacity-0 scale-95 pointer-events-none'
@@ -598,35 +595,35 @@ export const FloatingWhatsApp: React.FC = () => {
           }}
           aria-expanded={isMenuOpen}
           aria-label={lang === 'ar' ? 'خيارات التواصل السريع' : 'Instant Contact Options'}
-          className={`relative group p-1 focus:outline-none focus:ring-4 focus:ring-emerald-400/30 rounded-[22px] transition-transform select-none touch-none ${
+          className={`relative group p-0.5 focus:outline-none focus:ring-4 focus:ring-emerald-400/30 rounded-[18px] transition-transform select-none touch-none ${
             isDragging ? 'scale-105 shadow-2xl opacity-95 cursor-grabbing' : 'active:scale-95 cursor-grab'
           }`}
           title={lang === 'ar' ? 'اسحب لتحريك الزر لأي مكان، أو انقر لفتح الخيارات' : 'Drag anywhere on screen, or click to open options'}
         >
-          {/* Layer 1: Ambient Glow */}
-          <div className={`absolute inset-1 rounded-[22px] bg-emerald-400/35 backdrop-blur-sm pointer-events-none transition-all duration-500 ${
+          {/* Layer 1: Subtle Ambient Glow */}
+          <div className={`absolute inset-0.5 rounded-[18px] bg-emerald-400/30 backdrop-blur-sm pointer-events-none transition-all duration-500 ${
             isMenuOpen ? 'rotate-12 scale-105' : 'rotate-6 scale-100 group-hover:rotate-12 group-hover:scale-105'
           }`} />
 
           {/* Layer 2: Secondary Glow */}
-          <div className={`absolute inset-1 rounded-[22px] bg-teal-500/25 pointer-events-none transition-all duration-500 ${
+          <div className={`absolute inset-0.5 rounded-[18px] bg-teal-500/20 pointer-events-none transition-all duration-500 ${
             isMenuOpen ? '-rotate-6 scale-100' : '-rotate-3 scale-95 group-hover:-rotate-6 group-hover:scale-100'
           }`} />
 
-          {/* Layer 3: Main Foreground Luxury Squircle Button */}
-          <div className={`relative w-14 h-14 rounded-[20px] bg-gradient-to-br from-[#25D366] via-[#128C7E] to-[#075E54] text-white shadow-2xl shadow-emerald-950/35 border border-emerald-200/40 flex items-center justify-center transition-all duration-300 ${
+          {/* Layer 3: Main Foreground Luxury Squircle Button (48px mobile / 52px desktop) */}
+          <div className={`relative w-12 h-12 sm:w-[52px] sm:h-[52px] rounded-[16px] sm:rounded-[18px] bg-gradient-to-br from-[#25D366] via-[#128C7E] to-[#075E54] text-white shadow-xl shadow-emerald-950/30 border border-emerald-200/40 flex items-center justify-center transition-all duration-300 ${
             isMenuOpen ? 'scale-95 bg-gradient-to-br from-slate-800 to-slate-900 ring-2 ring-emerald-400' : 'group-hover:scale-105'
           } overflow-hidden`}>
             {/* Subtle Glass Highlight Reflex */}
-            <div className="absolute top-0 start-0 end-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-[19px] pointer-events-none" />
+            <div className="absolute top-0 start-0 end-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent rounded-t-[15px] pointer-events-none" />
 
             {/* Icon Switcher: X when menu is open, WhatsApp when menu is closed */}
             {isMenuOpen ? (
-              <X className="w-6 h-6 text-white drop-shadow-xs relative z-10 transition-transform duration-300 animate-in zoom-in-75" />
+              <X className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-xs relative z-10 transition-transform duration-300 animate-in zoom-in-75" />
             ) : (
               <svg 
                 viewBox="0 0 24 24" 
-                className="w-7 h-7 fill-white drop-shadow-xs relative z-10 transition-transform duration-300 group-hover:scale-110" 
+                className="w-6 h-6 fill-white drop-shadow-xs relative z-10 transition-transform duration-300 group-hover:scale-110" 
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.04 14.69 2 12.04 2ZM12.05 20.16C10.57 20.16 9.12 19.76 7.85 19L7.55 18.82L4.43 19.64L5.26 16.6L5.06 16.29C4.24 14.98 3.8 13.47 3.8 11.91C3.8 7.37 7.5 3.67 12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.16 12.05 20.16ZM16.57 14.41C16.32 14.28 15.1 13.68 14.88 13.6C14.65 13.52 14.49 13.48 14.32 13.73C14.16 13.98 13.69 14.53 13.55 14.69C13.41 14.86 13.26 14.88 13.01 14.75C12.77 14.63 11.98 14.37 11.04 13.53C10.31 12.88 9.81 12.07 9.67 11.83C9.53 11.58 9.65 11.45 9.77 11.33C9.88 11.22 10.02 11.04 10.14 10.9C10.26 10.76 10.3 10.66 10.38 10.5C10.46 10.33 10.42 10.19 10.36 10.07C10.3 9.94 9.81 8.74 9.61 8.25C9.41 7.77 9.21 7.83 9.06 7.83C8.92 7.82 8.76 7.82 8.59 7.82C8.43 7.82 8.16 7.88 7.94 8.13C7.71 8.37 7.08 8.96 7.08 10.17C7.08 11.38 7.96 12.54 8.09 12.71C8.21 12.87 9.82 15.36 12.3 16.42C12.89 16.67 13.35 16.83 13.71 16.94C14.3 17.13 14.84 17.1 15.27 17.04C15.75 16.97 16.74 16.44 16.94 15.86C17.15 15.28 17.15 14.79 17.09 14.69C17.02 14.59 16.82 14.53 16.57 14.41Z" />
@@ -636,9 +633,9 @@ export const FloatingWhatsApp: React.FC = () => {
 
           {/* Live Active Online Ping Dot (Only when menu is closed) */}
           {!isMenuOpen && (
-            <span className="absolute top-0 end-0 flex h-4 w-4 z-20 pointer-events-none">
+            <span className="absolute -top-0.5 -end-0.5 flex h-3 w-3 z-20 pointer-events-none">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-85" />
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white dark:border-slate-800 shadow-xs" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white dark:border-slate-800 shadow-xs" />
             </span>
           )}
         </button>

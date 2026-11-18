@@ -2,28 +2,53 @@ import React, { useState, useRef } from 'react';
 import { 
   Lock, KeyRound, CheckCircle, Package, DollarSign, 
   TrendingUp, AlertTriangle, ArrowLeft, ArrowRight, 
-  LogOut, Edit, RefreshCw, Image as ImageIcon, Sparkles, Check,
+  LogOut, Edit, RefreshCw, Image as ImageIcon, Layout, Check,
   Sliders, FileText, ShoppingBag, Plus, Trash2, Layers,
   Phone, Mail, MapPin, ExternalLink, MessageCircle,
   Upload, Wand2, X, Search, Filter, CheckCircle2, Clock, Truck,
-  Tag, ArrowUpRight, ShieldCheck, CheckCheck, Droplets, Star,
-  Undo2, RotateCcw, MessageSquare, UserCheck, Rocket, ShieldAlert
+  Tag, ArrowUpRight, ShieldCheck, CheckCheck, Droplets, BadgeCheck,
+  Undo2, RotateCcw, MessageSquare, UserCheck, Rocket, ShieldAlert, Crown
 } from 'lucide-react';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { auth } from '../lib/firebase';
+import { updateReviewStatusInCloud, deleteReviewFromCloud } from '../services/reviewService';
 import { useCommerce } from '../context/CommerceContext';
 import { Product, siteConfig } from '../data/siteConfig';
 import { SmartAuthPortal } from './common/SmartAuthPortal';
 import { hairStylingDevices } from './HairDevicesSpotlight';
 import { UnifiedStoreCustomizer } from './UnifiedStoreCustomizer';
 import { SectionsLayoutReorder } from './common/SectionsLayoutReorder';
+import { ConfirmDialogModal } from './common/ConfirmDialogModal';
 
 export const AdminPanel: React.FC = () => {
   const { 
-    lang, isAdminAuthenticated, loginAdmin, logoutAdmin, 
+    lang, isAdminAuthenticated, isCloudAdminVerified, firebaseAdminEmail, loginAdmin, logoutAdmin, 
     orders, updateOrderStatus, clearAllOrders, restoreDefaultOrders,
     dynamicConfig, setDynamicConfig, 
     activePresetId, navigateTo, showToast, convertPrice,
     historyStack, canUndo, undoLastChange, resetFieldToDefault, isFieldModified, recordHistorySnapshot
   } = useCommerce();
+
+  const [isConnectingCloudAdmin, setIsConnectingCloudAdmin] = useState(false);
+
+  const handleConnectCloudAdmin = async () => {
+    setIsConnectingCloudAdmin(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const cred = await signInWithPopup(auth, provider);
+      if (cred.user.emailVerified && cred.user.email === 'mohsentiben@gmail.com') {
+        showToast(lang === 'ar' ? 'تم ربط جلسة الإدارة السحابية بنجاح! جاري مزامنة الطلبات والتقييمات...' : 'Cloud Admin connected! Syncing orders & reviews...');
+      } else {
+        showToast(lang === 'ar' ? 'تم تسجيل الدخول، لكن هذا الحساب لا يملك صلاحية قراءة الطلبات السحابية.' : 'Signed in, but this account lacks admin cloud permissions.');
+      }
+    } catch (err) {
+      console.warn('Cloud admin sign-in aborted or failed:', err);
+      showToast(lang === 'ar' ? 'تعذر ربط حساب Google. يرجى السماح بالنوافذ المنبثقة والمحاولة مجدداً.' : 'Could not link Google Admin account.');
+    } finally {
+      setIsConnectingCloudAdmin(false);
+    }
+  };
 
   const isRtl = lang === 'ar';
   const [pinInput, setPinInput] = useState('');
@@ -31,6 +56,15 @@ export const AdminPanel: React.FC = () => {
 
   // Active Admin Tabs: 'customizer' | 'layout' | 'orders' | 'products' | 'reviews' | 'onboarding' | 'devices' | 'banners' | 'content' | 'branding'
   const [activeTab, setActiveTab] = useState<'customizer' | 'layout' | 'orders' | 'products' | 'reviews' | 'onboarding' | 'devices' | 'banners' | 'content' | 'branding'>('customizer');
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel: string;
+    variant: 'danger' | 'warning';
+    onConfirm: () => void;
+  } | null>(null);
 
   // Review & Moderation States
   const [reviewFilter, setReviewFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -59,7 +93,7 @@ export const AdminPanel: React.FC = () => {
   const [newProdOriginalPrice, setNewProdOriginalPrice] = useState<number | ''>('');
   const [newProdStock, setNewProdStock] = useState(15);
   const [newProdImage, setNewProdImage] = useState('');
-  const [newProdBadge, setNewProdBadge] = useState('جديد 🌟');
+  const [newProdBadge, setNewProdBadge] = useState('جديد 🌿');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Hidden file inputs for direct device upload
@@ -465,14 +499,14 @@ export const AdminPanel: React.FC = () => {
   };
 
   // Review Moderation Handlers
-  const handleApproveReview = (reviewId: number) => {
+  const handleApproveReview = (reviewId: string | number) => {
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev));
       const targetPreset = clone.presets[activePresetId];
       if (!Array.isArray(targetPreset.testimonials)) {
         targetPreset.testimonials = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.testimonials || []));
       }
-      const item = targetPreset.testimonials.find((t: any) => t.id === reviewId);
+      const item = targetPreset.testimonials.find((t: any) => String(t.id) === String(reviewId));
       if (item) {
         item.status = 'approved';
       }
@@ -482,17 +516,20 @@ export const AdminPanel: React.FC = () => {
       } catch (_) {}
       return clone;
     });
+    if (typeof reviewId === 'string' && reviewId.startsWith('REV-')) {
+      updateReviewStatusInCloud(reviewId, 'approved').catch(() => {});
+    }
     showToast(lang === 'ar' ? 'تم اعتماد التقييم ونشره في واجهة المتجر بنجاح ✓' : 'Review approved and published to storefront ✓');
   };
 
-  const handleRejectReview = (reviewId: number) => {
+  const handleRejectReview = (reviewId: string | number) => {
     setDynamicConfig((prev) => {
       const clone = JSON.parse(JSON.stringify(prev));
       const targetPreset = clone.presets[activePresetId];
       if (!Array.isArray(targetPreset.testimonials)) {
         targetPreset.testimonials = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.testimonials || []));
       }
-      const item = targetPreset.testimonials.find((t: any) => t.id === reviewId);
+      const item = targetPreset.testimonials.find((t: any) => String(t.id) === String(reviewId));
       if (item) {
         item.status = 'rejected';
       }
@@ -502,25 +539,39 @@ export const AdminPanel: React.FC = () => {
       } catch (_) {}
       return clone;
     });
+    if (typeof reviewId === 'string' && reviewId.startsWith('REV-')) {
+      updateReviewStatusInCloud(reviewId, 'rejected').catch(() => {});
+    }
     showToast(lang === 'ar' ? 'تم إخفاء التقييم من واجهة المتجر ⏸️' : 'Review hidden from storefront ⏸️');
   };
 
-  const handleDeleteReview = (reviewId: number) => {
-    if (!window.confirm(lang === 'ar' ? 'هل أنتِ متأكدة من حذف هذا التقييم نهائياً؟' : 'Are you sure you want to permanently delete this review?')) return;
-    setDynamicConfig((prev) => {
-      const clone = JSON.parse(JSON.stringify(prev));
-      const targetPreset = clone.presets[activePresetId];
-      if (!Array.isArray(targetPreset.testimonials)) {
-        targetPreset.testimonials = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.testimonials || []));
-      }
-      targetPreset.testimonials = targetPreset.testimonials.filter((t: any) => t.id !== reviewId);
-      try {
-        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
-      } catch (_) {}
-      return clone;
+  const handleDeleteReview = (reviewId: string | number) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: lang === 'ar' ? 'حذف التقييم نهائياً' : 'Delete Review Permanently',
+      message: lang === 'ar' ? 'هل أنتِ متأكدة من حذف هذا التقييم نهائياً؟ لا يمكن التراجع عن هذه الخطوة.' : 'Are you sure you want to permanently delete this review? This action cannot be undone.',
+      confirmLabel: lang === 'ar' ? 'حذف نهائي' : 'Delete Forever',
+      variant: 'danger',
+      onConfirm: () => {
+        setDynamicConfig((prev) => {
+          const clone = JSON.parse(JSON.stringify(prev));
+          const targetPreset = clone.presets[activePresetId];
+          if (!Array.isArray(targetPreset.testimonials)) {
+            targetPreset.testimonials = JSON.parse(JSON.stringify(siteConfig.presets.cosmetics.testimonials || []));
+          }
+          targetPreset.testimonials = targetPreset.testimonials.filter((t: any) => String(t.id) !== String(reviewId));
+          try {
+            localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+          } catch (_) {}
+          return clone;
+        });
+        if (typeof reviewId === 'string' && reviewId.startsWith('REV-')) {
+          deleteReviewFromCloud(reviewId).catch(() => {});
+        }
+        showToast(lang === 'ar' ? 'تم حذف التقييم نهائياً 🗑️' : 'Review permanently deleted');
+      },
     });
-    showToast(lang === 'ar' ? 'تم حذف التقييم نهائياً 🗑️' : 'Review permanently deleted');
   };
 
   const handleAddReviewSubmit = (e: React.FormEvent) => {
@@ -542,7 +593,7 @@ export const AdminPanel: React.FC = () => {
       },
       date: { ar: 'الآن (مضاف من الإدارة)', en: 'Just now' },
       comment: { ar: newRevComment.trim(), en: newRevComment.trim() },
-      badge: { ar: 'مشتري حقيقي موثق ⭐', en: 'Verified Real Buyer ⭐' },
+      badge: { ar: 'مشتري حقيقي موثق ✓', en: 'Verified Real Buyer ✓' },
       rating: newRevRating || 5,
       status: 'approved' as const
     };
@@ -568,73 +619,113 @@ export const AdminPanel: React.FC = () => {
     setNewRevAvatar('');
     setNewRevProduct('');
     setNewRevRating(5);
-    showToast(lang === 'ar' ? 'تمت إضافة التقييم ونشره في المتجر بنجاح 🌟' : 'Review added and published to store 🌟');
+    showToast(lang === 'ar' ? 'تمت إضافة التقييم ونشره في المتجر بنجاح ✓' : 'Review added and published to store ✓');
   };
 
   // Onboarding & Store Wipe Handlers for Client Setup
   const handleWipeProducts = () => {
-    if (!window.confirm(lang === 'ar' ? 'تأكيد: هل ترغب في تفريغ كافة المنتجات التجريبية لتجهيز المتجر للعميل الجديد؟' : 'Confirm: Wipe all demo products to prepare store for new client?')) return;
-    setDynamicConfig(prev => {
-      const clone = JSON.parse(JSON.stringify(prev));
-      clone.presets[activePresetId].products = [];
-      try {
-        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
-      } catch (_) {}
-      return clone;
+    setConfirmDialog({
+      isOpen: true,
+      title: lang === 'ar' ? 'تفريغ كافة المنتجات' : 'Wipe All Demo Products',
+      message: lang === 'ar' ? 'تأكيد: هل ترغب في تفريغ كافة المنتجات التجريبية لتجهيز المتجر للعميل الجديد؟' : 'Confirm: Wipe all demo products to prepare store for new client?',
+      confirmLabel: lang === 'ar' ? 'تفريغ المنتجات' : 'Wipe Products',
+      variant: 'danger',
+      onConfirm: () => {
+        setDynamicConfig(prev => {
+          const clone = JSON.parse(JSON.stringify(prev));
+          clone.presets[activePresetId].products = [];
+          try {
+            localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+          } catch (_) {}
+          return clone;
+        });
+        showToast(lang === 'ar' ? 'تم تفريغ كافة المنتجات بنجاح! المتجر جاهز لإضافة منتجات العميل.' : 'All demo products cleared! Ready for client inventory.');
+      },
     });
-    showToast(lang === 'ar' ? 'تم تفريغ كافة المنتجات بنجاح! المتجر جاهز لإضافة منتجات العميل.' : 'All demo products cleared! Ready for client inventory.');
   };
 
   const handleWipeOrders = () => {
-    if (!window.confirm(lang === 'ar' ? 'تأكيد: هل ترغب في تفريغ سجل الطلبات التجريبية بالكامل؟' : 'Confirm: Clear all demo orders?')) return;
-    clearAllOrders();
+    setConfirmDialog({
+      isOpen: true,
+      title: lang === 'ar' ? 'تفريغ سجل الطلبات' : 'Clear All Demo Orders',
+      message: lang === 'ar' ? 'تأكيد: هل ترغب في تفريغ سجل الطلبات التجريبية بالكامل؟' : 'Confirm: Clear all demo orders?',
+      confirmLabel: lang === 'ar' ? 'مسح الطلبات' : 'Clear Orders',
+      variant: 'danger',
+      onConfirm: () => {
+        clearAllOrders();
+      },
+    });
   };
 
   const handleWipeReviews = () => {
-    if (!window.confirm(lang === 'ar' ? 'تأكيد: هل ترغب في تفريغ التقييمات الافتراضية للبدء بدون آراء سابقة؟' : 'Confirm: Clear all demo reviews?')) return;
-    setDynamicConfig(prev => {
-      const clone = JSON.parse(JSON.stringify(prev));
-      clone.presets[activePresetId].testimonials = [];
-      try {
-        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
-      } catch (_) {}
-      return clone;
+    setConfirmDialog({
+      isOpen: true,
+      title: lang === 'ar' ? 'تفريغ كافة التقييمات' : 'Clear All Demo Reviews',
+      message: lang === 'ar' ? 'تأكيد: هل ترغب في تفريغ التقييمات الافتراضية للبدء بدون آراء سابقة؟' : 'Confirm: Clear all demo reviews?',
+      confirmLabel: lang === 'ar' ? 'مسح التقييمات' : 'Clear Reviews',
+      variant: 'danger',
+      onConfirm: () => {
+        setDynamicConfig(prev => {
+          const clone = JSON.parse(JSON.stringify(prev));
+          clone.presets[activePresetId].testimonials = [];
+          try {
+            localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+          } catch (_) {}
+          return clone;
+        });
+        showToast(lang === 'ar' ? 'تم تفريغ كافة التقييمات بنجاح' : 'All demo reviews cleared');
+      },
     });
-    showToast(lang === 'ar' ? 'تم تفريغ كافة التقييمات بنجاح' : 'All demo reviews cleared');
   };
 
   const handleFullClientReset = () => {
-    if (!window.confirm(lang === 'ar' ? 'تحذير تصفير شامل: سيتم مسح المنتجات والطلبات والتقييمات التجريبية لتسليم المتجر كـ (Zero-State Clean) للعميل. هل تود المتابعة؟' : 'Full Reset: This will wipe demo products, orders, and reviews for clean client handover. Proceed?')) return;
-    setDynamicConfig(prev => {
-      const clone = JSON.parse(JSON.stringify(prev));
-      clone.presets[activePresetId].products = [];
-      clone.presets[activePresetId].testimonials = [];
-      try {
-        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
-      } catch (_) {}
-      return clone;
+    setConfirmDialog({
+      isOpen: true,
+      title: lang === 'ar' ? 'التصفير الشامل للمتجر' : 'Full Client Handover Reset',
+      message: lang === 'ar' ? 'تحذير تصفير شامل: سيتم مسح المنتجات والطلبات والتقييمات التجريبية لتسليم المتجر كـ (Zero-State Clean) للعميل. هل تود المتابعة؟' : 'Full Reset: This will wipe demo products, orders, and reviews for clean client handover. Proceed?',
+      confirmLabel: lang === 'ar' ? 'تأكيد التصفير الشامل' : 'Proceed Full Reset',
+      variant: 'danger',
+      onConfirm: () => {
+        setDynamicConfig(prev => {
+          const clone = JSON.parse(JSON.stringify(prev));
+          clone.presets[activePresetId].products = [];
+          clone.presets[activePresetId].testimonials = [];
+          try {
+            localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+          } catch (_) {}
+          return clone;
+        });
+        clearAllOrders();
+        showToast(lang === 'ar' ? '🎉 تم التصفير الشامل بنجاح! المتجر مهيأ بالكامل لتسليمه للعميل.' : '🎉 Store successfully reset to zero-state for client!');
+      },
     });
-    clearAllOrders();
-    showToast(lang === 'ar' ? '🎉 تم التصفير الشامل بنجاح! المتجر مهيأ بالكامل لتسليمه للعميل.' : '🎉 Store successfully reset to zero-state for client!');
   };
 
   const handleRestoreDemoDefaults = () => {
-    if (!window.confirm(lang === 'ar' ? 'استعادة البيانات: هل ترغب في استرجاع المنتجات والطلبات النموذجية للمعاينة مجدداً؟' : 'Restore: Recover default demo products and orders?')) return;
-    setDynamicConfig(prev => {
-      const clone = JSON.parse(JSON.stringify(prev));
-      clone.presets[activePresetId].products = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId]?.products || siteConfig.presets.cosmetics.products));
-      clone.presets[activePresetId].testimonials = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId]?.testimonials || siteConfig.presets.cosmetics.testimonials));
-      try {
-        localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
-      } catch (_) {}
-      return clone;
+    setConfirmDialog({
+      isOpen: true,
+      title: lang === 'ar' ? 'استعادة البيانات النموذجية' : 'Restore Demo Defaults',
+      message: lang === 'ar' ? 'استعادة البيانات: هل ترغب في استرجاع المنتجات والطلبات النموذجية للمعاينة مجدداً؟' : 'Restore: Recover default demo products and orders?',
+      confirmLabel: lang === 'ar' ? 'استعادة الآن' : 'Restore Defaults',
+      variant: 'warning',
+      onConfirm: () => {
+        setDynamicConfig(prev => {
+          const clone = JSON.parse(JSON.stringify(prev));
+          clone.presets[activePresetId].products = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId]?.products || siteConfig.presets.cosmetics.products));
+          clone.presets[activePresetId].testimonials = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId]?.testimonials || siteConfig.presets.cosmetics.testimonials));
+          try {
+            localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
+          } catch (_) {}
+          return clone;
+        });
+        restoreDefaultOrders();
+        showToast(lang === 'ar' ? 'تمت استعادة البيانات والمنتجات النموذجية بنجاح!' : 'Default demo data restored successfully!');
+      },
     });
-    restoreDefaultOrders();
-    showToast(lang === 'ar' ? 'تمت استعادة البيانات والمنتجات النموذجية بنجاح!' : 'Default demo data restored successfully!');
   };
 
   // Smart Product Auto-Complete AI Generator
@@ -685,7 +776,7 @@ export const AdminPanel: React.FC = () => {
       suggestedNameEn = 'Purifying Botanical Gel Cleanser';
       suggestedPrice = 16.5;
       suggestedOriginalPrice = 22.0;
-      suggestedBadge = 'رغوة ناعمة ✨';
+      suggestedBadge = 'رغوة ناعمة 🌿';
       sampleImage = 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80';
     } else if (lower.includes('عطر') || lower.includes('perfume') || lower.includes('مسك') || lower.includes('عود')) {
       suggestedCatAr = 'العطور والروائح الملكية';
@@ -702,10 +793,10 @@ export const AdminPanel: React.FC = () => {
     if (!newProdNameEn) setNewProdNameEn(suggestedNameEn);
     if (newProdPrice === 10) setNewProdPrice(suggestedPrice);
     if (newProdOriginalPrice === '' || newProdOriginalPrice === 0) setNewProdOriginalPrice(suggestedOriginalPrice);
-    if (newProdBadge === 'جديد 🌟') setNewProdBadge(suggestedBadge);
+    if (newProdBadge === 'جديد 🌿' || newProdBadge === 'عرض مميز') setNewProdBadge(suggestedBadge);
     if (!newProdImage) setNewProdImage(sampleImage);
 
-    showToast(lang === 'ar' ? '✨ تم ملء بيانات المنتج وتنسيقها واقتراح الصورة والأسعار بذكاء!' : '✨ Smart AI auto-completed product details & imagery!');
+    showToast(lang === 'ar' ? 'تم ملء بيانات المنتج وتنسيقها واقتراح الصورة والأسعار بذكاء!' : 'Smart AI auto-completed product details & imagery!');
   };
 
   // Add Product to Store
@@ -734,8 +825,8 @@ export const AdminPanel: React.FC = () => {
       originalPriceUSD: parsedOrig,
       stock: Number(newProdStock) || 10,
       badge: {
-        ar: newProdBadge || 'جديد 🌟',
-        en: 'New 🌟'
+        ar: newProdBadge || 'جديد 🌿',
+        en: 'New'
       },
       rating: 5.0,
       reviewsCount: 1,
@@ -780,23 +871,30 @@ export const AdminPanel: React.FC = () => {
     setNewProdOriginalPrice('');
     setNewProdStock(15);
     setNewProdImage('');
-    setNewProdBadge('جديد 🌟');
+    setNewProdBadge('جديد 🌿');
     showToast(lang === 'ar' ? 'تمت إضافة المنتج الجديد بنجاح!' : 'New product added successfully!');
   };
 
   // Delete Product
   const handleDeleteProduct = (productId: string) => {
-    if (confirm(lang === 'ar' ? 'هل أنت متأكد من حذف هذا المنتج؟' : 'Are you sure you want to delete this product?')) {
-      setDynamicConfig(prev => {
-        const clone = JSON.parse(JSON.stringify(prev));
-        clone.presets[activePresetId].products = (clone.presets[activePresetId].products || []).filter((p: any) => p.id !== productId);
-        try {
-          localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        } catch (e) {}
-        return clone;
-      });
-      showToast(lang === 'ar' ? 'تم حذف المنتج من المتجر' : 'Product removed');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: lang === 'ar' ? 'حذف المنتج من الكتالوج' : 'Delete Product',
+      message: lang === 'ar' ? 'هل أنت متأكد من حذف هذا المنتج نهائياً من المتجر؟' : 'Are you sure you want to delete this product?',
+      confirmLabel: lang === 'ar' ? 'حذف المنتج' : 'Delete Product',
+      variant: 'danger',
+      onConfirm: () => {
+        setDynamicConfig(prev => {
+          const clone = JSON.parse(JSON.stringify(prev));
+          clone.presets[activePresetId].products = (clone.presets[activePresetId].products || []).filter((p: any) => p.id !== productId);
+          try {
+            localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
+          } catch (e) {}
+          return clone;
+        });
+        showToast(lang === 'ar' ? 'تم حذف المنتج من المتجر' : 'Product removed');
+      },
+    });
   };
 
   // Add/Remove Image for a Product via Non-blocking Modal & Device Upload
@@ -1061,7 +1159,7 @@ export const AdminPanel: React.FC = () => {
                 : 'text-slate-600 hover:text-slate-900 bg-white/50 hover:bg-white'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-amber-300" />
+            <Layout className="w-4 h-4 text-amber-300" />
             <span>{lang === 'ar' ? '🎨 ركن التعديل الموحد (كامل المتجر)' : '🎨 Store Customizer (All-in-One)'}</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${activeTab === 'customizer' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'}`}>
               13 {lang === 'ar' ? 'ركناً' : 'corners'}
@@ -1123,7 +1221,7 @@ export const AdminPanel: React.FC = () => {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <BadgeCheck className="w-4 h-4 text-amber-500" />
             <span>{lang === 'ar' ? 'آراء وتقييمات العملاء' : 'Customer Reviews'}</span>
             <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-mono">
               {allTestimonialsList.length}
@@ -1205,6 +1303,44 @@ export const AdminPanel: React.FC = () => {
                     </button>
                   )}
                 </div>
+              </div>
+
+              {/* Cloud Admin Auth Verification Banner */}
+              <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                isCloudAdminVerified
+                  ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                  : 'bg-amber-50/70 border-amber-200 text-amber-950'
+              }`}>
+                <div className="flex items-start gap-2.5 text-xs">
+                  <ShieldCheck className={`w-4 h-4 mt-0.5 shrink-0 ${isCloudAdminVerified ? 'text-emerald-600' : 'text-amber-600'}`} />
+                  <div className="space-y-0.5">
+                    <p className="font-extrabold">
+                      {isCloudAdminVerified
+                        ? (lang === 'ar' ? `المزامنة السحابية مفعّلة (${firebaseAdminEmail})` : `Cloud Sync Active (${firebaseAdminEmail})`)
+                        : (lang === 'ar' ? 'توثيق الجلسة السحابية لقراءة ومزامنة الطلبات المحمية' : 'Verify Admin Google Session to Sync Protected Cloud Orders')}
+                    </p>
+                    <p className="text-[11px] opacity-80">
+                      {isCloudAdminVerified
+                        ? (lang === 'ar' ? 'بيانات العميلات محمية بقواعد Firestore ولا تظهر إلا بعد التوثيق.' : 'Customer PII is isolated via Firestore Rules to your verified Admin account.')
+                        : (lang === 'ar' ? 'تم قفل قائمة الطلبات العامة لحماية خصوصية العميلات. سجّلي الدخول بحساب المالك المعتمد لجلب طلبات السحابة.' : 'Public order listing is locked for privacy. Sign in with the authorized owner Google account to load live cloud orders.')}
+                    </p>
+                  </div>
+                </div>
+                {!isCloudAdminVerified && (
+                  <button
+                    type="button"
+                    onClick={handleConnectCloudAdmin}
+                    disabled={isConnectingCloudAdmin}
+                    className="h-10 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-all"
+                  >
+                    <UserCheck className="w-4 h-4 text-amber-300" />
+                    <span>
+                      {isConnectingCloudAdmin
+                        ? (lang === 'ar' ? 'جاري التوثيق...' : 'Signing in...')
+                        : (lang === 'ar' ? 'توثيق عبر Google' : 'Connect Google Admin')}
+                    </span>
+                  </button>
+                )}
               </div>
 
               {/* Status Filter Pills */}
@@ -1352,7 +1488,7 @@ export const AdminPanel: React.FC = () => {
             <div className="p-6 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-[#5A3E7A]">
-                  <Sparkles className="w-5 h-5" />
+                  <Sliders className="w-5 h-5" />
                   <h3 className="font-extrabold text-sm sm:text-base">
                     {lang === 'ar' ? '1. شرائح الشريط الإعلاني العلوي المتحرك' : '1. Top Announcement Ticker Slides'}
                   </h3>
@@ -1366,7 +1502,7 @@ export const AdminPanel: React.FC = () => {
                     type="button"
                     onClick={() => {
                       const currentSlides = activePreset.announcementSlides || [];
-                      const newSlides = [...currentSlides, { ar: 'نص إعلاني جديد هنا ✨', en: 'New announcement text here ✨' }];
+                      const newSlides = [...currentSlides, { ar: 'نص إعلاني جديد هنا 🌿', en: 'New announcement text here 🌿' }];
                       updateField('announcementSlides', newSlides);
                       showToast(lang === 'ar' ? 'تمت إضافة شريحة إعلانية جديدة' : 'Slide added');
                     }}
@@ -1901,7 +2037,7 @@ export const AdminPanel: React.FC = () => {
                         type="text"
                         value={newProdBadge}
                         onChange={(e) => setNewProdBadge(e.target.value)}
-                        placeholder="جديد 🌟 / الأكثر طلباً 🔥"
+                        placeholder="جديد 🌿 / الأكثر طلباً 🔥"
                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
@@ -1986,7 +2122,7 @@ export const AdminPanel: React.FC = () => {
                         type="submit"
                         className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-md transition-all active:scale-95"
                       >
-                        {lang === 'ar' ? 'حفظ وإضافة المنتج للمتجر فوراً ✨' : 'Publish Product to Store ✨'}
+                        {lang === 'ar' ? 'حفظ وإضافة المنتج للمتجر فوراً' : 'Publish Product to Store'}
                       </button>
                     </div>
                   </form>
@@ -2221,7 +2357,7 @@ export const AdminPanel: React.FC = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
                 <div className="space-y-1">
                   <h2 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
-                    <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                    <BadgeCheck className="w-5 h-5 text-amber-500" />
                     <span>{lang === 'ar' ? 'إدارة تقييمات وآراء العملاء (Customer Reviews)' : 'Verified Customer Reviews Management'}</span>
                   </h2>
                   <p className="text-xs text-slate-500">
@@ -2302,7 +2438,7 @@ export const AdminPanel: React.FC = () => {
                 <div className="p-6 bg-slate-50 rounded-2xl border-2 border-amber-500/40 shadow-lg space-y-4 animate-in fade-in">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                     <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                      <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                      <MessageSquare className="w-4 h-4 text-amber-500" />
                       <span>{lang === 'ar' ? 'إضافة رأي وتجربة عميلة جديدة' : 'Add New Customer Testimonial'}</span>
                     </h3>
                     <button
@@ -2346,21 +2482,31 @@ export const AdminPanel: React.FC = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                          {lang === 'ar' ? 'التقييم بالنجوم (1-5):' : 'Star Rating (1-5):'}
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1.5">
+                          {lang === 'ar' ? 'مستوى التقييم الرقمي (1-5):' : 'Quality Score (1-5):'}
                         </label>
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              type="button"
-                              key={star}
-                              onClick={() => setNewRevRating(star)}
-                              className="p-1 text-amber-400 hover:scale-110 transition-transform"
-                            >
-                              <Star className={`w-6 h-6 ${star <= newRevRating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
-                            </button>
-                          ))}
-                          <span className="ms-2 text-xs font-black text-slate-700 font-mono">({newRevRating}/5)</span>
+                        <div className="flex items-center gap-1.5">
+                          {[1, 2, 3, 4, 5].map((score) => {
+                            const active = score === newRevRating;
+                            return (
+                              <button
+                                type="button"
+                                key={score}
+                                onClick={() => setNewRevRating(score)}
+                                className={`min-w-[38px] h-9 px-2.5 rounded-xl text-xs font-black font-mono transition-all cursor-pointer border ${
+                                  active
+                                    ? 'bg-purple-900 text-amber-300 border-purple-800 shadow-xs'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                {score}
+                              </button>
+                            );
+                          })}
+                          <span className="ms-2 inline-flex items-center gap-1 text-xs font-black text-purple-900 font-mono">
+                            <BadgeCheck className="w-4 h-4 text-amber-600" />
+                            <span>{newRevRating}.0 / 5</span>
+                          </span>
                         </div>
                       </div>
 
@@ -2417,7 +2563,7 @@ export const AdminPanel: React.FC = () => {
                         type="submit"
                         className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs cursor-pointer shadow-sm active:scale-95"
                       >
-                        {lang === 'ar' ? 'نشر التقييم بالمتجر فوراً ✨' : 'Publish Testimonial ✨'}
+                        {lang === 'ar' ? 'نشر التقييم بالمتجر فوراً' : 'Publish Testimonial'}
                       </button>
                     </div>
                   </form>
@@ -2470,7 +2616,7 @@ export const AdminPanel: React.FC = () => {
               {/* Reviews Cards Grid */}
               {filteredReviews.length === 0 ? (
                 <div className="text-center py-12 px-4 rounded-2xl bg-slate-50 border border-dashed border-slate-200 space-y-2">
-                  <Star className="w-8 h-8 mx-auto text-slate-300" />
+                  <MessageSquare className="w-8 h-8 mx-auto text-slate-300" />
                   <h3 className="text-sm font-bold text-slate-700">
                     {lang === 'ar' ? 'لا توجد تقييمات مطابقة لهذا البحث أو التصفية' : 'No matching reviews found'}
                   </h3>
@@ -2538,16 +2684,12 @@ export const AdminPanel: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Star Rating & Purchased tag */}
+                          {/* Verified Numeric Score & Purchased tag */}
                           <div className="flex items-center justify-between text-[11px]">
-                            <div className="flex items-center text-amber-400">
-                              {[...Array(5)].map((_, i) => (
-                                <Star 
-                                  key={i} 
-                                  className={`w-3.5 h-3.5 ${i < (rev.rating || 5) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} 
-                                />
-                              ))}
-                            </div>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-900 border border-purple-200/80 font-mono font-bold text-[11px]">
+                              <BadgeCheck className="w-3.5 h-3.5 text-amber-600" />
+                              <span>{Number(rev.rating || 5).toFixed(1)} / 5</span>
+                            </span>
                             <span className="text-[10px] text-slate-400 truncate max-w-[150px]">
                               {rev.purchasedProduct?.[lang] || rev.purchasedProduct?.ar || rev.date?.[lang] || rev.date?.ar}
                             </span>
@@ -2696,7 +2838,7 @@ export const AdminPanel: React.FC = () => {
                 <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-4 flex flex-col justify-between">
                   <div className="space-y-2">
                     <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center">
-                      <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                      <MessageSquare className="w-5 h-5 text-amber-800" />
                     </div>
                     <h3 className="font-extrabold text-sm text-slate-900">
                       {lang === 'ar' ? '3. تفريغ التقييمات الافتراضية' : '3. Wipe Demo Reviews'}
@@ -2798,7 +2940,7 @@ export const AdminPanel: React.FC = () => {
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-6">
               <div className="border-b border-slate-100 pb-5">
                 <h2 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-amber-500" />
+                  <Layers className="w-5 h-5 text-amber-500" />
                   <span>{lang === 'ar' ? 'تشكيلات وماركات أجهزة الشعر (Trio Banners)' : 'Brand Collections & Device Trio'}</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
@@ -2974,7 +3116,7 @@ export const AdminPanel: React.FC = () => {
               <div className="p-6 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <h3 className="text-sm font-black text-purple-900 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-600" />
+                    <Crown className="w-4 h-4 text-purple-600" />
                     <span>{lang === 'ar' ? '1. صورة واجهة الهيرو الكبيرة' : '1. Hero Main Visual Banner'}</span>
                   </h3>
                   <span className="text-[11px] font-bold text-purple-700 bg-purple-100/90 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
@@ -3212,7 +3354,7 @@ export const AdminPanel: React.FC = () => {
               <div className="p-6 rounded-2xl bg-amber-50/30 border border-amber-100 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-black text-amber-950 flex items-center gap-2">
-                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                    <BadgeCheck className="w-4 h-4 text-amber-500" />
                     <span>{lang === 'ar' ? '5. شهادات وتقييمات العميلات الحقيقية (Verified Testimonials)' : '5. Customer Testimonials'}</span>
                   </h3>
                   <span className="text-[11px] text-amber-800 font-bold bg-amber-100/80 px-2.5 py-0.5 rounded-full">
@@ -3463,6 +3605,34 @@ export const AdminPanel: React.FC = () => {
                   />
                 </div>
 
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                    {lang === 'ar' ? 'رابط حساب إنستغرام (Instagram URL):' : 'Instagram Profile URL:'}
+                  </label>
+                  <input
+                    type="url"
+                    dir="ltr"
+                    placeholder="https://instagram.com/..."
+                    value={activePreset.contactInfo.instagramUrl ?? 'https://instagram.com'}
+                    onChange={(e) => updateField('contactInfo.instagramUrl', e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                    {lang === 'ar' ? 'رابط صفحة فيسبوك (Facebook URL):' : 'Facebook Page URL:'}
+                  </label>
+                  <input
+                    type="url"
+                    dir="ltr"
+                    placeholder="https://facebook.com/..."
+                    value={activePreset.contactInfo.facebookUrl ?? 'https://facebook.com'}
+                    onChange={(e) => updateField('contactInfo.facebookUrl', e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900"
+                  />
+                </div>
+
                 <div className="md:col-span-2">
                   <label className="text-[11px] font-bold text-slate-600 block mb-1">
                     {lang === 'ar' ? 'نبذة عن المتجر في الفوتر (About Snippet):' : 'Footer About Snippet:'}
@@ -3473,6 +3643,81 @@ export const AdminPanel: React.FC = () => {
                     onChange={(e) => updateField('footerAbout.description.ar', e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900"
                   />
+                </div>
+              </div>
+
+              {/* Dynamic Payment Wallets Configuration */}
+              <div className="pt-4 border-t border-slate-200 space-y-3">
+                <h4 className="text-xs font-extrabold text-slate-800">
+                  {lang === 'ar' ? 'حسابات التحويل والدفع الإلكتروني (Checkout Wallets)' : 'Dynamic Checkout Payment Accounts'}
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      {lang === 'ar' ? 'رقم حساب بنكك (Bankak):' : 'Bankak Account:'}
+                    </label>
+                    <input
+                      type="text"
+                      value={activePreset.contactInfo.paymentWallets?.bankakAccount ?? '2891044'}
+                      onChange={(e) => updateField('contactInfo.paymentWallets.bankakAccount', e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900"
+                      dir="ltr"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      {lang === 'ar' ? 'رقم محفظة ماي كاشي (My Cashi):' : 'My Cashi Number:'}
+                    </label>
+                    <input
+                      type="text"
+                      value={activePreset.contactInfo.paymentWallets?.cashiNumber ?? '07040 2787 05198'}
+                      onChange={(e) => updateField('contactInfo.paymentWallets.cashiNumber', e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900"
+                      dir="ltr"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      {lang === 'ar' ? 'رقم محفظة برافو (Bravo):' : 'Bravo Wallet ID:'}
+                    </label>
+                    <input
+                      type="text"
+                      value={activePreset.contactInfo.paymentWallets?.bravoNumber ?? '0900713251'}
+                      onChange={(e) => updateField('contactInfo.paymentWallets.bravoNumber', e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900"
+                      dir="ltr"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">Binance Pay ID:</label>
+                    <input
+                      type="text"
+                      value={activePreset.contactInfo.paymentWallets?.binancePayId ?? '829104432'}
+                      onChange={(e) => updateField('contactInfo.paymentWallets.binancePayId', e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900"
+                      dir="ltr"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">RedotPay ID:</label>
+                    <input
+                      type="text"
+                      value={activePreset.contactInfo.paymentWallets?.redotPayId ?? '19482015'}
+                      onChange={(e) => updateField('contactInfo.paymentWallets.redotPayId', e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900"
+                      dir="ltr"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">PayPal Email:</label>
+                    <input
+                      type="email"
+                      value={activePreset.contactInfo.paymentWallets?.paypalEmail ?? 'nadi.skincare@gmail.com'}
+                      onChange={(e) => updateField('contactInfo.paymentWallets.paypalEmail', e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900"
+                      dir="ltr"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -3647,6 +3892,17 @@ export const AdminPanel: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialogModal
+        isOpen={Boolean(confirmDialog?.isOpen)}
+        title={confirmDialog?.title || ''}
+        message={confirmDialog?.message || ''}
+        confirmLabel={confirmDialog?.confirmLabel || (lang === 'ar' ? 'تأكيد' : 'Confirm')}
+        cancelLabel={lang === 'ar' ? 'إلغاء' : 'Cancel'}
+        variant={confirmDialog?.variant || 'danger'}
+        onConfirm={() => confirmDialog?.onConfirm()}
+        onCancel={() => setConfirmDialog(null)}
+      />
     </div>
   );
 };

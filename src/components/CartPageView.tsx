@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Trash2, ArrowLeft, ArrowRight, ShieldCheck, 
-  Truck, Tag, Check, AlertCircle, Sparkles, Plus, Minus, CreditCard, 
+  Truck, Tag, Check, AlertCircle, RotateCcw, Plus, Minus, CreditCard, 
   Banknote, PhoneCall, Copy 
 } from 'lucide-react';
 import { StoreCartIcon } from './common/StoreCartIcon';
@@ -99,7 +99,7 @@ export const CartPageView: React.FC = () => {
       showToast(lang === 'ar' ? 'تم تفعيل خصم 10%!' : '10% discount applied!');
     } else if (cleanCode === 'SOBEAUTY' || cleanCode === 'VIP20') {
       setAppliedDiscountRate(0.15);
-      setPromoMessage({ text: lang === 'ar' ? 'تم تطبيق كود كبار العميلات (-15%) ✨' : 'VIP Coupon applied (-15%) ✨', isError: false });
+      setPromoMessage({ text: lang === 'ar' ? 'تم تطبيق كود كبار العميلات (-15%) 🎉' : 'VIP Coupon applied (-15%) 🎉', isError: false });
       showToast(lang === 'ar' ? 'تم تفعيل خصم كبار العميلات 15%!' : 'VIP 15% discount applied!');
     } else {
       setPromoMessage({ text: lang === 'ar' ? 'عذراً، هذا الكود غير صالح أو منتهي الصلاحية' : 'Invalid or expired promo code', isError: true });
@@ -379,7 +379,7 @@ export const CartPageView: React.FC = () => {
                   </div>
 
                   <div className="bg-white p-3.5 rounded-2xl border border-slate-100 flex items-center gap-3">
-                    <Sparkles className="w-6 h-6 text-[#5A3E7A] shrink-0" />
+                    <RotateCcw className="w-6 h-6 text-[#5A3E7A] shrink-0" />
                     <div className="text-start">
                       <p className="text-xs font-bold text-slate-900">{lang === 'ar' ? 'ضمان 14 يوماً' : '14 Days Guarantee'}</p>
                       <p className="text-[11px] text-slate-400">{lang === 'ar' ? 'استبدال واسترجاع ناعم' : 'Hassle-Free'}</p>
@@ -641,7 +641,7 @@ export const CartPageView: React.FC = () => {
                         }`}
                       >
                         <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-white font-black text-[10px]">
-                          ★
+                          B
                         </div>
                         <span>{lang === 'ar' ? 'برافو' : 'Bravo'}</span>
                       </button>
@@ -663,113 +663,128 @@ export const CartPageView: React.FC = () => {
                   </div>
 
                   {/* Payment Details Drawer with One-Click Copy */}
-                  {paymentMethod === 'binance' && (
-                    <div className="p-3.5 bg-amber-50/90 rounded-2xl border border-amber-200 text-[11px] text-amber-950 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold">Binance Pay ID:</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyPaymentInfo('829104432', 'Binance Pay ID')}
-                          className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
-                        </button>
-                      </div>
-                      <p className="font-mono font-black text-sm text-slate-900 tracking-wider">829104432 (USDT / Pay)</p>
-                      <p className="text-amber-800/90">{lang === 'ar' ? 'يرجى إرسال إشعار العملية عبر الواتساب لتأكيد الشحن فوراً.' : 'Please send the transaction screenshot to WhatsApp to confirm.'}</p>
-                    </div>
-                  )}
+                  {(() => {
+                    const wallets = activeData?.contactInfo?.paymentWallets || {
+                      binancePayId: '829104432',
+                      redotPayId: '19482015',
+                      paypalEmail: activeData?.contactInfo?.email || 'nadi.skincare@gmail.com',
+                      bankakAccount: '2891044',
+                      cashiNumber: '07040 2787 05198',
+                      bravoNumber: '0900713251',
+                    };
 
-                  {paymentMethod === 'redotpay' && (
-                    <div className="p-3.5 bg-rose-50/90 rounded-2xl border border-rose-200 text-[11px] text-rose-950 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold">RedotPay ID:</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyPaymentInfo('19482015', 'RedotPay ID')}
-                          className="px-2.5 py-1 bg-rose-200 hover:bg-rose-300 text-rose-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
-                        </button>
-                      </div>
-                      <p className="font-mono font-black text-sm text-slate-900 tracking-wider">19482015</p>
-                      <p className="text-rose-800/90">{lang === 'ar' ? 'تحويل فوري بدون رسوم بين حسابات RedotPay.' : 'Instant zero-fee transfer between RedotPay accounts.'}</p>
-                    </div>
-                  )}
+                    return (
+                      <>
+                        {paymentMethod === 'binance' && (
+                          <div className="p-3.5 bg-amber-50/90 rounded-2xl border border-amber-200 text-[11px] text-amber-950 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold">Binance Pay ID:</span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyPaymentInfo(wallets.binancePayId, 'Binance Pay ID')}
+                                className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                              >
+                                <Copy className="w-3 h-3" />
+                                <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                              </button>
+                            </div>
+                            <p className="font-mono font-black text-sm text-slate-900 tracking-wider">{wallets.binancePayId} (USDT / Pay)</p>
+                            <p className="text-amber-800/90">{lang === 'ar' ? 'يرجى إرسال إشعار العملية عبر الواتساب لتأكيد الشحن فوراً.' : 'Please send the transaction screenshot to WhatsApp to confirm.'}</p>
+                          </div>
+                        )}
 
-                  {paymentMethod === 'paypal' && (
-                    <div className="p-3.5 bg-blue-50/90 rounded-2xl border border-blue-200 text-[11px] text-blue-950 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold">PayPal Account:</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyPaymentInfo('nadi.skincare@gmail.com', 'PayPal Email')}
-                          className="px-2.5 py-1 bg-blue-200 hover:bg-blue-300 text-blue-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
-                        </button>
-                      </div>
-                      <p className="font-mono font-black text-xs text-slate-900">nadi.skincare@gmail.com</p>
-                      <p className="text-blue-800/90">{lang === 'ar' ? 'دفع عالمي آمن ومحمي مع تأكيد عبر الواتساب.' : 'Secure global payment with WhatsApp confirmation.'}</p>
-                    </div>
-                  )}
+                        {paymentMethod === 'redotpay' && (
+                          <div className="p-3.5 bg-rose-50/90 rounded-2xl border border-rose-200 text-[11px] text-rose-950 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold">RedotPay ID:</span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyPaymentInfo(wallets.redotPayId, 'RedotPay ID')}
+                                className="px-2.5 py-1 bg-rose-200 hover:bg-rose-300 text-rose-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                              >
+                                <Copy className="w-3 h-3" />
+                                <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                              </button>
+                            </div>
+                            <p className="font-mono font-black text-sm text-slate-900 tracking-wider">{wallets.redotPayId}</p>
+                            <p className="text-rose-800/90">{lang === 'ar' ? 'تحويل فوري بدون رسوم بين حسابات RedotPay.' : 'Instant zero-fee transfer between RedotPay accounts.'}</p>
+                          </div>
+                        )}
 
-                  {paymentMethod === 'bankak' && (
-                    <div className="p-3.5 bg-emerald-50/90 rounded-2xl border border-emerald-200 text-[11px] text-emerald-950 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold">{lang === 'ar' ? 'رقم حساب بنكك المعتمد:' : 'Bankak Account Number:'}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyPaymentInfo('2891044', 'رقم حساب بنكك')}
-                          className="px-2.5 py-1 bg-emerald-200 hover:bg-emerald-300 text-emerald-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
-                        </button>
-                      </div>
-                      <p className="font-mono font-black text-sm text-slate-900 tracking-wider">2891044 ({activeData.storeName.ar})</p>
-                      <p className="text-emerald-800/90">{lang === 'ar' ? 'يرجى إرسال إشعار التحويل عبر الواتساب لتأكيد الطلب فوراً.' : 'Please send the transfer receipt to our WhatsApp after placing.'}</p>
-                    </div>
-                  )}
+                        {paymentMethod === 'paypal' && (
+                          <div className="p-3.5 bg-blue-50/90 rounded-2xl border border-blue-200 text-[11px] text-blue-950 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold">PayPal Account:</span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyPaymentInfo(wallets.paypalEmail, 'PayPal Email')}
+                                className="px-2.5 py-1 bg-blue-200 hover:bg-blue-300 text-blue-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                              >
+                                <Copy className="w-3 h-3" />
+                                <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                              </button>
+                            </div>
+                            <p className="font-mono font-black text-xs text-slate-900">{wallets.paypalEmail}</p>
+                            <p className="text-blue-800/90">{lang === 'ar' ? 'دفع عالمي آمن ومحمي مع تأكيد عبر الواتساب.' : 'Secure global payment with WhatsApp confirmation.'}</p>
+                          </div>
+                        )}
 
-                  {paymentMethod === 'cashi' && (
-                    <div className="p-3.5 bg-purple-50/90 rounded-2xl border border-purple-200 text-[11px] text-purple-950 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold">{lang === 'ar' ? 'رقم محفظة ماي كاشي:' : 'My Cashi Wallet Number:'}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyPaymentInfo('07040 2787 05198', 'رقم محفظة ماي كاشي')}
-                          className="px-2.5 py-1 bg-purple-200 hover:bg-purple-300 text-[#5A3E7A] font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
-                        </button>
-                      </div>
-                      <p className="font-mono font-black text-sm text-slate-900 tracking-wider">07040 2787 05198</p>
-                      <p className="text-purple-800/90">{lang === 'ar' ? 'تحويل فوري عبر تطبيق ماي كاشي مع إرفاق الإشعار عبر الواتساب.' : 'Instant transfer via My Cashi with receipt via WhatsApp.'}</p>
-                    </div>
-                  )}
+                        {paymentMethod === 'bankak' && (
+                          <div className="p-3.5 bg-emerald-50/90 rounded-2xl border border-emerald-200 text-[11px] text-emerald-950 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold">{lang === 'ar' ? 'رقم حساب بنكك المعتمد:' : 'Bankak Account Number:'}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyPaymentInfo(wallets.bankakAccount, 'رقم حساب بنكك')}
+                                className="px-2.5 py-1 bg-emerald-200 hover:bg-emerald-300 text-emerald-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                              >
+                                <Copy className="w-3 h-3" />
+                                <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                              </button>
+                            </div>
+                            <p className="font-mono font-black text-sm text-slate-900 tracking-wider">{wallets.bankakAccount} ({activeData.storeName.ar})</p>
+                            <p className="text-emerald-800/90">{lang === 'ar' ? 'يرجى إرسال إشعار التحويل عبر الواتساب لتأكيد الطلب فوراً.' : 'Please send the transfer receipt to our WhatsApp after placing.'}</p>
+                          </div>
+                        )}
 
-                  {paymentMethod === 'bravo' && (
-                    <div className="p-3.5 bg-indigo-50/90 rounded-2xl border border-indigo-200 text-[11px] text-indigo-950 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold">{lang === 'ar' ? 'رقم محفظة برافو:' : 'Bravo Wallet ID:'}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyPaymentInfo('249900713251', 'رقم محفظة برافو')}
-                          className="px-2.5 py-1 bg-indigo-200 hover:bg-indigo-300 text-indigo-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
-                        </button>
-                      </div>
-                      <p className="font-mono font-black text-sm text-slate-900 tracking-wider">0900713251</p>
-                      <p className="text-indigo-800/90">{lang === 'ar' ? 'دفع سريع ومباشر عبر تطبيق برافو السودان.' : 'Quick transfer via Bravo Sudan.'}</p>
-                    </div>
-                  )}
+                        {paymentMethod === 'cashi' && (
+                          <div className="p-3.5 bg-purple-50/90 rounded-2xl border border-purple-200 text-[11px] text-purple-950 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold">{lang === 'ar' ? 'رقم محفظة ماي كاشي:' : 'My Cashi Wallet Number:'}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyPaymentInfo(wallets.cashiNumber, 'رقم محفظة ماي كاشي')}
+                                className="px-2.5 py-1 bg-purple-200 hover:bg-purple-300 text-[#5A3E7A] font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                              >
+                                <Copy className="w-3 h-3" />
+                                <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                              </button>
+                            </div>
+                            <p className="font-mono font-black text-sm text-slate-900 tracking-wider">{wallets.cashiNumber}</p>
+                            <p className="text-purple-800/90">{lang === 'ar' ? 'تحويل فوري عبر تطبيق ماي كاشي مع إرفاق الإشعار عبر الواتساب.' : 'Instant transfer via My Cashi with receipt via WhatsApp.'}</p>
+                          </div>
+                        )}
+
+                        {paymentMethod === 'bravo' && (
+                          <div className="p-3.5 bg-indigo-50/90 rounded-2xl border border-indigo-200 text-[11px] text-indigo-950 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold">{lang === 'ar' ? 'رقم محفظة برافو:' : 'Bravo Wallet ID:'}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyPaymentInfo(wallets.bravoNumber, 'رقم محفظة برافو')}
+                                className="px-2.5 py-1 bg-indigo-200 hover:bg-indigo-300 text-indigo-900 font-extrabold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                              >
+                                <Copy className="w-3 h-3" />
+                                <span>{lang === 'ar' ? 'نسخ' : 'Copy'}</span>
+                              </button>
+                            </div>
+                            <p className="font-mono font-black text-sm text-slate-900 tracking-wider">{wallets.bravoNumber}</p>
+                            <p className="text-indigo-800/90">{lang === 'ar' ? 'دفع سريع ومباشر عبر تطبيق برافو السودان.' : 'Quick transfer via Bravo Sudan.'}</p>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
 
                   {/* Final Submit CTA */}
                   <button

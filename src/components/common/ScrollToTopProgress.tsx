@@ -64,7 +64,7 @@ export const ScrollToTopProgress: React.FC = () => {
 
   return (
     <div
-      className={`fixed bottom-6 start-6 z-30 transition-all duration-300 ease-out select-none ${
+      className={`fixed bottom-4 start-4 sm:bottom-6 sm:start-6 z-30 transition-all duration-300 ease-out select-none ${
         isVisible
           ? 'opacity-100 translate-y-0 pointer-events-auto scale-100'
           : 'opacity-0 translate-y-6 pointer-events-none scale-90'
@@ -75,7 +75,7 @@ export const ScrollToTopProgress: React.FC = () => {
         onClick={scrollToTop}
         aria-label={lang === 'ar' ? 'الصعود لأعلى الصفحة' : 'Scroll to top of page'}
         title={lang === 'ar' ? `نسبة التصفح: ${Math.round(scrollProgress)}% - انقر للصعود` : `Scrolled ${Math.round(scrollProgress)}% - Click to top`}
-        className="group relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:shadow-slate-900/20 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center transition-transform duration-200 active:scale-95 hover:scale-105 cursor-pointer"
+        className="group relative w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:shadow-slate-900/20 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center transition-transform duration-200 active:scale-95 hover:scale-105 cursor-pointer"
       >
         {/* SVG Progress Ring */}
         <svg

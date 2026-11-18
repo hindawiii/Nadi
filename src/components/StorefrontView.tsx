@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Sparkles, Truck, ShieldCheck, CreditCard, ArrowRight, ArrowLeft, 
-  Star, CheckCircle2, ChevronRight, ChevronLeft, MessageCircle, Heart, 
-  MapPin, Phone, Mail, Award, Droplets, Sun, Sparkle, Shield, 
+  Truck, ShieldCheck, CreditCard, ArrowRight, ArrowLeft, 
+  CheckCircle2, ChevronRight, ChevronLeft, MessageCircle, Heart, 
+  MapPin, Phone, Mail, Award, Droplets, Sun, Shield, 
   Layers, MessageSquarePlus, SlidersHorizontal, Quote, ThumbsUp, Check, BadgeCheck,
-  ZoomIn, Maximize2, X, Plus, Minus, ShoppingBag, Gift, ChevronDown, ChevronUp
+  ZoomIn, Maximize2, X, Plus, Minus, ShoppingBag, Gift, ChevronDown, ChevronUp,
+  ScanFace, Gem, Flower2, LayoutGrid
 } from 'lucide-react';
 import { useCommerce, SectionId } from '../context/CommerceContext';
 import { ProductCard } from './ProductCard';
@@ -81,7 +82,7 @@ export const StorefrontView: React.FC = () => {
     {
       id: 4,
       image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
-      badge: isRtl ? 'نتائج مثبتة خلال 14 يوماً 🌟' : 'Visible 14-Day Results 🌟',
+      badge: isRtl ? 'نتائج مثبتة خلال 14 يوماً' : 'Visible 14-Day Results',
       title: isRtl ? 'نضارة وترطيب عميق مستدام' : 'Deep Hydration & Long-Lasting Glow',
       desc: isRtl ? 'نتائج سريرية واستطلاعية مؤكدة بنسبة رضا تتجاوز 98% في استعادة نضارة البشرة.' : 'Clinically observed improvements with over 98% customer satisfaction.'
     }
@@ -139,13 +140,51 @@ export const StorefrontView: React.FC = () => {
     return p.category.en.toLowerCase().includes(selectedCategory.toLowerCase()) || p.category.ar.includes(selectedCategory);
   });
 
-  // Sort products
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortBy === 'price-asc') return a.basePriceUSD - b.basePriceUSD;
-    if (sortBy === 'price-desc') return b.basePriceUSD - a.basePriceUSD;
-    if (sortBy === 'rating') return b.rating - a.rating;
-    return 0; // 'featured' keeps curated order
-  });
+  // Sort products (with balanced round-robin interleaving on default cosmetics 'All' view so bundles & hair devices appear immediately)
+  const sortedProducts = (() => {
+    if (
+      activePresetId === 'cosmetics' &&
+      selectedCategory === 'all' &&
+      sortBy === 'featured' &&
+      !activeSkinFilter
+    ) {
+      const skincareItems: typeof filteredProducts = [];
+      const newBundles: typeof filteredProducts = [];
+      const legacyBundles: typeof filteredProducts = [];
+      const hairItems: typeof filteredProducts = [];
+
+      for (const p of filteredProducts) {
+        if (p.id.startsWith('bundle-') || p.category.ar.includes('بكج')) {
+          newBundles.push(p);
+        } else if (p.bundle) {
+          legacyBundles.push(p);
+        } else if (p.id.startsWith('hd-') || p.category.ar.includes('أجهزة') || p.category.en.toLowerCase().includes('hair')) {
+          hairItems.push(p);
+        } else {
+          skincareItems.push(p);
+        }
+      }
+
+      const bundleItems = [...newBundles, ...legacyBundles];
+      const interleaved: typeof filteredProducts = [];
+      const maxLen = Math.max(skincareItems.length, bundleItems.length, hairItems.length);
+
+      for (let i = 0; i < maxLen; i++) {
+        if (i < skincareItems.length) interleaved.push(skincareItems[i]);
+        if (i < bundleItems.length) interleaved.push(bundleItems[i]);
+        if (i < hairItems.length) interleaved.push(hairItems[i]);
+      }
+
+      return interleaved;
+    }
+
+    return [...filteredProducts].sort((a, b) => {
+      if (sortBy === 'price-asc') return a.basePriceUSD - b.basePriceUSD;
+      if (sortBy === 'price-desc') return b.basePriceUSD - a.basePriceUSD;
+      if (sortBy === 'rating') return b.rating - a.rating;
+      return 0; // 'featured' keeps curated order
+    });
+  })();
 
   const skinTypes = [
     {
@@ -189,10 +228,10 @@ export const StorefrontView: React.FC = () => {
       title: { ar: 'بشرة مشرقة', en: 'Radiant Skin' },
       ingredient: { ar: 'زيوت اللافندر والورد', en: 'Rose & Lavender Infusion' },
       desc: { ar: 'زيوت اللافندر والورد لنضارة فورية وإشراقة طبيعية تدوم.', en: 'Lavender & Rose extracts for healthy glow.' },
-      icon: Sparkle,
+      icon: Flower2,
       image: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=700&q=80', // Radiant glow with botanical dropper
       fallbackImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=700&q=80',
-      badge: { ar: 'إشراقة طبيعية ✨', en: 'Natural Glow ✨' },
+      badge: { ar: 'إشراقة طبيعية', en: 'Natural Glow' },
       bg: 'bg-rose-50/70 border-rose-200/80 hover:border-rose-400 text-rose-900',
       badgeColor: 'bg-rose-600 text-white'
     }
@@ -257,7 +296,11 @@ export const StorefrontView: React.FC = () => {
   const effectiveSkinDiagnosis = (activeData?.skinDiagnosisCards && activeData.skinDiagnosisCards.length > 0)
     ? activeData.skinDiagnosisCards.map(s => ({
         ...s,
-        icon: s.id === 'hydrated' ? Droplets : (s.id === 'even' ? Sun : (s.id === 'firm' ? Shield : Sparkle))
+        badge: {
+          ar: s.badge.ar.replace(/\s*[✨⭐🌟★✦]/g, '').trim(),
+          en: s.badge.en.replace(/\s*[✨⭐🌟★✦]/g, '').trim()
+        },
+        icon: s.id === 'hydrated' ? Droplets : (s.id === 'even' ? Sun : (s.id === 'firm' ? Shield : Flower2))
       }))
     : skinTypes;
 
@@ -269,7 +312,8 @@ export const StorefrontView: React.FC = () => {
   const effectiveTestimonials = approvedTestimonials.length > 0 ? approvedTestimonials : rawTestimonials;
 
   const iconMap: Record<string, any> = {
-    Sparkles,
+    Sparkles: Award,
+    Award,
     Truck,
     ShieldCheck,
     CreditCard
@@ -361,7 +405,7 @@ export const StorefrontView: React.FC = () => {
           <section className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-sm">
               {activeData.valueProps.map((item, idx) => {
-                const Icon = iconMap[item.icon] || Sparkles;
+                const Icon = iconMap[item.icon] || Award;
                 return (
                   <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-3 p-2">
                     <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5A3E7A] flex items-center justify-center shrink-0 border border-purple-100 shadow-xs">
@@ -388,8 +432,8 @@ export const StorefrontView: React.FC = () => {
             <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 text-xs font-bold flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  {clonedSections.valueProps.badgeAr || 'نسخة إضافية مخصصة ✨'}
+                  <Layers className="w-3.5 h-3.5 text-amber-300" />
+                  {(clonedSections.valueProps.badgeAr || 'نسخة إضافية مخصصة').replace(/\s*[✨⭐🌟★✦]/g, '')}
                 </span>
                 <h3 className="text-base sm:text-lg font-black text-white">
                   {lang === 'ar' ? (clonedSections.valueProps.titleAr || 'ضماناتنا وعروضنا الحصرية') : (clonedSections.valueProps.titleEn || 'Exclusive Guarantees')}
@@ -402,7 +446,7 @@ export const StorefrontView: React.FC = () => {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 pt-2">
               {activeData.valueProps.map((item, idx) => {
-                const Icon = iconMap[item.icon] || Sparkles;
+                const Icon = iconMap[item.icon] || Award;
                 return (
                   <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-3 p-2 bg-slate-900/60 rounded-2xl border border-purple-900/40">
                     <div className="w-11 h-11 rounded-xl bg-purple-600/30 text-purple-300 flex items-center justify-center shrink-0 border border-purple-500/40 shadow-xs">
@@ -432,7 +476,7 @@ export const StorefrontView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="space-y-1.5 text-start">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-200/80 text-purple-900 text-xs font-bold">
-              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <ScanFace className="w-3.5 h-3.5 text-purple-600" />
               <span>{lang === 'ar' ? 'تشخيص ذكي مخصص لبشرتكِ' : 'Smart Tailored Regimen'}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-brand-ar">
@@ -445,21 +489,36 @@ export const StorefrontView: React.FC = () => {
             </p>
           </div>
 
-          {activeSkinFilter && (
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            {activeSkinFilter && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSkinFilter(null);
+                  showToast(lang === 'ar' ? 'تمت العودة لجميع المنتجات' : 'Reset to all products');
+                }}
+                className="h-11 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>{lang === 'ar' ? '✕ إلغاء تصفية البشرة' : '✕ Clear Skin Filter'}</span>
+              </button>
+            )}
             <button
+              type="button"
               onClick={() => {
-                setActiveSkinFilter(null);
-                showToast(lang === 'ar' ? 'تمت العودة لجميع المنتجات' : 'Reset to all products');
+                setSelectedCategory('box');
+                document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              className="self-start sm:self-auto px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5"
+              className="h-11 px-4 rounded-xl border border-purple-200/90 bg-purple-50/70 hover:bg-purple-100/80 text-purple-900 font-bold text-xs transition-all flex items-center gap-2 cursor-pointer active:scale-95"
             >
-              <span>{lang === 'ar' ? '✕ إلغاء تصفية البشرة' : '✕ Clear Skin Filter'}</span>
+              <Gift className="w-4 h-4 text-purple-700" />
+              <span>{lang === 'ar' ? 'تصفحي بكجات العناية الجاهزة' : 'Browse Ready Gift Bundles'}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-purple-600" />
             </button>
-          )}
+          </div>
         </div>
 
         {/* 4 Smart Cards: Exactly 4 in a single row on all larger devices (sm:grid-cols-4), and 2 on Mobile (grid-cols-2) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-2.5 sm:gap-3.5 lg:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3.5 lg:gap-4">
           {effectiveSkinDiagnosis.map((type) => {
             const Icon = type.icon;
             const isSelected = activeSkinFilter === type.id;
@@ -559,7 +618,7 @@ export const StorefrontView: React.FC = () => {
 
       // 4. PRODUCTS GRID (With Category Filter & Product Cards)
       productsCatalog: sectionsControl.productsCatalog ? (
-        <section id="products-section" className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
+        <section id="products-section" className="max-w-7xl mx-auto px-2.5 sm:px-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="space-y-1">
             <span className="text-xs font-bold text-purple-700 uppercase tracking-widest">
@@ -626,7 +685,7 @@ export const StorefrontView: React.FC = () => {
                 aria-label="Sort products"
               >
                 <option value="featured">{lang === 'ar' ? 'المقترحة' : 'Featured'}</option>
-                <option value="rating">{lang === 'ar' ? 'الأعلى تقييماً ★' : 'Top Rated ★'}</option>
+                <option value="rating">{lang === 'ar' ? 'الأعلى تقييماً' : 'Top Rated'}</option>
                 <option value="price-asc">{lang === 'ar' ? 'السعر: الأقل للأعلى' : 'Price: Low to High'}</option>
                 <option value="price-desc">{lang === 'ar' ? 'السعر: الأعلى للأقل' : 'Price: High to Low'}</option>
               </select>
@@ -664,22 +723,23 @@ export const StorefrontView: React.FC = () => {
               </div>
             </div>
 
-            {/* Action Buttons: Accordion Expand & Collapse */}
-            <div className="flex items-center gap-2.5 sm:gap-3 w-full justify-center">
+            {/* Action Buttons: Harmonized Luxe White Pill Accordion Expand & Collapse */}
+            <div className="flex items-center gap-2.5 sm:gap-3 w-full justify-center flex-wrap">
               {visibleProductsCount < sortedProducts.length && (
                 <button
                   type="button"
                   onClick={() => {
                     setVisibleProductsCount((prev) => prev + defaultBatchSize);
                   }}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-xs hover:shadow-md transition-all duration-300 active:scale-95 cursor-pointer min-h-[42px] sm:min-h-[44px]"
+                  className="inline-flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#5A3E7A] bg-white hover:bg-purple-50/40 border border-slate-200/90 hover:border-[#5A3E7A]/40 transition-all duration-300 py-2 px-5 rounded-full min-h-[42px] shadow-sm hover:shadow active:scale-95 cursor-pointer"
                 >
+                  <LayoutGrid className="w-4 h-4 text-[#5A3E7A]" />
                   <span>
                     {lang === 'ar' 
                       ? `عرض المزيد (+${Math.min(defaultBatchSize, sortedProducts.length - visibleProductsCount)})` 
                       : `Show More (+${Math.min(defaultBatchSize, sortedProducts.length - visibleProductsCount)})`}
                   </span>
-                  <ChevronDown className="w-4 h-4 text-purple-300" />
+                  <ChevronDown className="w-4 h-4 text-slate-500" />
                 </button>
               )}
 
@@ -690,10 +750,10 @@ export const StorefrontView: React.FC = () => {
                     setVisibleProductsCount(defaultBatchSize);
                     document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 sm:py-3 rounded-full bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs sm:text-sm font-bold shadow-2xs hover:shadow-xs transition-all duration-300 active:scale-95 cursor-pointer min-h-[42px] sm:min-h-[44px]"
+                  className="inline-flex items-center justify-center gap-1.5 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#5A3E7A] bg-white hover:bg-purple-50/40 border border-slate-200/90 hover:border-[#5A3E7A]/40 transition-all duration-300 py-2 px-5 rounded-full min-h-[42px] shadow-sm hover:shadow active:scale-95 cursor-pointer"
                 >
-                  <span>{lang === 'ar' ? 'طي المنتجات' : 'Show Less'}</span>
-                  <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500" />
+                  <ChevronUp className="w-4 h-4 text-slate-500" />
+                  <span>{lang === 'ar' ? 'عرض أقل' : 'Show Less'}</span>
                 </button>
               )}
             </div>
@@ -719,8 +779,8 @@ export const StorefrontView: React.FC = () => {
                 {/* Copy & CTA Column */}
                 <div className="lg:col-span-6 space-y-4 text-start">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider text-pink-200 border border-white/20">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                    {activeData.promoBanner?.badge ? activeData.promoBanner.badge[lang] : 'Special Campaign 2026'}
+                    <Gem className="w-3.5 h-3.5 text-amber-300" />
+                    {(activeData.promoBanner?.badge ? activeData.promoBanner.badge[lang] : (lang === 'ar' ? 'عرض نَـــــدِي الماسي الخاص' : 'Exclusive Diamond Offer')).replace(/\s*[💎✨⭐🌟★✦]/g, '')}
                   </span>
                   
                   {/* Balanced, Proportioned Heading Scale according to Luxe Pro Guidelines */}
@@ -742,6 +802,10 @@ export const StorefrontView: React.FC = () => {
                   <div className="pt-2 flex flex-wrap items-center gap-3">
                     <button
                       onClick={() => {
+                        if (!targetBundle) {
+                          showToast(isRtl ? 'لا توجد باقات متاحة في الكتالوج حالياً' : 'No bundles are currently available in catalog');
+                          return;
+                        }
                         setDiamondBundleQty(1);
                         setIsDiamondBundleModalOpen(true);
                       }}
@@ -756,6 +820,10 @@ export const StorefrontView: React.FC = () => {
 
                     <button
                       onClick={() => {
+                        if (!targetBundle) {
+                          showToast(isRtl ? 'لا توجد باقات متاحة في الكتالوج حالياً' : 'No bundles are currently available in catalog');
+                          return;
+                        }
                         addToCart(targetBundle, 1);
                         showToast({
                           message: isRtl ? 'تمت إضافة بوكس نَدِي إلى سلتك بنجاح! 🎁' : 'Bundle added to cart! 🎁',
@@ -1049,14 +1117,10 @@ export const StorefrontView: React.FC = () => {
                   {/* Header: Stars + Verified Badge + Date */}
                   <div className="space-y-4 text-start">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex text-amber-400">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="w-4 h-4 fill-current" />
-                          ))}
-                        </div>
-                        <span className="text-xs font-black text-slate-800 ms-1">5.0</span>
-                      </div>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 text-[#5A3E7A] border border-purple-200/80 text-xs font-black">
+                        <BadgeCheck className="w-3.5 h-3.5 text-[#5A3E7A]" />
+                        <span>{Number((review as any).rating || 5).toFixed(1)} / 5</span>
+                      </span>
                       
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold text-slate-400">
@@ -1087,7 +1151,7 @@ export const StorefrontView: React.FC = () => {
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-50/80 hover:bg-purple-100 text-[#5A3E7A] text-xs font-extrabold transition-colors border border-purple-200/60 group/btn"
                         title={lang === 'ar' ? 'عرض هذا المنتج' : 'View Product'}
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                        <ShoppingBag className="w-3.5 h-3.5 text-purple-600" />
                         <span>{lang === 'ar' ? 'المنتج المقتنى:' : 'Purchased:'}</span>
                         <span className="underline decoration-purple-300 group-hover/btn:decoration-[#5A3E7A]">
                           {review.purchasedProduct[lang]}
@@ -1188,8 +1252,8 @@ export const StorefrontView: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-purple-200/60 pb-4">
             <div className="space-y-1.5 text-start">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 border border-purple-300 text-purple-900 text-xs font-bold">
-                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                <span>{clonedSections.testimonials.badgeAr || (lang === 'ar' ? 'تجارب إضافية موثقة ✨' : 'Additional Highlights ✨')}</span>
+                <Award className="w-3.5 h-3.5 text-purple-700" />
+                <span>{(clonedSections.testimonials.badgeAr || (lang === 'ar' ? 'تجارب إضافية موثقة' : 'Additional Highlights')).replace(/\s*[✨⭐🌟★✦]/g, '')}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-brand-ar">
                 {lang === 'ar' ? (clonedSections.testimonials.titleAr || 'قصص نجاح وتجارب عميلاتنا الإضافية') : (clonedSections.testimonials.titleEn || 'Additional Verified Testimonials')}
@@ -1210,11 +1274,10 @@ export const StorefrontView: React.FC = () => {
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 text-[#5A3E7A] border border-purple-200/80 text-xs font-black">
+                      <BadgeCheck className="w-3.5 h-3.5 text-[#5A3E7A]" />
+                      <span>{Number((review as any).rating || 5).toFixed(1)} / 5</span>
+                    </span>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-900 border border-purple-200">
                       {review.badge[lang]}
                     </span>
@@ -1229,7 +1292,7 @@ export const StorefrontView: React.FC = () => {
 
                   <div className="pt-2">
                     <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-50 text-purple-900 text-xs font-bold border border-purple-200">
-                      <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                      <ShoppingBag className="w-3.5 h-3.5 text-purple-600" />
                       <span>{lang === 'ar' ? 'المنتج المقتنى:' : 'Purchased:'}</span>
                       <span className="font-extrabold">{review.purchasedProduct[lang]}</span>
                     </span>
@@ -1277,6 +1340,7 @@ export const StorefrontView: React.FC = () => {
       {/* IN-PAGE DIAMOND BUNDLE QUICK VIEW MODAL (معاينة وشراء البوكس الماسي الفورية في الصفحة الرئيسية) */}
       {isDiamondBundleModalOpen && (() => {
         const targetBundle = products.find((p) => p.id === 'sb-04' || p.bundle) || products[0];
+        if (!targetBundle) return null;
         const currentPriceObj = convertPrice(targetBundle.basePriceUSD * diamondBundleQty);
         const originalPriceObj = targetBundle.originalPriceUSD ? convertPrice(targetBundle.originalPriceUSD * diamondBundleQty) : null;
 
@@ -1288,14 +1352,14 @@ export const StorefrontView: React.FC = () => {
               <div className="bg-gradient-to-r from-purple-950 via-[#5A3E7A] to-pink-950 text-white p-5 sm:p-6 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 rounded-xl bg-white/20 backdrop-blur-md">
-                    <Sparkles className="w-5 h-5 text-amber-300" />
+                    <Gem className="w-5 h-5 text-amber-300" />
                   </div>
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-pink-200 block">
                       {isRtl ? 'عرض استثنائي محدود' : 'Limited Exclusive'}
                     </span>
                     <h3 className="text-base sm:text-lg font-black leading-snug">
-                      {activeData.promoBanner?.badge ? activeData.promoBanner.badge[lang] : (isRtl ? 'عرض نَــــدِي الماسي الخاص 💎' : 'Exclusive Diamond Offer 💎')}
+                      {(activeData.promoBanner?.badge ? activeData.promoBanner.badge[lang] : (isRtl ? 'عرض نَــــدِي الماسي الخاص' : 'Exclusive Diamond Offer')).replace(/\s*[💎✨⭐🌟★✦]/g, '')}
                     </h3>
                   </div>
                 </div>
@@ -1374,7 +1438,7 @@ export const StorefrontView: React.FC = () => {
                     {isRtl ? 'شحن سريع ومجاني' : 'Free Express Delivery'}
                   </span>
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                     {isRtl ? 'نتائج مثبتة خلال 14 يوماً' : '14-Day Proven Radiance'}
                   </span>
                 </div>
@@ -1451,7 +1515,7 @@ export const StorefrontView: React.FC = () => {
           <div className="w-full flex items-center justify-between z-30 max-w-5xl mx-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-bold text-amber-300 border border-white/20">
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <BadgeCheck className="w-3.5 h-3.5 text-amber-300" />
                 {promoSlides[activePromoSlide].badge}
               </span>
               <span className="text-xs font-bold text-white/90 bg-white/10 px-3 py-1 rounded-full border border-white/15">

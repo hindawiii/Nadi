@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { 
-  X, Heart, Globe, ChevronDown, User, Sparkles, 
+  X, Heart, Globe, ChevronDown, User, Leaf, 
   ArrowRight, ArrowLeft, Truck, Package, ShieldCheck, Check
 } from 'lucide-react';
 import { StoreCartIcon } from './common/StoreCartIcon';
@@ -52,16 +52,10 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({ 
         aria-hidden="true"
       />
 
-      {/* 2. Side Sliding Panel:
-          - Arabic (RTL): fixed to the RIGHT (right-0), slides in from right, inner corners rounded to the left (rounded-s-3xl)
-          - English (LTR): fixed to the LEFT (left-0), slides in from left, inner corners rounded to the right (rounded-e-3xl)
-          - Takes comfortable width: 75vw - 80vw (max 340px) so the store background remains visible!
-      */}
+      {/* 2. Side Sliding Panel (Logical Start-edge anchored so RTL/LTR flip cleanly) */}
       <aside 
-        className={`fixed top-0 bottom-0 z-10 w-[78vw] max-w-[340px] h-[100dvh] bg-white/95 backdrop-blur-2xl shadow-[-10px_0_40px_rgba(0,0,0,0.18)] flex flex-col justify-between overflow-hidden transition-transform duration-300 ease-out animate-in ${
-          isRtl 
-            ? 'right-0 rounded-s-[28px] border-s border-purple-100/80 slide-in-from-right' 
-            : 'left-0 rounded-e-[28px] border-e border-purple-100/80 slide-in-from-left'
+        className={`fixed top-0 bottom-0 start-0 z-10 w-[78vw] max-w-[340px] h-[100dvh] bg-white/95 backdrop-blur-2xl shadow-[-10px_0_40px_rgba(0,0,0,0.18)] flex flex-col justify-between overflow-hidden transition-transform duration-300 ease-out animate-in rounded-e-[28px] border-e border-purple-100/80 ${
+          isRtl ? 'slide-in-from-right' : 'slide-in-from-left'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -220,7 +214,7 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({ 
               }`}
             >
               <div className="flex items-center gap-3">
-                <Sparkles className="w-4 h-4 text-amber-500" />
+                <Leaf className="w-4 h-4 text-[#5A3E7A]" />
                 <span>{lang === 'ar' ? 'من نحن وقصة المتجر' : 'Our Story'}</span>
               </div>
               {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}

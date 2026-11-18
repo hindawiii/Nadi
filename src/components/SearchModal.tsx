@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, TrendingUp, Sparkles, Star, Clock, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Search, X, TrendingUp, BadgeCheck, Clock, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
 
@@ -229,7 +229,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                       onClick={() => setQuery(tag[lang])}
                       className="px-3.5 py-1.5 rounded-full bg-purple-50 hover:bg-[#5A3E7A] text-[#5A3E7A] hover:text-white text-xs font-bold border border-purple-100 hover:border-transparent transition-all flex items-center gap-1.5 group"
                     >
-                      <Sparkles className="w-3 h-3 text-purple-400 group-hover:text-white transition-colors" />
+                      <TrendingUp className="w-3 h-3 text-purple-400 group-hover:text-white transition-colors" />
                       <span>{tag[lang]}</span>
                     </button>
                   ))}
@@ -306,9 +306,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                             <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate group-hover:text-[#5A3E7A] transition-colors">
                               {product.name[lang]}
                             </h4>
-                            <div className="flex items-center gap-1.5 text-xs text-amber-500 mt-1">
-                              <Star className="w-3.5 h-3.5 fill-current" />
-                              <span className="font-bold text-slate-800">{product.rating}</span>
+                            <div className="flex items-center gap-1.5 text-xs text-[#5A3E7A] mt-1">
+                              <BadgeCheck className="w-3.5 h-3.5" />
+                              <span className="font-bold text-slate-800">{product.rating} / 5</span>
                               <span className="text-[11px] text-slate-400">({product.reviewsCount})</span>
                             </div>
                           </div>

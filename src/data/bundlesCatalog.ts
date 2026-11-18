@@ -679,7 +679,7 @@ export const additionalGiftBundles: Product[] = [
     originalPriceUSD: 70.0,
     discountPercentage: 30,
     stock: 6,
-    badge: { ar: "بكج 7 في 1 الشامل 🌟", en: "7-in-1 Kit 🌟" },
+    badge: { ar: "بكج 7 في 1 الشامل", en: "7-in-1 Kit" },
     rating: 5.0,
     reviewsCount: 260,
     images: [
@@ -781,7 +781,7 @@ export const additionalGiftBundles: Product[] = [
     originalPriceUSD: 19.5,
     discountPercentage: 31,
     stock: 10,
-    badge: { ar: "إشراقة المناسبات 🌟", en: "Party Glow 🌟" },
+    badge: { ar: "إشراقة المناسبات", en: "Party Glow" },
     rating: 4.9,
     reviewsCount: 184,
     images: [

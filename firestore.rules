@@ -2,12 +2,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default Deny Catch-All
+    // Master Gate: Default Deny Catch-All
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Helper functions
+    // Request / Resource Helpers
     function incoming() {
       return request.resource.data;
     }
@@ -16,48 +16,143 @@ service cloud.firestore {
       return resource.data;
     }
 
+    // Tiered Identity & Role Logic
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedEmail() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedEmail() && request.auth.token.email == 'mohsentiben@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin()
+        || (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Path Variable Hardening
     function isValidId(id) {
       return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    // Validation Blueprints
     function isValidOrder(data) {
       return data.keys().hasAll(['id', 'customerName', 'phone', 'address', 'totalFormatted', 'status', 'trackingCode'])
-        && data.id is string && data.id.size() <= 64
+        && data.keys().hasOnly([
+          'id', 'date', 'customerName', 'phone', 'address', 'items',
+          'totalFormatted', 'totalUSD', 'discountAmountUSD', 'shippingFeeUSD',
+          'promoCode', 'currency', 'status', 'trackingCode', 'ownerUid', 'createdAt'
+        ])
+        && data.id is string && data.id.size() > 0 && data.id.size() <= 64
+        && (!('date' in data) || (data.date is string && data.date.size() <= 64))
         && data.customerName is string && data.customerName.size() > 0 && data.customerName.size() <= 120
         && data.phone is string && data.phone.size() > 0 && data.phone.size() <= 40
         && data.address is string && data.address.size() > 0 && data.address.size() <= 300
-        && data.totalFormatted is string && data.totalFormatted.size() <= 60
+        && (!('items' in data) || (data.items is list && data.items.size() <= 50))
+        && data.totalFormatted is string && data.totalFormatted.size() > 0 && data.totalFormatted.size() <= 60
+        && (!('totalUSD' in data) || (data.totalUSD is number && data.totalUSD >= 0 && data.totalUSD <= 1000000))
+        && (!('discountAmountUSD' in data) || (data.discountAmountUSD is number && data.discountAmountUSD >= 0 && data.discountAmountUSD <= 1000000))
+        && (!('shippingFeeUSD' in data) || (data.shippingFeeUSD is number && data.shippingFeeUSD >= 0 && data.shippingFeeUSD <= 100000))
+        && (!('promoCode' in data) || (data.promoCode is string && data.promoCode.size() <= 32))
+        && (!('currency' in data) || (data.currency is string && data.currency.size() <= 16))
         && data.status in ['received', 'processing', 'dispatched', 'delivered']
-        && data.trackingCode is string && data.trackingCode.size() <= 64;
+        && data.trackingCode is string && data.trackingCode.size() > 0 && data.trackingCode.size() <= 64
+        && (!('ownerUid' in data) || (data.ownerUid is string && data.ownerUid.size() <= 128))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    function isValidTracking(data) {
+      return data.keys().hasAll(['trackingCode', 'orderId', 'status', 'totalFormatted'])
+        && data.keys().hasOnly([
+          'trackingCode', 'orderId', 'status', 'date', 'totalFormatted', 'updatedAt', 'createdAt'
+        ])
+        && data.trackingCode is string && data.trackingCode.size() > 0 && data.trackingCode.size() <= 64
+        && data.orderId is string && data.orderId.size() > 0 && data.orderId.size() <= 64
+        && data.status in ['received', 'processing', 'dispatched', 'delivered']
+        && (!('date' in data) || (data.date is string && data.date.size() <= 64))
+        && data.totalFormatted is string && data.totalFormatted.size() > 0 && data.totalFormatted.size() <= 60
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
     }
 
     function isValidReview(data) {
-      return data.keys().hasAll(['name', 'city', 'comment', 'rating'])
+      return data.keys().hasAll(['name', 'city', 'comment', 'rating', 'status'])
+        && data.keys().hasOnly(['name', 'city', 'comment', 'rating', 'status', 'createdAt'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 80
         && data.city is string && data.city.size() <= 80
         && data.comment is string && data.comment.size() > 0 && data.comment.size() <= 1000
-        && data.rating is number && data.rating >= 1 && data.rating <= 5;
+        && data.rating is number && data.rating >= 1 && data.rating <= 5
+        && data.status in ['pending', 'approved', 'rejected']
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
     }
 
-    // Connection testing
+    // Connection testing probe (get only, no write or list)
     match /test/connection {
-      allow read: if true;
+      allow get: if true;
+      allow list, write: if false;
     }
 
-    // Orders Collection
+    // Private Customer Orders Collection (PII isolated to Admin or Order Owner)
     match /orders/{orderId} {
-      allow get: if isValidId(orderId);
-      allow list: if true;
-      allow create: if isValidId(orderId) && isValidOrder(incoming());
-      allow update: if isValidId(orderId) && incoming().diff(existing()).affectedKeys().hasOnly(['status']) && incoming().status in ['received', 'processing', 'dispatched', 'delivered'];
-      allow delete: if isValidId(orderId);
+      allow get: if isValidId(orderId) && (
+        isAdmin()
+        || (isSignedIn() && resource != null && 'ownerUid' in resource.data && resource.data.ownerUid == request.auth.uid)
+      );
+      allow list: if isAdmin();
+      allow create: if isValidId(orderId)
+        && isValidOrder(incoming())
+        && incoming().id == orderId
+        && (incoming().status == 'received' || isAdmin())
+        && (!('ownerUid' in incoming()) || (isSignedIn() && incoming().ownerUid == request.auth.uid) || isAdmin());
+      allow update: if isAdmin()
+        && isValidId(orderId)
+        && isValidOrder(incoming())
+        && incoming().id == existing().id;
+      allow delete: if isAdmin();
     }
 
-    // Reviews Collection
+    // Public Order Tracking Projection (Non-PII, Single-Document Lookup by Exact Tracking Code Only)
+    match /tracking/{trackingCode} {
+      allow get: if isValidId(trackingCode);
+      allow list: if isAdmin();
+      allow create: if isValidId(trackingCode)
+        && isValidTracking(incoming())
+        && incoming().trackingCode == trackingCode
+        && (incoming().status == 'received' || isAdmin());
+      allow update: if isAdmin()
+        && isValidId(trackingCode)
+        && isValidTracking(incoming())
+        && incoming().trackingCode == existing().trackingCode
+        && incoming().orderId == existing().orderId;
+      allow delete: if isAdmin();
+    }
+
+    // Customer Reviews Collection (Moderation-Enforced)
     match /reviews/{reviewId} {
-      allow read: if isValidId(reviewId) || true;
-      allow create: if isValidId(reviewId) && isValidReview(incoming());
-      allow update, delete: if isValidId(reviewId);
+      allow get: if isValidId(reviewId) && (resource.data.status == 'approved' || isAdmin());
+      allow list: if resource.data.status == 'approved' || isAdmin();
+      allow create: if isValidId(reviewId)
+        && isValidReview(incoming())
+        && (incoming().status == 'pending' || isAdmin());
+      allow update: if isAdmin()
+        && isValidId(reviewId)
+        && isValidReview(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Admin Roles Directory
+    match /admins/{uid} {
+      allow get: if isOwner(uid) || isAdmin();
+      allow list: if isAdmin();
+      allow write: if false;
     }
   }
 }

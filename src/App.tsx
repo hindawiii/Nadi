@@ -61,18 +61,45 @@ const AppContent: React.FC = () => {
       window.history.scrollRestoration = 'manual';
     }
 
-    // Check if initial URL points explicitly to admin or developer
-    const initialHash = (window.location.hash || '').replace('#', '').trim().toLowerCase();
-    const initialPath = (window.location.pathname || '').replace(/^\//, '').trim().toLowerCase();
-    const targetRoute = initialPath || initialHash;
+    // Check initial URL path/hash for direct deep-linking (product pages, admin, developer, tracker, etc.)
+    const rawHash = (window.location.hash || '').replace('#', '').trim();
+    const rawPath = (window.location.pathname || '').replace(/^\//, '').trim();
+    const route = rawPath || rawHash;
+    const normalizedRoute = route.toLowerCase();
 
-    if (targetRoute === 'admin') {
+    if (normalizedRoute === 'admin') {
       setCurrentRoute('admin');
-    } else if (targetRoute === 'developer') {
+    } else if (normalizedRoute === 'developer') {
       setCurrentRoute('developer');
+    } else if (route.startsWith('product/') || rawHash.startsWith('product-')) {
+      const prodId = route.startsWith('product/')
+        ? route.replace('product/', '')
+        : rawHash.replace('product-', '');
+      const allProducts = [...activeProductsRef.current, ...hairStylingDevices];
+      const target = allProducts.find((p) => p.id === prodId);
+      if (target) {
+        openProductPDPRef.current(target, false);
+        prevRouteRef.current = 'pdp';
+      } else {
+        setCurrentRoute('store');
+      }
+    } else if (normalizedRoute === 'about') {
+      setCurrentRoute('about');
+    } else if (normalizedRoute === 'wishlist') {
+      setCurrentRoute('wishlist');
+    } else if (normalizedRoute === 'cart') {
+      setCurrentRoute('cart');
+    } else if (normalizedRoute === 'tracker') {
+      setCurrentRoute('tracker');
+    } else if (normalizedRoute === 'login' || normalizedRoute === 'auth') {
+      setCurrentRoute('login');
     } else {
-      // Clean internal section anchors so refresh never jumps down to products
-      if (initialHash === 'products-section' || initialHash === 'categories-section' || initialHash === 'campaign-section') {
+      // Clean internal section anchors so refresh never jumps down unexpectedly
+      if (
+        normalizedRoute === 'products-section' ||
+        normalizedRoute === 'categories-section' ||
+        normalizedRoute === 'campaign-section'
+      ) {
         try {
           window.history.replaceState(null, '', window.location.pathname || '/');
         } catch (_) {}

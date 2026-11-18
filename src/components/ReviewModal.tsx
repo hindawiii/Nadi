@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Star, Sparkles, CheckCircle2 } from 'lucide-react';
+import { X, BadgeCheck, CheckCircle2 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 
 export const ReviewModal: React.FC = () => {
@@ -52,8 +52,8 @@ export const ReviewModal: React.FC = () => {
         </button>
 
         <div className="text-center space-y-1 mb-6 px-10 sm:px-12">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-[#5A3E7A] text-xs font-bold border border-purple-200 mb-2">
+            <BadgeCheck className="w-3.5 h-3.5 text-[#5A3E7A]" />
             <span>{lang === 'ar' ? 'تجربة عميلة حقيقية' : 'Verified Experience'}</span>
           </div>
           <h3 className="text-2xl font-black text-slate-900">
@@ -65,20 +65,26 @@ export const ReviewModal: React.FC = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Star selector */}
+          {/* Numeric Score Selector (Zero-Star Luxe) */}
           <div className="flex flex-col items-center gap-2 pb-2">
             <span className="text-xs font-bold text-slate-600">
-              {lang === 'ar' ? 'تقييمكِ الإجمالي:' : 'Overall Rating:'}
+              {lang === 'ar' ? 'تقييمكِ الإجمالي من 5:' : 'Overall Score (out of 5):'}
             </span>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
+            <div className="flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map((score) => (
                 <button
                   type="button"
-                  key={star}
-                  onClick={() => setRating(star)}
-                  className="p-1 text-amber-400 hover:scale-125 transition-transform"
+                  key={score}
+                  onClick={() => setRating(score)}
+                  className={`min-w-[44px] min-h-[40px] px-3 rounded-xl font-black text-xs sm:text-sm border transition-all cursor-pointer ${
+                    score === rating
+                      ? 'bg-[#5A3E7A] text-white border-[#5A3E7A] shadow-sm scale-105'
+                      : score < rating
+                      ? 'bg-purple-50 text-[#5A3E7A] border-purple-200'
+                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-purple-300'
+                  }`}
                 >
-                  <Star className={`w-7 h-7 ${star <= rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                  {score}/5
                 </button>
               ))}
             </div>

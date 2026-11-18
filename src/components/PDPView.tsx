@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  ArrowLeft, ArrowRight, Star, Heart, MessageCircle, 
-  Sparkles, ShieldCheck, Truck, RotateCcw, AlertCircle, 
+  ArrowLeft, ArrowRight, BadgeCheck, Heart, MessageCircle, 
+  TrendingUp, ShieldCheck, Truck, RotateCcw, 
   Clock, Plus, Check, Share2, Layers, Maximize2, ZoomIn, ZoomOut, X, 
-  ChevronLeft, ChevronRight, ArrowLeftRight, ChevronDown, ChevronUp,
-  FileText, CheckCircle2, Shield, Award, HelpCircle, SlidersHorizontal,
-  FlaskConical, ThumbsUp, PenLine, Sparkle, Tag, Sparkles as SparklesIcon,
-  Eye, Flame, Zap, PackageCheck, Gift, Check as CheckIcon, X as CloseIcon, Droplets
+  ChevronLeft, ChevronRight, ArrowLeftRight, ChevronDown, 
+  FileText, CheckCircle2, Award, HelpCircle, SlidersHorizontal,
+  FlaskConical, PenLine, Droplets, 
+  Eye, Flame, Zap, PackageCheck, Gift, X as CloseIcon
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
 import { StoreCartIcon } from './common/StoreCartIcon';
 import { SmartDiscountBadge } from './common/SmartDiscountBadge';
+import { openExternalUrl } from '../lib/navigation';
 
 export const PDPView: React.FC = () => {
   const { 
@@ -316,15 +317,15 @@ export const PDPView: React.FC = () => {
     const storeUrl = window.location.href;
     const tierLabelAr = selectedTier === 3 
       ? `باقة التوفير القصوى (3 عبوات + هدية مجانية 🎁 - خصم 20%)` 
-      : (selectedTier === 2 ? `باقة التوفير الأكثر طلباً (عبوتان - خصم 10% ⭐)` : `عبوة واحدة أساسية`);
+      : (selectedTier === 2 ? `باقة التوفير الأكثر طلباً (عبوتان - خصم 10%)` : `عبوة واحدة أساسية`);
     const tierLabelEn = selectedTier === 3 
       ? `High Value Pack (3 units + Free Gift 🎁 - 20% OFF)` 
-      : (selectedTier === 2 ? `Popular Pack (2 units - 10% OFF ⭐)` : `Single Pack`);
+      : (selectedTier === 2 ? `Popular Pack (2 units - 10% OFF)` : `Single Pack`);
 
     const message = lang === 'ar'
       ? `🛍️ *طلب مباشر من متجر ${activeData.storeName.ar}*\n` +
         `━━━━━━━━━━━━━━━\n` +
-        `✨ *المنتج:* ${product.name.ar}\n` +
+        `• *المنتج:* ${product.name.ar}\n` +
         `📦 *الباقة المختارة:* ${tierLabelAr}\n` +
         `🔢 *الكمية الإجمالية:* ${effectiveQuantity} قطعة\n` +
         `💰 *السعر الإجمالي:* ${currentPrice.text}\n` +
@@ -335,7 +336,7 @@ export const PDPView: React.FC = () => {
         `يرجى تأكيد توفر الحجز وبدء الشحن الفوري مع الدفع عند الاستلام!`
       : `🛍️ *Direct Order from ${activeData.storeName.en}*\n` +
         `━━━━━━━━━━━━━━━\n` +
-        `✨ *Product:* ${product.name.en}\n` +
+        `• *Product:* ${product.name.en}\n` +
         `📦 *Selected Pack:* ${tierLabelEn}\n` +
         `🔢 *Total Items:* ${effectiveQuantity} items\n` +
         `💰 *Total Amount:* ${currentPrice.text}\n` +
@@ -345,29 +346,42 @@ export const PDPView: React.FC = () => {
         `━━━━━━━━━━━━━━━\n` +
         `Please confirm availability and dispatch for Cash on Delivery!`;
 
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    openExternalUrl(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`);
   };
 
-  // Bundle Add To Cart
+  // Bundle Add To Cart (Applies bundle discount across main + unique complementary essentials)
   const handleAddBundle = () => {
     if (!product.bundle) return;
-    addToCart(product);
-    product.bundle.items.forEach(item => {
-      // Create mock product item
+    const discountRate = Math.max(0, Math.min(90, product.bundle.discount || 0)) / 100;
+    const discountFactor = 1 - discountRate;
+
+    const discountedMainProduct: Product = {
+      ...product,
+      basePriceUSD: Number((product.basePriceUSD * discountFactor).toFixed(2)),
+    };
+    addToCart(discountedMainProduct, 1);
+
+    product.bundle.items.forEach((item) => {
+      if (item.id === product.id) return;
       const bundleSubProduct: Product = {
         id: item.id,
         name: item.name,
         category: product.category,
-        basePriceUSD: item.priceUSD * (1 - product.bundle!.discount / 100),
+        basePriceUSD: Number((item.priceUSD * discountFactor).toFixed(2)),
         stock: 5,
         rating: 4.9,
         reviewsCount: 30,
         images: [item.image],
-        tabs: product.tabs
+        tabs: product.tabs,
       };
-      addToCart(bundleSubProduct);
+      addToCart(bundleSubProduct, 1);
     });
-    showToast(lang === 'ar' ? 'تمت إضافة المجموعة كاملة للسلة بخصم 15%!' : 'Bundle added to bag with 15% discount!');
+
+    showToast(
+      lang === 'ar'
+        ? `تمت إضافة المجموعة كاملة للسلة بخصم ${product.bundle.discount}%!`
+        : `Bundle added to bag with ${product.bundle.discount}% discount!`
+    );
   };
 
   return (
@@ -524,10 +538,10 @@ export const PDPView: React.FC = () => {
                 <span className="text-xs font-bold tracking-wider uppercase text-purple-700 bg-purple-50 px-3 py-1 rounded-full">
                   {product.category[lang]}
                 </span>
-                <div className="flex items-center gap-1.5 text-amber-500">
-                  <Star className="w-4 h-4 fill-current" />
-                  <span className="font-bold text-slate-800">{product.rating}</span>
-                  <span className="text-xs text-slate-400">({product.reviewsCount} {lang === 'ar' ? 'تقييم موثق' : 'reviews'})</span>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 text-[#5A3E7A] border border-purple-200/70">
+                  <BadgeCheck className="w-4 h-4 shrink-0" />
+                  <span className="font-bold text-slate-800 text-xs">{product.rating} / 5</span>
+                  <span className="text-xs text-slate-500">({product.reviewsCount} {lang === 'ar' ? 'تقييم موثق' : 'reviews'})</span>
                 </div>
               </div>
 
@@ -570,7 +584,7 @@ export const PDPView: React.FC = () => {
                   <span className="truncate">{lang === 'ar' ? 'ضمان ذهبي معتمد' : 'Certified Quality'}</span>
                 </div>
                 <div className="flex items-center gap-1.5 p-2 rounded-xl bg-sky-50/70 border border-sky-100 text-[11px] font-bold text-sky-800">
-                  <Sparkles className="w-3.5 h-3.5 shrink-0 text-sky-600" />
+                  <TrendingUp className="w-3.5 h-3.5 shrink-0 text-sky-600" />
                   <span className="truncate">{lang === 'ar' ? 'نتائج فورية ملموسة' : 'Visible Results'}</span>
                 </div>
               </div>
@@ -667,7 +681,7 @@ export const PDPView: React.FC = () => {
                   >
                     {/* Popular Ribbon Tag */}
                     <span className="absolute -top-2.5 end-3 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white shadow-xs">
-                      {lang === 'ar' ? 'الأكثر طلباً ⭐' : 'Most Popular ⭐'}
+                      {lang === 'ar' ? 'الأكثر طلباً' : 'Most Popular'}
                     </span>
 
                     <div className="space-y-1">
@@ -856,7 +870,7 @@ export const PDPView: React.FC = () => {
                   <span>{lang === 'ar' ? 'استبدال واسترجاع ميسر' : 'Hassle-Free Returns'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                  <MessageCircle className="w-4 h-4 text-amber-500 shrink-0" />
                   <span>{lang === 'ar' ? 'دعم فني واستشارة مجانية' : 'Free Beauty Consultation'}</span>
                 </div>
               </div>
@@ -911,7 +925,7 @@ export const PDPView: React.FC = () => {
         <div className="mt-10 space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-slate-200">
             <h3 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-700" />
+              <Layers className="w-5 h-5 text-purple-700" />
               <span>{lang === 'ar' ? 'تفاصيل ومعلومات المنتج الشاملة' : 'Complete Product Information'}</span>
             </h3>
             <span className="text-xs font-semibold text-slate-400">
@@ -1032,7 +1046,7 @@ export const PDPView: React.FC = () => {
               <div className="p-4 sm:p-6 pt-0 border-t border-slate-100 space-y-4 animate-in fade-in duration-200">
                 <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200/80 mt-4">
                   <h5 className="font-extrabold text-amber-950 text-xs sm:text-sm mb-1.5 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    <CheckCircle2 className="w-4 h-4 text-amber-600" />
                     <span>{lang === 'ar' ? 'إرشادات الاستخدام المعتمدة:' : 'Recommended Application Guidelines:'}</span>
                   </h5>
                   <p className="text-xs sm:text-sm text-amber-900 leading-relaxed">
@@ -1272,16 +1286,16 @@ export const PDPView: React.FC = () => {
               aria-expanded={openAccordions.reviews}
             >
               <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                  <Star className="w-5 h-5 fill-current" />
+                <div className="w-10 h-10 rounded-xl bg-purple-100 text-[#5A3E7A] flex items-center justify-center shrink-0">
+                  <BadgeCheck className="w-5 h-5" />
                 </div>
                 <div className="truncate">
                   <div className="flex items-center gap-2">
                     <h4 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
                       {lang === 'ar' ? `تقييمات وتجارب العميلات المعتمدة (${product.reviewsCount})` : `Verified Customer Reviews (${product.reviewsCount})`}
                     </h4>
-                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                      ★ {product.rating} / 5
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-[#5A3E7A] border border-purple-200">
+                      {product.rating} / 5
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 truncate mt-0.5">
@@ -1291,7 +1305,7 @@ export const PDPView: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 transition-transform duration-300 ${openAccordions.reviews ? 'rotate-180 bg-amber-100 text-amber-700' : ''}`}>
+                <span className={`w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 transition-transform duration-300 ${openAccordions.reviews ? 'rotate-180 bg-purple-100 text-[#5A3E7A]' : ''}`}>
                   <ChevronDown className="w-4 h-4" />
                 </span>
               </div>
@@ -1302,14 +1316,13 @@ export const PDPView: React.FC = () => {
                 {/* Score & Action Row */}
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-amber-500 text-white font-black text-xl flex items-center justify-center shadow-sm">
+                    <div className="w-14 h-14 rounded-2xl bg-[#5A3E7A] text-white font-black text-xl flex items-center justify-center shadow-sm">
                       {product.rating}
                     </div>
                     <div>
-                      <div className="flex text-amber-400 gap-0.5 mb-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="w-4 h-4 fill-current" />
-                        ))}
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 text-[#5A3E7A] border border-purple-200/70 text-[11px] font-black mb-1">
+                        <BadgeCheck className="w-3.5 h-3.5" />
+                        <span>{lang === 'ar' ? `تقييم معتمد • ${product.rating} من 5` : `Verified Score • ${product.rating} / 5`}</span>
                       </div>
                       <p className="text-xs font-bold text-slate-800">
                         {lang === 'ar' ? 'معدل رضى فائق بنسبة 98% من المشترين' : '98% Customer Satisfaction Rate'}
@@ -1335,7 +1348,7 @@ export const PDPView: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-purple-200 text-purple-900 font-bold text-xs flex items-center justify-center">
-                        ⭐
+                        <Check className="w-3.5 h-3.5" />
                       </div>
                       <span className="font-extrabold text-xs text-slate-900">
                         {lang === 'ar' ? 'مراجعة موثقة من مشتري حقيقي' : 'Verified Buyer Review'}
@@ -1376,7 +1389,7 @@ export const PDPView: React.FC = () => {
                   <th className="py-3 px-4 text-start font-bold text-slate-600">{lang === 'ar' ? 'المعيار والميزة' : 'Feature / Criterion'}</th>
                   <th className="py-3 px-4 text-center bg-purple-50/80 text-[#5A3E7A] rounded-t-2xl font-black border-x border-t border-purple-200/80">
                     <span className="inline-flex items-center gap-1 text-sm font-black">
-                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <Award className="w-4 h-4 text-amber-500" />
                       <span>{activeData.storeName[lang]}</span>
                     </span>
                   </th>

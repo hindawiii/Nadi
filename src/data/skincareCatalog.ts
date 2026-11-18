@@ -43,7 +43,7 @@ export const additionalSkincareProducts: Product[] = [
     originalPriceUSD: 6.0,
     discountPercentage: 20,
     stock: 9,
-    badge: { ar: "إشراقة فورية ✨", en: "Instant Glow ✨" },
+    badge: { ar: "إشراقة فورية 🌸", en: "Instant Glow 🌸" },
     rating: 4.8,
     reviewsCount: 142,
     images: [
@@ -859,7 +859,7 @@ export const additionalSkincareProducts: Product[] = [
     originalPriceUSD: 8.0,
     discountPercentage: 23,
     stock: 13,
-    badge: { ar: "عناية ذهبية 🌟", en: "24K Gold 🌟" },
+    badge: { ar: "عناية ذهبية", en: "24K Gold" },
     rating: 5.0,
     reviewsCount: 230,
     images: [
@@ -893,7 +893,7 @@ export const additionalSkincareProducts: Product[] = [
     originalPriceUSD: 7.0,
     discountPercentage: 21,
     stock: 10,
-    badge: { ar: "تجديد وتنعيم ✨", en: "Glow Exfoliator ✨" },
+    badge: { ar: "تجديد وتنعيم", en: "Glow Exfoliator" },
     rating: 4.8,
     reviewsCount: 176,
     images: [

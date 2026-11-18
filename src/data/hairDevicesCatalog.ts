@@ -155,7 +155,7 @@ export const additionalHairDevices: HairDeviceProduct[] = [
     originalPriceUSD: 38.0,
     discountPercentage: 31,
     stock: 11,
-    badge: { ar: "الأكثر طلباً ⭐", en: "Trending ⭐" },
+    badge: { ar: "الأكثر طلباً 🔥", en: "Trending 🔥" },
     rating: 4.9,
     reviewsCount: 167,
     images: [
@@ -190,7 +190,7 @@ export const additionalHairDevices: HairDeviceProduct[] = [
     originalPriceUSD: 30.0,
     discountPercentage: 30,
     stock: 8,
-    badge: { ar: "كيرلي متدرج ✨", en: "Tapered Wand ✨" },
+    badge: { ar: "كيرلي متدرج", en: "Tapered Wand" },
     rating: 4.8,
     reviewsCount: 94,
     images: [
@@ -225,7 +225,7 @@ export const additionalHairDevices: HairDeviceProduct[] = [
     originalPriceUSD: 38.0,
     discountPercentage: 27,
     stock: 6,
-    badge: { ar: "تمويج هوليوودي 🌟", en: "Hollywood Waves 🌟" },
+    badge: { ar: "تمويج هوليوودي", en: "Hollywood Waves" },
     rating: 5.0,
     reviewsCount: 118,
     images: [
