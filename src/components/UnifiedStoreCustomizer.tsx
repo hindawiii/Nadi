@@ -11,6 +11,7 @@ import {
 import { useCommerce } from '../context/CommerceContext';
 import { siteConfig, Product } from '../data/siteConfig';
 import { SectionsLayoutReorder } from './common/SectionsLayoutReorder';
+import { uploadStoreMedia, MediaFolder } from '../services/storageService';
 
 export interface UnifiedStoreCustomizerProps {
   onNavigateToProducts?: () => void;
@@ -46,18 +47,11 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
   const trioBannerFileInputRef = useRef<HTMLInputElement>(null);
   const [activeTrioIdx, setActiveTrioIdx] = useState<number | null>(null);
 
-  // Read file as Data URL helper
-  const readFileAsDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      if (file.size > 4 * 1024 * 1024) {
-        reject(new Error(lang === 'ar' ? 'حجم الصورة كبير جداً، يرجى اختيار ملف أقل من 4 ميجابايت' : 'Image is too large. Please select a file under 4MB.'));
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
+  // Upload compressed image to Firebase Storage (with compact compressed fallback when offline)
+  const uploadAsset = async (file: File, folder: MediaFolder): Promise<string> => {
+    const options = folder === 'branding' ? { maxDimension: 600, quality: 0.85 } : { maxDimension: 1200, quality: 0.82 };
+    const res = await uploadStoreMedia(file, folder, lang, options);
+    return res.url;
   };
 
   // Generic Field Updater with History Tracking
@@ -116,9 +110,14 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const folder: MediaFolder = fieldPath === 'storeLogo'
+      ? 'branding'
+      : fieldPath === 'heroImage'
+        ? 'hero'
+        : 'banners';
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      updateField(fieldPath, dataUrl);
+      const uploadedUrl = await uploadAsset(file, folder);
+      updateField(fieldPath, uploadedUrl);
       showToast(lang === 'ar' ? successMsgAr : successMsgEn);
     } catch (err: any) {
       showToast(err.message || 'Error uploading file');
@@ -349,8 +348,8 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
           const file = e.target.files?.[0];
           if (!file || activeTrioIdx === null) return;
           try {
-            const dataUrl = await readFileAsDataURL(file);
-            updateTrioBanner(activeTrioIdx, 'image', dataUrl);
+            const uploadedUrl = await uploadAsset(file, 'banners');
+            updateTrioBanner(activeTrioIdx, 'image', uploadedUrl);
             showToast(lang === 'ar' ? 'تم رفع صورة الماركة بنجاح!' : 'Brand banner image uploaded!');
           } catch (err: any) {
             showToast(err.message || 'Upload error');

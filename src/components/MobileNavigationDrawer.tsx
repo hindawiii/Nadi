@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { 
-  X, Heart, Globe, ChevronDown, User, Leaf, 
+  X, Heart, Globe, ChevronDown, User, Leaf, LogOut,
   ArrowRight, ArrowLeft, Truck, Package, ShieldCheck, Check
 } from 'lucide-react';
 import { StoreCartIcon } from './common/StoreCartIcon';
@@ -16,7 +16,7 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({ 
   const { 
     lang, setLang, currency, setCurrency, dynamicConfig, 
     activeData, cartCount, wishlist, 
-    currentRoute, navigateTo 
+    currentRoute, navigateTo, customerUser, logoutCustomer 
   } = useCommerce();
 
   const isRtl = lang === 'ar';
@@ -338,19 +338,54 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({ 
         </div>
 
         {/* ============================================================ */}
-        {/* BOTTOM FIXED FOOTER: Sign In / Account Action Button         */}
+        {/* BOTTOM FIXED FOOTER: Auth-Synced Account & Sign Out Action   */}
         {/* ============================================================ */}
-        <div className="p-4 border-t border-purple-100/70 bg-white/95 shrink-0 space-y-2">
-          <button
-            onClick={() => {
-              onClose();
-              navigateTo('login');
-            }}
-            className="w-full py-3.5 px-4 bg-gradient-to-r from-[#5A3E7A] to-[#483162] hover:opacity-95 text-white rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 min-h-[48px] shadow-md transition-all active:scale-[0.98]"
-          >
-            <User className="w-4 h-4 text-purple-200" />
-            <span>{lang === 'ar' ? 'تسجيل الدخول / فتح الحساب' : 'Sign In / Customer Account'}</span>
-          </button>
+        <div className="p-4 border-t border-purple-100/70 bg-white/95 shrink-0 space-y-2.5">
+          {customerUser ? (
+            <>
+              <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-emerald-50/80 border border-emerald-200/80">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold text-sm">
+                  <User className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1 text-start">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
+                    <p className="text-xs font-extrabold text-slate-900 truncate">
+                      {customerUser.name}
+                    </p>
+                  </div>
+                  {customerUser.email && (
+                    <p className="text-[11px] text-slate-600 truncate font-medium" dir="ltr">
+                      {customerUser.email}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  void logoutCustomer();
+                  onClose();
+                }}
+                className="w-full py-3 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 min-h-[48px] transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 shrink-0" />
+                <span>{lang === 'ar' ? 'تسجيل الخروج' : 'Sign Out'}</span>
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                navigateTo('login');
+              }}
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-[#5A3E7A] to-[#483162] hover:opacity-95 text-white rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 min-h-[48px] shadow-md transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <User className="w-4 h-4 text-purple-200" />
+              <span>{lang === 'ar' ? 'تسجيل الدخول / فتح الحساب' : 'Sign In / Customer Account'}</span>
+            </button>
+          )}
         </div>
 
       </aside>

@@ -94,6 +94,25 @@ service cloud.firestore {
         && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
     }
 
+    function isValidStorefrontConfig(data) {
+      return data.keys().hasAll(['activePresetId', 'presets', 'currencies', 'updatedAt'])
+        && data.keys().hasOnly([
+          'activePresetId', 'presets', 'currencies', 'sectionsControl',
+          'sectionsOrder', 'paletteId', 'customColors', 'typographyId',
+          'updatedAt', 'updatedBy'
+        ])
+        && data.activePresetId in ['cosmetics', 'fashion', 'eyewear', 'electronics']
+        && data.presets is map
+        && data.currencies is map
+        && (!('sectionsControl' in data) || data.sectionsControl is map)
+        && (!('sectionsOrder' in data) || (data.sectionsOrder is list && data.sectionsOrder.size() <= 30 && (data.sectionsOrder.size() == 0 || data.sectionsOrder[0] is string)))
+        && (!('paletteId' in data) || (data.paletteId is string && data.paletteId.size() <= 64))
+        && (!('customColors' in data) || data.customColors is map)
+        && (!('typographyId' in data) || (data.typographyId is string && data.typographyId.size() <= 64))
+        && data.updatedAt is string && data.updatedAt.size() > 0 && data.updatedAt.size() <= 64
+        && (!('updatedBy' in data) || (isSignedIn() && data.updatedBy is string && data.updatedBy == request.auth.uid && data.updatedBy.size() <= 128));
+    }
+
     // Connection testing probe (get only, no write or list)
     match /test/connection {
       allow get: if true;
@@ -146,6 +165,19 @@ service cloud.firestore {
         && isValidId(reviewId)
         && isValidReview(incoming());
       allow delete: if isAdmin();
+    }
+
+    // Public Storefront Catalog & Theme Sync (Public get, strictly Admin write, zero secrets)
+    match /storefront/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        && isValidId(docId)
+        && isValidStorefrontConfig(incoming());
+      allow update: if isAdmin()
+        && isValidId(docId)
+        && isValidStorefrontConfig(incoming());
+      allow delete: if isAdmin() && isValidId(docId);
     }
 
     // Admin Roles Directory

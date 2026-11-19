@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Trash2, ArrowLeft, ArrowRight, ShieldCheck, 
   Truck, Tag, Check, AlertCircle, RotateCcw, Plus, Minus, CreditCard, 
@@ -8,6 +8,25 @@ import { StoreCartIcon } from './common/StoreCartIcon';
 import { useCommerce, OrderRecord } from '../context/CommerceContext';
 import { OrderSuccessModal } from './OrderSuccessModal';
 import { SmartPhoneInput } from './SmartInputField';
+import {
+  CITY_SHIPPING_OPTIONS,
+  FREE_SHIPPING_THRESHOLD_USD,
+  resolvePromoDiscountRate,
+  resolveShippingOption,
+} from '../lib/checkoutIntegrity';
+
+const getDefaultCityForCurrency = (cur: string): string => {
+  switch (cur) {
+    case 'SAR':
+      return 'الرياض وجدة (شحن دولي)';
+    case 'AED':
+      return 'دبي وأبوظبي';
+    case 'EGP':
+      return 'القاهرة';
+    default:
+      return 'الخرطوم';
+  }
+};
 
 export const CartPageView: React.FC = () => {
   const { 
@@ -27,14 +46,21 @@ export const CartPageView: React.FC = () => {
   const [appliedDiscountRate, setAppliedDiscountRate] = useState(0); // 0.10 for 10%
   const [promoMessage, setPromoMessage] = useState<{ text: string; isError: boolean } | null>(null);
 
-  // Delivery destination
-  const [selectedCity, setSelectedCity] = useState(currency === 'SAR' ? 'الرياض' : 'الخرطوم');
+  // Delivery destination matched strictly to cityOptions keys
+  const [selectedCity, setSelectedCity] = useState(() => getDefaultCityForCurrency(currency));
+  const hasManuallyPickedCityRef = useRef(false);
 
-  // Dynamic country code calculation
+  useEffect(() => {
+    if (!hasManuallyPickedCityRef.current) {
+      setSelectedCity(getDefaultCityForCurrency(currency));
+    }
+  }, [currency]);
+
+  // Dynamic country code calculation aligned to exact city labels
   const getCountryCodeForCity = (city: string, cur: string): string => {
-    if (cur === 'SAR' || city.includes('الرياض') || city.includes('Riyadh')) return '+966';
-    if (cur === 'AED' || city.includes('دبي') || city.includes('Dubai')) return '+971';
-    if (cur === 'EGP' || city.includes('القاهرة') || city.includes('Cairo')) return '+20';
+    if (city.includes('الرياض') || city.includes('Riyadh') || (cur === 'SAR' && !hasManuallyPickedCityRef.current)) return '+966';
+    if (city.includes('دبي') || city.includes('Dubai') || (cur === 'AED' && !hasManuallyPickedCityRef.current)) return '+971';
+    if (city.includes('القاهرة') || city.includes('Cairo') || (cur === 'EGP' && !hasManuallyPickedCityRef.current)) return '+20';
     return '+249'; // Sudan
   };
   const activeCountryCode = getCountryCodeForCity(selectedCity, currency);
@@ -57,27 +83,16 @@ export const CartPageView: React.FC = () => {
     }
   };
 
-  // Free shipping threshold: $15 USD
-  const freeShippingThresholdUSD = 15;
+  // Free shipping threshold ($15 USD from canonical checkoutIntegrity rules)
+  const freeShippingThresholdUSD = FREE_SHIPPING_THRESHOLD_USD;
   const isFreeShipping = cartTotalUSD >= freeShippingThresholdUSD;
   const remainingForFreeShippingUSD = Math.max(0, freeShippingThresholdUSD - cartTotalUSD);
   const remainingText = convertPrice(remainingForFreeShippingUSD).text;
   const progressPercent = Math.min(100, Math.round((cartTotalUSD / freeShippingThresholdUSD) * 100));
 
-  // City options
-  const cityOptions = [
-    { name: { ar: 'الخرطوم', en: 'Khartoum' }, est: { ar: '24-48 ساعة', en: '24-48 hours' }, feeUSD: 1.5 },
-    { name: { ar: 'أم درمان', en: 'Omdurman' }, est: { ar: '24-48 ساعة', en: '24-48 hours' }, feeUSD: 1.5 },
-    { name: { ar: 'بحري', en: 'Bahri' }, est: { ar: '24-48 ساعة', en: '24-48 hours' }, feeUSD: 1.5 },
-    { name: { ar: 'بورتسودان', en: 'Port Sudan' }, est: { ar: '2-3 أيام', en: '2-3 days' }, feeUSD: 2.5 },
-    { name: { ar: 'ود مدني', en: 'Wad Madani' }, est: { ar: '2-3 أيام', en: '2-3 days' }, feeUSD: 2.0 },
-    { name: { ar: 'كسلا والقضارف', en: 'Kassala & Gedaref' }, est: { ar: '3-4 أيام', en: '3-4 days' }, feeUSD: 3.0 },
-    { name: { ar: 'الرياض وجدة (شحن دولي)', en: 'Riyadh & Jeddah (GCC)' }, est: { ar: '3-5 أيام عمل', en: '3-5 business days' }, feeUSD: 4.5 },
-    { name: { ar: 'دبي وأبوظبي', en: 'Dubai & Abu Dhabi' }, est: { ar: '3-5 أيام عمل', en: '3-5 business days' }, feeUSD: 4.5 },
-    { name: { ar: 'القاهرة', en: 'Cairo' }, est: { ar: '4-6 أيام', en: '4-6 days' }, feeUSD: 4.0 },
-  ];
+  const cityOptions = CITY_SHIPPING_OPTIONS;
 
-  const currentCityObj = cityOptions.find(c => c.name.ar === selectedCity || c.name.en === selectedCity) || cityOptions[0];
+  const currentCityObj = resolveShippingOption(selectedCity);
   const shippingFeeUSD = isFreeShipping ? 0 : currentCityObj.feeUSD;
 
   // Price calculations
@@ -90,18 +105,17 @@ export const CartPageView: React.FC = () => {
 
   const handleApplyPromo = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanCode = promoCode.trim().toUpperCase();
-    if (!cleanCode) return;
-
-    if (cleanCode === 'BEAUTY10' || cleanCode === 'SOBEAUTY10') {
-      setAppliedDiscountRate(0.10);
+    const rate = resolvePromoDiscountRate(promoCode);
+    if (rate === 0.10) {
+      setAppliedDiscountRate(rate);
       setPromoMessage({ text: lang === 'ar' ? 'تم تطبيق كود الخصم بنجاح (-10%) 🎉' : 'Coupon applied successfully (-10%) 🎉', isError: false });
       showToast(lang === 'ar' ? 'تم تفعيل خصم 10%!' : '10% discount applied!');
-    } else if (cleanCode === 'SOBEAUTY' || cleanCode === 'VIP20') {
-      setAppliedDiscountRate(0.15);
+    } else if (rate === 0.15) {
+      setAppliedDiscountRate(rate);
       setPromoMessage({ text: lang === 'ar' ? 'تم تطبيق كود كبار العميلات (-15%) 🎉' : 'VIP Coupon applied (-15%) 🎉', isError: false });
       showToast(lang === 'ar' ? 'تم تفعيل خصم كبار العميلات 15%!' : 'VIP 15% discount applied!');
     } else {
+      setAppliedDiscountRate(0);
       setPromoMessage({ text: lang === 'ar' ? 'عذراً، هذا الكود غير صالح أو منتهي الصلاحية' : 'Invalid or expired promo code', isError: true });
     }
   };
@@ -140,6 +154,7 @@ export const CartPageView: React.FC = () => {
       name: customerName,
       phone: normalizedPhone,
       address: fullAddress,
+      selectedCity,
       finalTotalUSD,
       discountAmountUSD,
       shippingFeeUSD,
@@ -408,7 +423,7 @@ export const CartPageView: React.FC = () => {
                         type="text"
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
-                        placeholder="BEAUTY10 أو SOBEAUTY"
+                        placeholder={lang === 'ar' ? 'BEAUTY10 أو NADI15' : 'BEAUTY10 or NADI15'}
                         className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs uppercase font-bold tracking-wider focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]"
                       />
                       <button
@@ -438,7 +453,10 @@ export const CartPageView: React.FC = () => {
                     </label>
                     <select
                       value={selectedCity}
-                      onChange={(e) => setSelectedCity(e.target.value)}
+                      onChange={(e) => {
+                        hasManuallyPickedCityRef.current = true;
+                        setSelectedCity(e.target.value);
+                      }}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]"
                     >
                       {cityOptions.map((c) => (

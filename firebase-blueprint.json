@@ -197,6 +197,59 @@
         }
       },
       "required": ["email", "role"]
+    },
+    "storefrontConfig": {
+      "title": "StorefrontConfig",
+      "description": "Publicly readable store catalog, currency rates, layout ordering, and theme settings (excludes all secrets)",
+      "type": "object",
+      "properties": {
+        "activePresetId": {
+          "type": "string",
+          "enum": ["cosmetics", "fashion", "eyewear", "electronics"],
+          "description": "Currently active store preset key"
+        },
+        "presets": {
+          "type": "object",
+          "description": "Sanitized product catalogs and copy per niche"
+        },
+        "currencies": {
+          "type": "object",
+          "description": "Public currency conversion rates map"
+        },
+        "sectionsControl": {
+          "type": "object",
+          "description": "Visibility toggles for storefront sections"
+        },
+        "sectionsOrder": {
+          "type": "array",
+          "description": "Ordered list of storefront section IDs"
+        },
+        "paletteId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Active theme palette identifier"
+        },
+        "customColors": {
+          "type": "object",
+          "description": "Optional custom primary/accent/surface color map"
+        },
+        "typographyId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Active typography pair identifier"
+        },
+        "updatedAt": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "ISO timestamp of last cloud publish"
+        },
+        "updatedBy": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Firebase Auth UID of verified publishing Admin"
+        }
+      },
+      "required": ["activePresetId", "presets", "currencies", "updatedAt"]
     }
   },
   "firestore": {
@@ -215,6 +268,10 @@
     "/admins/{uid}": {
       "schema": "admin",
       "description": "Admin role membership documents"
+    },
+    "/storefront/{docId}": {
+      "schema": "storefrontConfig",
+      "description": "Public single-doc storefront catalog & theme sync (readable via exact ID get; writable exclusively by verified Admin)"
     }
   }
 }

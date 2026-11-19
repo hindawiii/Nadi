@@ -305,7 +305,7 @@ export const siteConfig: SiteConfig = {
         subtitle: { ar: "احصلي على حقيبة التجميل المخملية + عينات تجريبية مجانية + شحن سريع لكافة الطلبات فوق 20,000 ج.س", en: "Get a luxury velvet pouch + free botanical trial samples + fast delivery on all qualifying orders." },
         image1: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=700&q=80",
         image1Badge: { ar: "مكوّنات نباتية 100% 🌿", en: "100% Botanicals 🌿" },
-        image2: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=700&q=80",
+        image2: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=700&q=80",
         image2Badge: { ar: "خصم 25% على البوكس 🎁", en: "25% OFF Boxes 🎁" },
         ctaText: { ar: "اطلبي البوكس الآن", en: "Order Routine Bundle" }
       },
@@ -566,7 +566,7 @@ export const siteConfig: SiteConfig = {
           reviewsCount: 94,
           images: [
             "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1608248597359-25b82877fb18?auto=format&fit=crop&w=800&q=80",
           ],
           tabs: {
             description: {

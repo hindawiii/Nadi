@@ -60,14 +60,14 @@ export const StorefrontView: React.FC = () => {
   const promoSlides = [
     {
       id: 1,
-      image: activeData.promoBanner?.image1 || "https://images.unsplash.com/photo-1608248597359-59754b2d354a?auto=format&fit=crop&w=800&q=80",
+      image: activeData.promoBanner?.image1 || "https://images.unsplash.com/photo-1608248597359-25b82877fb18?auto=format&fit=crop&w=800&q=80",
       badge: activeData.promoBanner?.image1Badge ? activeData.promoBanner.image1Badge[lang] : (isRtl ? 'مكوّنات نباتية 100% 🌿' : '100% Botanicals 🌿'),
       title: isRtl ? 'خلاصات نباتية نقية موثقة' : '100% Pure Certified Botanicals',
       desc: isRtl ? 'مستخلصة على البارد بعناية فائقة لتغذية أعماق خلايا البشرة وتحفيز الحيوية الطبيعية.' : 'Cold-pressed botanical extracts deeply nourishing skin layers.'
     },
     {
       id: 2,
-      image: activeData.promoBanner?.image2 || "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80",
+      image: activeData.promoBanner?.image2 || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80",
       badge: activeData.promoBanner?.image2Badge ? activeData.promoBanner.image2Badge[lang] : (isRtl ? 'خصم 25% على البوكس 🎁' : '25% OFF Box 🎁'),
       title: isRtl ? 'بوكس النضارة الكامل الشامل' : 'Natural Bloom Complete Routine Box',
       desc: isRtl ? 'البرنامج الأكثر شمولاً الذي يضم 4 مستحضرات عناية متكاملة تمنح بشرتك نضارة قطرات الندى.' : 'The complete 4-step radiance routine in a luxury gift package.'
@@ -629,13 +629,14 @@ export const StorefrontView: React.FC = () => {
             </h2>
           </div>
 
-          {/* Controls: Compact Filter Pills + Integrated Smart Sort in 1 Single Balanced Row */}
-          <div className="flex items-center justify-between gap-2 overflow-x-auto scrollbar-none py-1">
-            {/* Filter Pills - Compact, Ergonomic, and Clean */}
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Controls: Responsive Wrapping Filter Pills + Always-Visible Smart Sort */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full sm:w-auto">
+            {/* Filter Pills - Ergonomic wrapping on narrow screens so zero tabs clip */}
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <button
+                type="button"
                 onClick={() => setSelectedCategory('all')}
-                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all whitespace-nowrap min-h-[40px] cursor-pointer ${
                   selectedCategory === 'all'
                     ? 'bg-theme-primary text-white shadow-xs'
                     : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50'
@@ -644,8 +645,9 @@ export const StorefrontView: React.FC = () => {
                 {lang === 'ar' ? 'الكل' : 'All'}
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedCategory('skin')}
-                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all whitespace-nowrap min-h-[40px] cursor-pointer ${
                   selectedCategory === 'skin'
                     ? 'bg-theme-primary text-white shadow-xs'
                     : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50'
@@ -654,8 +656,9 @@ export const StorefrontView: React.FC = () => {
                 {lang === 'ar' ? 'عناية بالبشرة' : 'Skincare'}
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedCategory('box')}
-                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all whitespace-nowrap min-h-[40px] cursor-pointer ${
                   selectedCategory === 'box'
                     ? 'bg-theme-primary text-white shadow-xs'
                     : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50'
@@ -664,24 +667,25 @@ export const StorefrontView: React.FC = () => {
                 {lang === 'ar' ? 'بكجات وعروض' : 'Gift Sets'}
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedCategory('hair')}
-                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all whitespace-nowrap min-h-[40px] cursor-pointer ${
                   selectedCategory === 'hair'
                     ? 'bg-theme-primary text-white shadow-xs'
                     : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50'
                 }`}
               >
-                {lang === 'ar' ? 'أجهزة وتصفيف' : 'Hair Devices'}
+                {lang === 'ar' ? 'أجهزة الشعر' : 'Hair Devices'}
               </button>
             </div>
 
-            {/* Smart Sort Dropdown - Compact & Crisp on the same single row */}
-            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs shrink-0 ms-auto">
-              <SlidersHorizontal className="w-3 h-3 text-[#5A3E7A] shrink-0" />
+            {/* Smart Sort Dropdown - Always visible & aligned */}
+            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs shrink-0 self-start sm:self-auto min-h-[40px]">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#5A3E7A] shrink-0" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-transparent text-[11px] sm:text-xs font-bold text-slate-700 focus:outline-none cursor-pointer py-0.5"
+                className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer py-0.5"
                 aria-label="Sort products"
               >
                 <option value="featured">{lang === 'ar' ? 'المقترحة' : 'Featured'}</option>

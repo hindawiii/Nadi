@@ -12,6 +12,7 @@ import {
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { updateReviewStatusInCloud, deleteReviewFromCloud } from '../services/reviewService';
+import { uploadStoreMedia, MediaFolder } from '../services/storageService';
 import { useCommerce } from '../context/CommerceContext';
 import { Product, siteConfig } from '../data/siteConfig';
 import { SmartAuthPortal } from './common/SmartAuthPortal';
@@ -22,7 +23,9 @@ import { ConfirmDialogModal } from './common/ConfirmDialogModal';
 
 export const AdminPanel: React.FC = () => {
   const { 
-    lang, isAdminAuthenticated, isCloudAdminVerified, firebaseAdminEmail, loginAdmin, logoutAdmin, 
+    lang, isAdminAuthenticated, isCloudAdminVerified, firebaseAdminEmail,
+    cloudConfigStatus, publishStorefrontToCloud,
+    loginAdmin, logoutAdmin, 
     orders, updateOrderStatus, clearAllOrders, restoreDefaultOrders,
     dynamicConfig, setDynamicConfig, 
     activePresetId, navigateTo, showToast, convertPrice,
@@ -30,6 +33,7 @@ export const AdminPanel: React.FC = () => {
   } = useCommerce();
 
   const [isConnectingCloudAdmin, setIsConnectingCloudAdmin] = useState(false);
+  const [isPublishingConfig, setIsPublishingConfig] = useState(false);
 
   const handleConnectCloudAdmin = async () => {
     setIsConnectingCloudAdmin(true);
@@ -240,19 +244,11 @@ export const AdminPanel: React.FC = () => {
     showToast(lang === 'ar' ? 'تم تحديث السعر المشطوب ونسبة الخصم' : 'Slashed price & discount updated');
   };
 
-  // Image File Reader helper to convert uploaded File to Data URL
-  const readFileAsDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      // Check file size (limit to 4MB for high resolution and fast browser persistence)
-      if (file.size > 4 * 1024 * 1024) {
-        reject(new Error(lang === 'ar' ? 'حجم الصورة كبير جداً، يرجى اختيار صورة أقل من 4 ميجابايت' : 'Image is too large. Please select a file under 4MB.'));
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
+  // Compress and upload asset via Firebase Cloud Storage (falls back cleanly if offline)
+  const uploadAsset = async (file: File, folder: MediaFolder): Promise<string> => {
+    const options = folder === 'branding' ? { maxDimension: 600, quality: 0.85 } : { maxDimension: 1200, quality: 0.82 };
+    const result = await uploadStoreMedia(file, folder, lang, options);
+    return result.url;
   };
 
   // Handle direct file upload for new product primary image
@@ -262,11 +258,11 @@ export const AdminPanel: React.FC = () => {
 
     try {
       setIsUploadingImage(true);
-      const dataUrl = await readFileAsDataURL(file);
-      setNewProdImage(dataUrl);
-      showToast(lang === 'ar' ? 'تم رفع ومعاينة صورة المنتج بنجاح!' : 'Product image uploaded successfully!');
+      const uploadedUrl = await uploadAsset(file, 'products');
+      setNewProdImage(uploadedUrl);
+      showToast(lang === 'ar' ? 'تم ضغط ورفع صورة المنتج بنجاح!' : 'Product image compressed & uploaded successfully!');
     } catch (err: any) {
-      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
+      showToast(err?.message || (lang === 'ar' ? 'تعذر رفع ملف الصورة، يرجى المحاولة مرة أخرى' : 'Error uploading image file'));
     } finally {
       setIsUploadingImage(false);
       // Reset input value so same file can be re-selected if desired
@@ -280,22 +276,22 @@ export const AdminPanel: React.FC = () => {
     if (!file || !activeTargetProductIdForGallery) return;
 
     try {
-      const dataUrl = await readFileAsDataURL(file);
+      const uploadedUrl = await uploadAsset(file, 'gallery');
       setDynamicConfig(prev => {
         const clone = JSON.parse(JSON.stringify(prev));
         const target = clone.presets[activePresetId].products.find((p: any) => p.id === activeTargetProductIdForGallery);
         if (target) {
           if (!target.images) target.images = [];
-          target.images.push(dataUrl);
+          target.images.push(uploadedUrl);
         }
         try {
           localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
         } catch (err) {}
         return clone;
       });
-      showToast(lang === 'ar' ? 'تم رفع الصورة وإضافتها لمعرض المنتج!' : 'Image uploaded to product gallery!');
+      showToast(lang === 'ar' ? 'تم ضغط ورفع الصورة لمعرض المنتج!' : 'Image compressed & uploaded to gallery!');
     } catch (err: any) {
-      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
+      showToast(err?.message || (lang === 'ar' ? 'تعذر رفع ملف الصورة، يرجى المحاولة مرة أخرى' : 'Error uploading image file'));
     } finally {
       setActiveTargetProductIdForGallery(null);
       if (e.target) e.target.value = '';
@@ -308,11 +304,11 @@ export const AdminPanel: React.FC = () => {
     if (!file) return;
 
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      updateField('storeLogo', dataUrl);
+      const uploadedUrl = await uploadAsset(file, 'branding');
+      updateField('storeLogo', uploadedUrl);
       showToast(lang === 'ar' ? 'تم رفع وتطبيق شعار المتجر بنجاح!' : 'Store logo uploaded successfully!');
     } catch (err: any) {
-      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
+      showToast(err?.message || (lang === 'ar' ? 'تعذر رفع ملف الصورة، يرجى المحاولة مرة أخرى' : 'Error uploading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -324,11 +320,11 @@ export const AdminPanel: React.FC = () => {
     if (!file) return;
 
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      updateField('heroImage', dataUrl);
+      const uploadedUrl = await uploadAsset(file, 'hero');
+      updateField('heroImage', uploadedUrl);
       showToast(lang === 'ar' ? 'تم رفع وتطبيق صورة الهيرو الرئيسية بنجاح!' : 'Hero image uploaded successfully!');
     } catch (err: any) {
-      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
+      showToast(err?.message || (lang === 'ar' ? 'تعذر رفع ملف الصورة، يرجى المحاولة مرة أخرى' : 'Error uploading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -363,11 +359,11 @@ export const AdminPanel: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || activeTrioBannerIdx === null) return;
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      updateTrioBanner(activeTrioBannerIdx, 'image', dataUrl);
+      const uploadedUrl = await uploadAsset(file, 'banners');
+      updateTrioBanner(activeTrioBannerIdx, 'image', uploadedUrl);
       showToast(lang === 'ar' ? 'تم تحديث صورة كرت التشكيلة بنجاح!' : 'Brand banner image updated!');
     } catch (err: any) {
-      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
+      showToast(err?.message || (lang === 'ar' ? 'تعذر رفع ملف الصورة، يرجى المحاولة مرة أخرى' : 'Error uploading image file'));
     } finally {
       setActiveTrioBannerIdx(null);
       if (e.target) e.target.value = '';
@@ -379,11 +375,11 @@ export const AdminPanel: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      updateField('promoBanner.image1', dataUrl);
+      const uploadedUrl = await uploadAsset(file, 'banners');
+      updateField('promoBanner.image1', uploadedUrl);
       showToast(lang === 'ar' ? 'تم تحديث صورة البوكس الأولى!' : 'Promo image 1 updated!');
     } catch (err: any) {
-      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
+      showToast(err?.message || (lang === 'ar' ? 'تعذر رفع ملف الصورة، يرجى المحاولة مرة أخرى' : 'Error uploading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -394,11 +390,11 @@ export const AdminPanel: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      updateField('promoBanner.image2', dataUrl);
+      const uploadedUrl = await uploadAsset(file, 'banners');
+      updateField('promoBanner.image2', uploadedUrl);
       showToast(lang === 'ar' ? 'تم تحديث صورة البوكس الثانية!' : 'Promo image 2 updated!');
     } catch (err: any) {
-      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
+      showToast(err?.message || (lang === 'ar' ? 'تعذر رفع ملف الصورة، يرجى المحاولة مرة أخرى' : 'Error uploading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -409,11 +405,11 @@ export const AdminPanel: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      updateField('beforeAfterMedia.beforeImage', dataUrl);
+      const uploadedUrl = await uploadAsset(file, 'banners');
+      updateField('beforeAfterMedia.beforeImage', uploadedUrl);
       showToast(lang === 'ar' ? 'تم تحديث صورة (قبل) بنجاح!' : 'Before image updated!');
     } catch (err: any) {
-      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
+      showToast(err?.message || (lang === 'ar' ? 'تعذر رفع ملف الصورة، يرجى المحاولة مرة أخرى' : 'Error uploading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -424,11 +420,11 @@ export const AdminPanel: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      updateField('beforeAfterMedia.afterImage', dataUrl);
+      const uploadedUrl = await uploadAsset(file, 'banners');
+      updateField('beforeAfterMedia.afterImage', uploadedUrl);
       showToast(lang === 'ar' ? 'تم تحديث صورة (بعد) بنجاح!' : 'After image updated!');
     } catch (err: any) {
-      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
+      showToast(err?.message || (lang === 'ar' ? 'تعذر رفع ملف الصورة، يرجى المحاولة مرة أخرى' : 'Error uploading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -439,11 +435,11 @@ export const AdminPanel: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      updateSkinDiagnosisCard(cardId, 'image', dataUrl);
+      const uploadedUrl = await uploadAsset(file, 'skin');
+      updateSkinDiagnosisCard(cardId, 'image', uploadedUrl);
       showToast(lang === 'ar' ? 'تم تحديث صورة كرت نوع البشرة بنجاح!' : 'Skin card image updated!');
     } catch (err: any) {
-      showToast(lang === 'ar' ? 'تعذر قراءة ملف الصورة، يرجى المحاولة مرة أخرى' : (err.message || 'Error reading image file'));
+      showToast(err?.message || (lang === 'ar' ? 'تعذر رفع ملف الصورة، يرجى المحاولة مرة أخرى' : 'Error uploading image file'));
     } finally {
       if (e.target) e.target.value = '';
     }
@@ -1326,12 +1322,33 @@ export const AdminPanel: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                {!isCloudAdminVerified && (
+                {isCloudAdminVerified ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsPublishingConfig(true);
+                      const ok = await publishStorefrontToCloud();
+                      setIsPublishingConfig(false);
+                      if (ok) {
+                        showToast(lang === 'ar' ? 'تم نشر ومزامنة كتالوج وإعدادات المتجر إلى السحابة لجميع الزوار!' : 'Storefront catalog & settings published to cloud!');
+                      }
+                    }}
+                    disabled={isPublishingConfig || cloudConfigStatus === 'syncing'}
+                    className="min-h-[44px] px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-all"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isPublishingConfig || cloudConfigStatus === 'syncing' ? 'animate-spin' : ''}`} />
+                    <span>
+                      {isPublishingConfig || cloudConfigStatus === 'syncing'
+                        ? (lang === 'ar' ? 'جاري النشر...' : 'Syncing...')
+                        : (lang === 'ar' ? 'نشر ومزامنة المتجر الآن' : 'Publish Storefront Sync')}
+                    </span>
+                  </button>
+                ) : (
                   <button
                     type="button"
                     onClick={handleConnectCloudAdmin}
                     disabled={isConnectingCloudAdmin}
-                    className="h-10 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-all"
+                    className="min-h-[44px] px-4 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-all"
                   >
                     <UserCheck className="w-4 h-4 text-amber-300" />
                     <span>

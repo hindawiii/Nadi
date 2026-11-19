@@ -185,3 +185,38 @@ export function deobfuscateKey(obfuscated: string): string {
     return obfuscated;
   }
 }
+
+const TOKEN_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+/**
+ * Generates an unambiguous uppercase alphanumeric token combining a compact timestamp slice
+ * with cryptographically random characters to avoid birthday-paradox collisions on order/tracking IDs.
+ */
+function generateEntropySegment(length: number): string {
+  const bytes = new Uint8Array(length);
+  if (typeof globalThis !== 'undefined' && globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < length; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += TOKEN_ALPHABET[bytes[i] % TOKEN_ALPHABET.length];
+  }
+  return out;
+}
+
+export function generateOrderId(year: number = new Date().getFullYear()): string {
+  const timeSlice = Date.now().toString(36).toUpperCase().slice(-4);
+  const randSlice = generateEntropySegment(4);
+  return `ORD-${year}-${timeSlice}${randSlice}`;
+}
+
+export function generateTrackingCode(): string {
+  const timeSlice = Date.now().toString(36).toUpperCase().slice(-3);
+  const randSlice = generateEntropySegment(5);
+  return `TRK-${timeSlice}${randSlice}`;
+}
+

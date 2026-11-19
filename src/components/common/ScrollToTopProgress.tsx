@@ -75,7 +75,7 @@ export const ScrollToTopProgress: React.FC = () => {
         onClick={scrollToTop}
         aria-label={lang === 'ar' ? 'الصعود لأعلى الصفحة' : 'Scroll to top of page'}
         title={lang === 'ar' ? `نسبة التصفح: ${Math.round(scrollProgress)}% - انقر للصعود` : `Scrolled ${Math.round(scrollProgress)}% - Click to top`}
-        className="group relative w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:shadow-slate-900/20 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center transition-transform duration-200 active:scale-95 hover:scale-105 cursor-pointer"
+        className="group relative w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/95 backdrop-blur-md shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:shadow-slate-900/20 border border-slate-200/80 flex items-center justify-center transition-transform duration-200 active:scale-95 hover:scale-105 cursor-pointer"
       >
         {/* SVG Progress Ring */}
         <svg
@@ -90,7 +90,7 @@ export const ScrollToTopProgress: React.FC = () => {
             fill="transparent"
             stroke="currentColor"
             strokeWidth="2.5"
-            className="text-slate-200/80 dark:text-slate-800"
+            className="text-slate-200/80"
           />
           {/* Progress Indicator */}
           <circle
@@ -108,7 +108,7 @@ export const ScrollToTopProgress: React.FC = () => {
         </svg>
 
         {/* Center Arrow Icon & Optional Hover Percentage */}
-        <div className="relative z-10 flex items-center justify-center text-slate-700 dark:text-slate-200 group-hover:text-[var(--theme-primary,#6366f1)] transition-colors">
+        <div className="relative z-10 flex items-center justify-center text-slate-700 group-hover:text-[var(--theme-primary,#6366f1)] transition-colors">
           <ArrowUp className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2] group-hover:-translate-y-0.5 transition-transform duration-200" />
         </div>
 

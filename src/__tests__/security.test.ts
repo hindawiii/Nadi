@@ -5,7 +5,9 @@ import {
   hashSecretSync,
   verifySecretSync,
   obfuscateKey,
-  deobfuscateKey
+  deobfuscateKey,
+  generateOrderId,
+  generateTrackingCode
 } from '../lib/security';
 
 describe('Security & Cryptographic Hashing Engine', () => {
@@ -59,6 +61,26 @@ describe('Security & Cryptographic Hashing Engine', () => {
     expect(hashSecretSync('   ')).toBe('');
     expect(await verifySecret('', '')).toBe(false);
     expect(verifySecretSync('', '')).toBe(false);
+  });
+
+  it('should generate collision-resistant Firestore-safe order IDs and tracking codes', () => {
+    const firestoreIdRegex = /^[a-zA-Z0-9_-]{1,64}$/;
+    const orderIds = new Set<string>();
+    const trackingCodes = new Set<string>();
+
+    for (let i = 0; i < 500; i++) {
+      const ord = generateOrderId(2026);
+      const trk = generateTrackingCode();
+      expect(ord).toMatch(/^ORD-2026-[0-9A-Z]{8}$/);
+      expect(trk).toMatch(/^TRK-[0-9A-Z]{8}$/);
+      expect(firestoreIdRegex.test(ord)).toBe(true);
+      expect(firestoreIdRegex.test(trk)).toBe(true);
+      orderIds.add(ord);
+      trackingCodes.add(trk);
+    }
+
+    expect(orderIds.size).toBe(500);
+    expect(trackingCodes.size).toBe(500);
   });
 });
 

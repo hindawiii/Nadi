@@ -25,9 +25,16 @@
    - `list`: Admin
    - `write`: Disabled from client (`if false`)
 
+5. `/storefront/{docId}` (Public Storefront Catalog, Currency Rates & Theme Sync)
+   - `get`: Valid document ID (`^[a-zA-Z0-9_-]+$`, e.g. `public`) readable by storefront visitors for real-time catalog & price sync
+   - `list`: Admin only (prevents full collection enumeration)
+   - `create`, `update`: Admin only, strict `isValidStorefrontConfig(incoming())` key whitelist (`hasOnly`) ensuring zero secrets (`security`, PINs) ever enter public config
+   - `delete`: Admin only
+
 ## Red Team Checks Verified
 - Email Spoofing Test: `isBootstrappedAdmin()` checks `request.auth.token.email_verified == true`.
 - PII Blanket Test: Non-admin `list` or `get` on foreign `/orders/{orderId}` denied; public tracking isolated in `/tracking/{trackingCode}` without customerName/phone/address.
 - State Shortcutting Test: Guests cannot create orders with `delivered` status or reviews with `approved` status.
-- Identity Spoofing Test: `ownerUid` must match `request.auth.uid` on order creation unless Admin.
-- Value Poisoning Test: `update` blocks invoke full `isValidOrder`/`isValidTracking`/`isValidReview` helpers and preserve immutable IDs.
+- Identity Spoofing Test: `ownerUid` must match `request.auth.uid` on order creation unless Admin; `updatedBy` on `/storefront/{docId}` must match `request.auth.uid`.
+- Value Poisoning Test: `update` blocks invoke full `isValidOrder`/`isValidTracking`/`isValidReview`/`isValidStorefrontConfig` helpers and preserve immutable IDs.
+- Secret Leak / Shadow Field Test: Passing `security` or arbitrary shadow fields into `/storefront/{docId}` rejected by `hasOnly` whitelist.

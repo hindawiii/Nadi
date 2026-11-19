@@ -11,7 +11,7 @@ import {
   sanitizeProductDefensively,
   GoldenSnapshotMeta
 } from '../data/goldenStoreConfig';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { 
   getOrdersFromCloud, 
   persistOrderToCloud, 
@@ -20,8 +20,20 @@ import {
   subscribeToCloudOrders
 } from '../services/orderService';
 import { persistReviewToCloud, subscribeToCloudReviews } from '../services/reviewService';
+import {
+  buildPublicStorefrontPayload,
+  saveStorefrontConfigToCloud,
+  subscribeToStorefrontConfig,
+} from '../services/storeConfigService';
+import { computeAuthoritativeOrderSummary } from '../lib/checkoutIntegrity';
 import { testConnection, auth } from '../lib/firebase';
-import { hashSecretSync, verifySecretSync, obfuscateKey } from '../lib/security';
+import {
+  hashSecretSync,
+  verifySecretSync,
+  obfuscateKey,
+  generateOrderId,
+  generateTrackingCode
+} from '../lib/security';
 import { hairStylingDevices } from '../components/HairDevicesSpotlight';
 
 export interface CartItem {
@@ -52,6 +64,7 @@ export interface PlaceOrderParams {
   name: string;
   phone: string;
   address: string;
+  selectedCity?: string;
   finalTotalUSD?: number;
   discountAmountUSD?: number;
   shippingFeeUSD?: number;
@@ -65,6 +78,14 @@ export interface ToastData {
   productName?: string;
   actionText?: string;
   onAction?: () => void;
+}
+
+export interface CustomerSessionUser {
+  uid: string;
+  name: string;
+  email: string | null;
+  photoURL?: string | null;
+  provider?: string;
 }
 
 export type RouteName = 'store' | 'admin' | 'developer' | 'pdp' | 'tracker' | 'about' | 'wishlist' | 'cart' | 'login';
@@ -83,9 +104,9 @@ interface CommerceContextType {
   dynamicConfig: SiteConfig;
   setDynamicConfig: React.Dispatch<React.SetStateAction<SiteConfig>>;
   
-  // Auth Modal
-  isAuthModalOpen: boolean;
-  setIsAuthModalOpen: (open: boolean) => void;
+  // Authenticated Customer Session (Firebase Auth synchronized)
+  customerUser: CustomerSessionUser | null;
+  logoutCustomer: () => Promise<void>;
 
   // Review Modal
   isReviewModalOpen: boolean;
@@ -130,6 +151,9 @@ interface CommerceContextType {
   isAdminAuthenticated: boolean;
   isCloudAdminVerified: boolean;
   firebaseAdminEmail: string | null;
+  cloudConfigStatus: 'local' | 'syncing' | 'synced' | 'error';
+  lastCloudSyncAt: string | null;
+  publishStorefrontToCloud: () => Promise<boolean>;
   loginAdmin: (pin: string, rememberLogin?: boolean, rememberPin?: boolean) => boolean;
   logoutAdmin: () => void;
   updateAdminPin: (newPin: string) => boolean;
@@ -367,7 +391,37 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 },
                 products: (() => {
                   if (Array.isArray(parsed.presets[presetKey]?.products)) {
-                    return parsed.presets[presetKey].products;
+                    // Self-heal broken Unsplash URLs and duplicate bundle-02 primary photo cached from earlier builds
+                    const defaultById = new Map(
+                      (siteConfig.presets[presetKey]?.products || []).map((dp) => [dp.id, dp])
+                    );
+                    return parsed.presets[presetKey].products.map((prod: any) => {
+                      if (!Array.isArray(prod?.images)) return prod;
+                      const needsBrokenHeal = prod.images.some(
+                        (u: string) => typeof u === 'string' && u.includes('photo-1608248597359-59754b2d354a')
+                      );
+                      const isStaleBundle02 =
+                        prod.id === 'bundle-02' &&
+                        typeof prod.images[0] === 'string' &&
+                        prod.images[0].includes('photo-1556228720-195a672e8a03');
+                      const defaultMatch = defaultById.get(prod.id);
+                      if (isStaleBundle02 && defaultMatch?.images?.length) {
+                        return { ...prod, images: [...defaultMatch.images] };
+                      }
+                      if (needsBrokenHeal) {
+                        return {
+                          ...prod,
+                          images: defaultMatch?.images?.length
+                            ? [...defaultMatch.images]
+                            : prod.images.map((u: string) =>
+                                typeof u === 'string'
+                                  ? u.replace('photo-1608248597359-59754b2d354a', 'photo-1608248597359-25b82877fb18')
+                                  : u
+                              )
+                        };
+                      }
+                      return prod;
+                    });
                   }
                   return siteConfig.presets[presetKey]?.products || [];
                 })(),
@@ -488,6 +542,11 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [isCloudAdminVerified, setIsCloudAdminVerified] = useState<boolean>(false);
   const [firebaseAdminEmail, setFirebaseAdminEmail] = useState<string | null>(null);
+  const [cloudConfigStatus, setCloudConfigStatus] = useState<'local' | 'syncing' | 'synced' | 'error'>('local');
+  const [lastCloudSyncAt, setLastCloudSyncAt] = useState<string | null>(null);
+  const isApplyingCloudConfigRef = useRef(false);
+  const lastCloudFingerprintRef = useRef('');
+  const wasCloudAdminVerifiedRef = useRef(false);
 
   const activePresetProductsForWishlist = dynamicConfig.presets[activePresetId]?.products || [];
   const wishlist = rawWishlist.filter(
@@ -513,8 +572,15 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (e) {}
   }, [comparisonList]);
 
+  const getCatalogProductPool = () => {
+    const presetProducts = dynamicConfig.presets[activePresetId]?.products || [];
+    if (activePresetId !== 'cosmetics') return presetProducts;
+    const baseIds = new Set(presetProducts.map((p) => p.id));
+    return [...presetProducts, ...hairStylingDevices.filter((hd) => !baseIds.has(hd.id))];
+  };
+
   const toggleCompare = (productId: string) => {
-    const allProducts = dynamicConfig.presets[activePresetId]?.products || [];
+    const allProducts = getCatalogProductPool();
     const targetProduct = allProducts.find(p => p.id === productId);
     const prodName = targetProduct ? (targetProduct.name[lang] || targetProduct.name.ar) : '';
 
@@ -555,21 +621,32 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
-  const [isAuthModalOpen, setIsAuthModalOpenState] = useState<boolean>(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState<boolean>(false);
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
+  const [customerUser, setCustomerUser] = useState<CustomerSessionUser | null>(() => {
+    try {
+      const saved = safeStorage.getItem('luxe_customer_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.uid === 'string') return parsed;
+      }
+    } catch (_) {}
+    return null;
+  });
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastData, setToastData] = useState<ToastData | null>(null);
   const toastTimeoutRef = React.useRef<any>(null);
 
-  // Intercept setIsAuthModalOpen to open full-page login view
-  const setIsAuthModalOpen = (open: boolean) => {
-    if (open) {
-      navigateTo('login');
-    } else {
-      setIsAuthModalOpenState(false);
+  const logoutCustomer = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.warn('Firebase sign-out warning:', err);
     }
+    setCustomerUser(null);
+    safeStorage.removeItem('luxe_customer_user');
+    showToast(lang === 'ar' ? 'تم تسجيل الخروج بنجاح' : 'Signed out successfully');
   };
 
   // Sync cart to storage
@@ -1204,6 +1281,27 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsCloudAdminVerified(verifiedAdmin);
       setFirebaseAdminEmail(fbUser?.email || null);
 
+      if (fbUser) {
+        const resolvedName =
+          fbUser.displayName ||
+          fbUser.email?.split('@')[0] ||
+          (lang === 'ar' ? 'عميلة نَــدِي' : 'NADI Customer');
+        const nextUser: CustomerSessionUser = {
+          uid: fbUser.uid,
+          name: resolvedName,
+          email: fbUser.email,
+          photoURL: fbUser.photoURL,
+          provider: fbUser.providerData?.[0]?.providerId || 'firebase',
+        };
+        setCustomerUser(nextUser);
+        try {
+          safeStorage.setItem('luxe_customer_user', JSON.stringify(nextUser));
+        } catch (_) {}
+      } else {
+        setCustomerUser(null);
+        safeStorage.removeItem('luxe_customer_user');
+      }
+
       // Attach live reviews subscription (approved-only for public visitors; all statuses for verified Admin)
       unsubReviews = subscribeToCloudReviews(
         (cloudReviews) => {
@@ -1274,13 +1372,204 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     });
 
+    // Attach live public storefront catalog, theme & layout sync across all visitors/devices
+    const unsubStorefront = subscribeToStorefrontConfig((cloudPayload) => {
+      if (!isMounted) return;
+      const incomingFingerprint = JSON.stringify({
+        activePresetId: cloudPayload.activePresetId,
+        presets: cloudPayload.presets,
+        currencies: cloudPayload.currencies,
+        sectionsControl: cloudPayload.sectionsControl,
+        sectionsOrder: cloudPayload.sectionsOrder,
+        paletteId: cloudPayload.paletteId,
+        customColors: cloudPayload.customColors ?? null,
+        typographyId: cloudPayload.typographyId,
+      });
+
+      lastCloudFingerprintRef.current = incomingFingerprint;
+      isApplyingCloudConfigRef.current = true;
+
+      try {
+        if (cloudPayload.activePresetId) {
+          setActivePresetIdState(cloudPayload.activePresetId);
+          localStorage.setItem(STORAGE_KEY_PRESET, cloudPayload.activePresetId);
+        }
+
+        setDynamicConfig((prev) => {
+          const mergedPresets = { ...prev.presets, ...cloudPayload.presets };
+          // Sanitize product fields defensively on hydrated cloud presets
+          (Object.keys(mergedPresets) as Array<keyof typeof mergedPresets>).forEach((pk) => {
+            const target = mergedPresets[pk];
+            if (target && Array.isArray(target.products)) {
+              target.products = target.products.map((p: Product) => sanitizeProductDefensively(p));
+            }
+          });
+          const nextConfig: SiteConfig = {
+            ...prev,
+            currencies: cloudPayload.currencies || prev.currencies,
+            presets: mergedPresets,
+          };
+          try {
+            localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(nextConfig));
+          } catch (_) {}
+          return nextConfig;
+        });
+
+        if (cloudPayload.sectionsControl && typeof cloudPayload.sectionsControl === 'object') {
+          setSectionsControl((prev) => {
+            const merged = { ...prev, ...cloudPayload.sectionsControl } as SectionVisibilityMap;
+            try {
+              safeStorage.setItem('so_beauty_sections_v1', JSON.stringify(merged));
+            } catch (_) {}
+            return merged;
+          });
+        }
+
+        if (Array.isArray(cloudPayload.sectionsOrder) && cloudPayload.sectionsOrder.length > 0) {
+          setSectionsOrder(() => {
+            const validSet = new Set(defaultSectionsOrder);
+            const filtered = cloudPayload.sectionsOrder!.filter((id): id is SectionId => validSet.has(id as SectionId));
+            defaultSectionsOrder.forEach((id) => {
+              if (!filtered.includes(id)) filtered.push(id);
+            });
+            try {
+              safeStorage.setItem(STORAGE_KEY_SECTIONS_ORDER, JSON.stringify(filtered));
+            } catch (_) {}
+            return filtered;
+          });
+        }
+
+        if (cloudPayload.paletteId && curatedPalettes.some((p) => p.id === cloudPayload.paletteId)) {
+          setActivePaletteIdState(cloudPayload.paletteId);
+          localStorage.setItem(STORAGE_KEY_PALETTE, cloudPayload.paletteId);
+        }
+
+        if (cloudPayload.customColors) {
+          setCustomPaletteState(cloudPayload.customColors);
+          localStorage.setItem(STORAGE_KEY_CUSTOM_COLORS, JSON.stringify(cloudPayload.customColors));
+        } else if ('paletteId' in cloudPayload) {
+          setCustomPaletteState(null);
+          localStorage.removeItem(STORAGE_KEY_CUSTOM_COLORS);
+        }
+
+        if (cloudPayload.typographyId && curatedTypographyPairs.some((t) => t.id === cloudPayload.typographyId)) {
+          setActiveTypographyIdState(cloudPayload.typographyId);
+          localStorage.setItem(STORAGE_KEY_TYPO, cloudPayload.typographyId);
+        }
+
+        setCloudConfigStatus('synced');
+        if (cloudPayload.updatedAt) {
+          setLastCloudSyncAt(cloudPayload.updatedAt);
+        }
+      } finally {
+        setTimeout(() => {
+          isApplyingCloudConfigRef.current = false;
+        }, 0);
+      }
+    });
+
     return () => {
       isMounted = false;
       unsubAuth();
+      unsubStorefront();
       if (unsubOrders) unsubOrders();
       if (unsubReviews) unsubReviews();
     };
   }, []);
+
+  const publishStorefrontToCloud = async (): Promise<boolean> => {
+    if (!isCloudAdminVerified || !auth.currentUser) {
+      return false;
+    }
+    const payload = buildPublicStorefrontPayload({
+      dynamicConfig,
+      activePresetId,
+      sectionsControl: sectionsControl as unknown as Record<string, boolean>,
+      sectionsOrder,
+      paletteId: activePaletteId,
+      customColors: customPalette,
+      typographyId: activeTypographyId,
+    });
+    const nextFingerprint = JSON.stringify({
+      activePresetId: payload.activePresetId,
+      presets: payload.presets,
+      currencies: payload.currencies,
+      sectionsControl: payload.sectionsControl,
+      sectionsOrder: payload.sectionsOrder,
+      paletteId: payload.paletteId,
+      customColors: payload.customColors ?? null,
+      typographyId: payload.typographyId,
+    });
+    setCloudConfigStatus('syncing');
+    const result = await saveStorefrontConfigToCloud(payload);
+    if (result.success) {
+      lastCloudFingerprintRef.current = nextFingerprint;
+      setCloudConfigStatus('synced');
+      setLastCloudSyncAt(payload.updatedAt);
+      return true;
+    }
+    setCloudConfigStatus('error');
+    if (result.reason === 'too-large') {
+      showToast(
+        lang === 'ar'
+          ? 'حجم بيانات المتجر يتجاوز الحد السحابي المسموح؛ يرجى رفع الصور عبر التخزين السحابي بدلاً من الصور المضمنة.'
+          : 'Storefront config exceeds cloud limit; use Cloud Storage URLs instead of large inline images.'
+      );
+    }
+    return false;
+  };
+
+  // Debounced auto-sync to Firestore (/storefront/public) on verified Admin mutations
+  useEffect(() => {
+    if (!isCloudAdminVerified) {
+      wasCloudAdminVerifiedRef.current = false;
+      return;
+    }
+
+    if (isApplyingCloudConfigRef.current) {
+      return;
+    }
+
+    const currentFingerprint = JSON.stringify({
+      activePresetId,
+      presets: dynamicConfig.presets,
+      currencies: dynamicConfig.currencies,
+      sectionsControl,
+      sectionsOrder,
+      paletteId: activePaletteId,
+      customColors: customPalette ?? null,
+      typographyId: activeTypographyId,
+    });
+
+    // Skip immediate push on initial admin verification so existing cloud data is never overwritten accidentally
+    if (!wasCloudAdminVerifiedRef.current) {
+      wasCloudAdminVerifiedRef.current = true;
+      if (!lastCloudFingerprintRef.current) {
+        lastCloudFingerprintRef.current = currentFingerprint;
+      }
+      return;
+    }
+
+    if (currentFingerprint === lastCloudFingerprintRef.current) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void publishStorefrontToCloud();
+    }, 900);
+
+    return () => clearTimeout(timer);
+  }, [
+    isCloudAdminVerified,
+    dynamicConfig.presets,
+    dynamicConfig.currencies,
+    activePresetId,
+    sectionsControl,
+    sectionsOrder,
+    activePaletteId,
+    customPalette,
+    activeTypographyId,
+  ]);
 
   // Persist language and update document direction
   const setLang = (l: 'ar' | 'en') => {
@@ -1663,8 +1952,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const toggleWishlist = (productId: string) => {
-    // Find product name from all available products
-    const allProducts = dynamicConfig.presets[activePresetId]?.products || [];
+    // Search full catalog pool including standalone hair styling devices
+    const allProducts = getCatalogProductPool();
     const targetProduct = allProducts.find(p => p.id === productId);
     const prodName = targetProduct ? (targetProduct.name[lang] || targetProduct.name.ar) : '';
 
@@ -1901,27 +2190,35 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const placeOrder = (customer: PlaceOrderParams) => {
-    const finalUSD = typeof customer.finalTotalUSD === 'number' && !isNaN(customer.finalTotalUSD)
-      ? customer.finalTotalUSD
-      : cartTotalUSD;
+    const authoritativeSummary = computeAuthoritativeOrderSummary({
+      cart,
+      catalogPool: getCatalogProductPool(),
+      promoCode: customer.promoCode,
+      selectedCity: customer.selectedCity || 'الخرطوم',
+    });
+
+    const finalUSD = authoritativeSummary.verifiedItems.length > 0
+      ? authoritativeSummary.finalTotalUSD
+      : Math.max(0, typeof customer.finalTotalUSD === 'number' && !isNaN(customer.finalTotalUSD) ? customer.finalTotalUSD : cartTotalUSD);
+
     const { text } = convertPrice(finalUSD);
-    const trackingCode = `TRK-${Math.floor(10000 + Math.random() * 90000)}`;
+    const trackingCode = generateTrackingCode();
     const newOrder: OrderRecord = {
-      id: `ORD-2026-${Math.floor(100 + Math.random() * 900)}`,
+      id: generateOrderId(),
       date: new Date().toISOString().replace('T', ' ').slice(0, 16),
       customerName: customer.name,
       phone: customer.phone,
       address: customer.address,
-      items: cart.map((i) => ({
-        productName: i.product.name[lang],
-        quantity: i.quantity,
-        price: convertPrice(i.product.basePriceUSD * i.quantity).text,
+      items: authoritativeSummary.verifiedItems.map((vi) => ({
+        productName: vi.product.name[lang],
+        quantity: vi.quantity,
+        price: convertPrice(vi.lineTotalUSD).text,
       })),
       totalFormatted: text,
       totalUSD: finalUSD,
-      discountAmountUSD: customer.discountAmountUSD || 0,
-      shippingFeeUSD: customer.shippingFeeUSD || 0,
-      promoCode: customer.promoCode || undefined,
+      discountAmountUSD: authoritativeSummary.discountAmountUSD,
+      shippingFeeUSD: authoritativeSummary.shippingFeeUSD,
+      promoCode: authoritativeSummary.appliedPromoCode || undefined,
       currency,
       status: 'received',
       trackingCode,
@@ -2070,8 +2367,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         currentRoute,
         setCurrentRoute,
         navigateTo,
-        isAuthModalOpen,
-        setIsAuthModalOpen,
+        customerUser,
+        logoutCustomer,
         isReviewModalOpen,
         setIsReviewModalOpen,
         addReview,
@@ -2104,6 +2401,9 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isAdminAuthenticated,
         isCloudAdminVerified,
         firebaseAdminEmail,
+        cloudConfigStatus,
+        lastCloudSyncAt,
+        publishStorefrontToCloud,
         loginAdmin,
         logoutAdmin,
         updateAdminPin,

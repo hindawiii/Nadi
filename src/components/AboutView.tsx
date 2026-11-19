@@ -90,7 +90,7 @@ export const AboutView: React.FC = () => {
           <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white aspect-[4/3] sm:aspect-[16/10] bg-slate-100">
             <img
               src="https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=1200&q=80"
-              alt="So Beauty Skincare Botanical Presentation"
+              alt="NADI Natural Skincare Botanical Presentation"
               className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent" />

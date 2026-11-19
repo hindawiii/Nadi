@@ -10,7 +10,6 @@ import { CartPageView } from './components/CartPageView';
 import { OrderTrackerView } from './components/OrderTrackerView';
 import { LoginPageView } from './components/LoginPageView';
 import { Footer } from './components/Footer';
-import { AuthModal } from './components/AuthModal';
 import { ReviewModal } from './components/ReviewModal';
 import { FloatingWhatsApp } from './components/FloatingWhatsApp';
 import { ScrollToTopProgress } from './components/common/ScrollToTopProgress';
@@ -241,25 +240,25 @@ const AppContent: React.FC = () => {
       />
 
       {/* Global Interactive Overlays & Controls */}
-      <AuthModal />
       <ReviewModal />
       
       {/* Floating Widgets tied dynamically to central sectionsControl - Only on public pages */}
       {!isControlPanelRoute && sectionsControl.floatingWhatsApp && <FloatingWhatsApp />}
       {!isControlPanelRoute && sectionsControl.scrollToTop && <ScrollToTopProgress />}
 
-      {/* Floating Comparison Drawer Trigger Bar (Appears when >= 1 item is compared) */}
+      {/* Floating Comparison Drawer Trigger Bar (Centered cleanly between corner FABs) */}
       {comparisonList.length > 0 && !isControlPanelRoute && (
-        <div className="fixed bottom-20 start-4 z-30 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed bottom-4 start-1/2 -translate-x-1/2 z-30 animate-in slide-in-from-bottom duration-300">
           <button
+            type="button"
             onClick={() => setIsCompareModalOpen(true)}
-            className="flex items-center gap-2.5 px-4 py-2.5 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-full shadow-xl border border-white/20 hover:scale-105 active:scale-95 transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-full shadow-xl border border-white/20 hover:scale-105 active:scale-95 transition-all whitespace-nowrap min-h-[44px] cursor-pointer"
           >
-            <span className="w-5 h-5 rounded-full bg-white text-[#5A3E7A] text-xs font-black flex items-center justify-center">
+            <span className="w-5 h-5 rounded-full bg-white text-[#5A3E7A] text-xs font-black flex items-center justify-center shrink-0">
               {comparisonList.length}
             </span>
             <span className="text-xs font-bold">
-              {lang === 'ar' ? 'مقارنة المنتجات' : 'Compare Products'}
+              {lang === 'ar' ? 'مقارنة المنتجات' : 'Compare'}
             </span>
           </button>
         </div>

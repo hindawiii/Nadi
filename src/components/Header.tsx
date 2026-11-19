@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Heart, Search, Globe, ChevronDown, User,
+  Heart, Search, Globe, ChevronDown, User, LogOut,
   Check, Menu
 } from 'lucide-react';
 import { StoreCartIcon } from './common/StoreCartIcon';
@@ -16,7 +16,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const { 
     lang, setLang, currency, setCurrency, dynamicConfig, 
     activeData, cartCount, wishlist, 
-    currentRoute, navigateTo, setIsAuthModalOpen,
+    currentRoute, navigateTo, customerUser, logoutCustomer,
     openProductPDP, convertPrice 
   } = useCommerce();
 
@@ -316,27 +316,51 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             )}
           </button>
 
-          {/* User Account / Sign In Button - Smart Responsive Squircle */}
-          <button
-            onClick={() => navigateTo('login')}
-            className={`h-10 sm:h-10.5 w-10 sm:w-auto px-0 sm:px-3 rounded-xl transition-all flex items-center justify-center sm:justify-start gap-0 sm:gap-2 relative shrink-0 min-h-[44px] min-w-[44px] ${
-              currentRoute === 'login'
-                ? 'bg-white text-[#5A3E7A] shadow-xs ring-1 ring-[#5A3E7A]/25'
-                : 'hover:bg-white hover:shadow-xs text-slate-700 hover:text-[#5A3E7A]'
-            } focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]/25 group`}
-            title={lang === 'ar' ? 'تسجيل الدخول / فتح الحساب' : 'Sign In / Customer Account'}
-            aria-label={lang === 'ar' ? 'تسجيل الدخول إلى حسابك' : 'Sign in to your account'}
-          >
-            {/* Square with soft edges for the User Icon */}
-            <div className="w-7 h-7 sm:w-6.5 sm:h-6.5 rounded-lg bg-purple-100/90 group-hover:bg-[#5A3E7A] text-[#5A3E7A] group-hover:text-white flex items-center justify-center transition-all shrink-0">
-              <User className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+          {/* User Account / Auth-Synced Controls */}
+          {customerUser ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <div
+                className="hidden sm:flex items-center gap-2 h-10 sm:h-10.5 px-2.5 rounded-xl bg-emerald-50/90 border border-emerald-200/80 text-emerald-900 min-h-[44px]"
+                title={customerUser.email || customerUser.name}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
+                <span className="text-xs font-bold max-w-[110px] truncate">
+                  {customerUser.name}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => void logoutCustomer()}
+                className="h-10 sm:h-10.5 w-10 sm:w-auto px-0 sm:px-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 relative shrink-0 min-h-[44px] min-w-[44px] text-rose-600 bg-rose-50/80 hover:bg-rose-100 border border-rose-200/70 focus:outline-none focus:ring-2 focus:ring-rose-500/25 cursor-pointer"
+                title={lang === 'ar' ? `تسجيل الخروج (${customerUser.name})` : `Sign Out (${customerUser.name})`}
+                aria-label={lang === 'ar' ? 'تسجيل الخروج' : 'Sign out'}
+              >
+                <LogOut className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline text-xs font-bold whitespace-nowrap">
+                  {lang === 'ar' ? 'خروج' : 'Sign Out'}
+                </span>
+              </button>
             </div>
-            <span className="hidden sm:inline text-xs font-bold whitespace-nowrap">
-              {lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
-            </span>
-            {/* Active Indicator on tablet/desktop */}
-            <span className="hidden sm:inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full border border-white shrink-0" />
-          </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigateTo('login')}
+              className={`h-10 sm:h-10.5 w-10 sm:w-auto px-0 sm:px-3 rounded-xl transition-all flex items-center justify-center sm:justify-start gap-0 sm:gap-2 relative shrink-0 min-h-[44px] min-w-[44px] ${
+                currentRoute === 'login'
+                  ? 'bg-white text-[#5A3E7A] shadow-xs ring-1 ring-[#5A3E7A]/25'
+                  : 'hover:bg-white hover:shadow-xs text-slate-700 hover:text-[#5A3E7A]'
+              } focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]/25 group cursor-pointer`}
+              title={lang === 'ar' ? 'تسجيل الدخول / فتح الحساب' : 'Sign In / Customer Account'}
+              aria-label={lang === 'ar' ? 'تسجيل الدخول إلى حسابك' : 'Sign in to your account'}
+            >
+              <div className="w-7 h-7 sm:w-6.5 sm:h-6.5 rounded-lg bg-purple-100/90 group-hover:bg-[#5A3E7A] text-[#5A3E7A] group-hover:text-white flex items-center justify-center transition-all shrink-0">
+                <User className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+              </div>
+              <span className="hidden sm:inline text-xs font-bold whitespace-nowrap">
+                {lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
+              </span>
+            </button>
+          )}
 
         </div>
       </div>

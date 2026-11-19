@@ -74,7 +74,21 @@ export const OrderTrackerView: React.FC = () => {
       return;
     }
 
-    // 2. Query single sanitized /tracking/{trackingCode} cloud document (no collection scan, no PII exposed)
+    // 2. Cloud cross-device tracking in Firestore /tracking/{code} supports TRK-... tracking codes only
+    const normalizedUpper = rawQuery.trim().toUpperCase();
+    const looksLikeTrackingCode = normalizedUpper.startsWith('TRK');
+    if (!looksLikeTrackingCode) {
+      setSelectedOrder(null);
+      setCloudTracking(null);
+      setSearchNotFound(true);
+      showToast(
+        lang === 'ar'
+          ? 'للبحث السحابي من أي جهاز يرجى إدخال رمز التتبع (TRK-...)؛ البحث برقم الطلب أو الهاتف متاح فقط لطلبات هذا الجهاز.'
+          : 'Cross-device cloud lookup requires a tracking code (TRK-...); order ID or phone lookup only searches orders placed on this device.'
+      );
+      return;
+    }
+
     setIsSearching(true);
     try {
       const cloudRecord = await getTrackingByCodeFromCloud(rawQuery);
@@ -87,7 +101,7 @@ export const OrderTrackerView: React.FC = () => {
         setSelectedOrder(null);
         setCloudTracking(null);
         setSearchNotFound(true);
-        showToast(lang === 'ar' ? 'لم يتم العثور على شحنة تطابق البحث' : 'No shipment found matching query');
+        showToast(lang === 'ar' ? 'لم يتم العثور على شحنة تطابق رمز التتبع' : 'No shipment found matching this tracking code');
       }
     } finally {
       setIsSearching(false);
@@ -143,10 +157,10 @@ export const OrderTrackerView: React.FC = () => {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
             {lang === 'ar' ? 'تتبع حالة شحنتك المباشرة' : 'Track Your Order In Real-Time'}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
+          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
             {lang === 'ar'
-              ? 'أدخلي رقم التتبع الخاص بكِ (مثل TRK-98241) لمتابعة خط سير شحنتكِ الفوري من السحابة بأمان تام.'
-              : 'Enter your tracking code (e.g., TRK-98241) to securely view real-time cloud delivery updates.'}
+              ? 'أدخلي رمز التتبع السحابي (مثل TRK-K9A2B8C) للمتابعة من أي جهاز، أو رقم الهاتف / الطلب (ORD-...) لطلبات هذا المتصفح.'
+              : 'Enter your cloud tracking code (e.g., TRK-K9A2B8C) from any device, or phone/order ID (ORD-...) for orders on this browser.'}
           </p>
         </div>
 
@@ -158,7 +172,7 @@ export const OrderTrackerView: React.FC = () => {
               type="text"
               value={searchCode}
               onChange={(e) => setSearchCode(e.target.value)}
-              placeholder={lang === 'ar' ? 'أدخلي رمز التتبع (TRK-...)...' : 'Enter tracking code (TRK-...)...'}
+              placeholder={lang === 'ar' ? 'أدخلي رمز التتبع السحابي (TRK-...)...' : 'Enter tracking code (TRK-...)...'}
               className="w-full ps-11 pe-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] shadow-sm min-h-[48px]"
             />
           </div>
@@ -376,7 +390,11 @@ export const OrderTrackerView: React.FC = () => {
           <div className="py-12 text-center bg-white rounded-3xl border border-slate-200 p-6 space-y-2">
             <AlertCircle className="w-10 h-10 text-amber-400 mx-auto mb-2" />
             <p className="text-sm font-bold text-slate-700">{lang === 'ar' ? 'لم يتم العثور على شحنة تطابق البحث' : 'No shipment matches your search'}</p>
-            <p className="text-xs text-slate-400">{lang === 'ar' ? 'يرجى التأكد من كتابة رمز التتبع، رقم الطلب، أو رقم هاتفكِ المسجل بدقة.' : 'Please verify the tracking code, order ID, or phone number accurately.'}</p>
+            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+              {lang === 'ar'
+                ? 'يرجى إدخال رمز التتبع السحابي (TRK-...) للبحث من أي جهاز؛ البحث برقم الطلب أو رقم الهاتف يعمل فقط لطلبات هذا الجهاز.'
+                : 'Use your cloud tracking code (TRK-...) to look up shipments across devices; Order ID or phone search applies to orders saved on this device.'}
+            </p>
           </div>
         ) : (
           <div className="py-14 text-center bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 space-y-3 shadow-xs">
@@ -388,8 +406,8 @@ export const OrderTrackerView: React.FC = () => {
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto leading-relaxed">
               {lang === 'ar' 
-                ? 'أدخلي رمز التتبع المستلم أو رقم الجوال في شريط البحث أعلاه لعرض الجدول الزمني للشحن وحالة التسليم الفورية.' 
-                : 'Enter your tracking code or phone number above to view real-time transit timeline and courier updates.'}
+                ? 'أدخلي رمز التتبع السحابي (TRK-...) أعلاه لعرض حالة الشحنة من أي جهاز، أو رقم طلبكِ المسجل على هذا المتصفح.' 
+                : 'Enter your cloud tracking code (TRK-...) above to track from any device, or your local order ID/phone from this browser.'}
             </p>
           </div>
         )}

@@ -5,6 +5,7 @@ import {
 import { useCommerce } from '../context/CommerceContext';
 import { StoreCartIcon } from './common/StoreCartIcon';
 import { SmartDiscountBadge } from './common/SmartDiscountBadge';
+import { hairStylingDevices } from './HairDevicesSpotlight';
 
 export const CompareModal: React.FC = () => {
   const { 
@@ -15,6 +16,7 @@ export const CompareModal: React.FC = () => {
     isCompareModalOpen, 
     setIsCompareModalOpen,
     activeData,
+    activePresetId,
     convertPrice,
     addToCart,
     openProductPDP,
@@ -23,7 +25,11 @@ export const CompareModal: React.FC = () => {
 
   if (!isCompareModalOpen) return null;
 
-  const allProducts = activeData.products;
+  const baseIds = new Set(activeData.products.map((p) => p.id));
+  const allProducts =
+    activePresetId === 'cosmetics'
+      ? [...activeData.products, ...hairStylingDevices.filter((hd) => !baseIds.has(hd.id))]
+      : activeData.products;
   const comparedProducts = allProducts.filter(p => comparisonList.includes(p.id));
 
   // Determine candidate products to suggest for comparison

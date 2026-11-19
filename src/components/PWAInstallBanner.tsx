@@ -30,10 +30,10 @@ export const PWAInstallBanner: React.FC = () => {
 
   return (
     <>
-      {/* Floating Bottom Promotional Install Banner (cleared above mobile FAB corner zone) */}
+      {/* Floating Bottom Promotional Install Banner (cleared above mobile bottom dock & centered on desktop) */}
       <aside 
         aria-label={lang === 'ar' ? 'تثبيت التطبيق' : 'Install Application'}
-        className="fixed bottom-20 inset-x-3 sm:bottom-6 sm:inset-x-auto sm:start-6 sm:max-w-sm z-45 animate-in slide-in-from-bottom-5 duration-300"
+        className="fixed bottom-20 inset-x-3 sm:bottom-6 sm:inset-x-auto sm:start-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-sm z-45 animate-in slide-in-from-bottom-5 duration-300"
       >
         <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-purple-200/80 shadow-2xl p-4 sm:p-4.5 flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3">

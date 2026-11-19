@@ -2,10 +2,8 @@ import {
   collection,
   doc,
   getDoc,
-  setDoc,
   getDocs,
-  updateDoc,
-  deleteDoc,
+  writeBatch,
   query,
   limit,
   onSnapshot,
@@ -51,7 +49,7 @@ function sanitizeOrderPayload(order: OrderRecord): Record<string, unknown> {
     shippingFeeUSD: typeof order.shippingFeeUSD === 'number' && !Number.isNaN(order.shippingFeeUSD) ? Math.max(0, Math.min(100000, order.shippingFeeUSD)) : 0,
     currency: (order.currency || 'USD').slice(0, 16),
     status: safeStatus,
-    trackingCode: (order.trackingCode || `TRK-${Math.floor(10000 + Math.random() * 90000)}`).trim().slice(0, 64),
+    trackingCode: (order.trackingCode || `TRK-${Date.now().toString(36).toUpperCase()}`).trim().slice(0, 64),
     createdAt: new Date().toISOString().slice(0, 64),
   };
 
@@ -178,17 +176,18 @@ export function subscribeToCloudOrders(
 }
 
 /**
- * Save a newly placed order to /orders/{orderId} AND its sanitized non-PII projection to /tracking/{trackingCode}.
+ * Save a newly placed order to /orders/{orderId} AND its sanitized non-PII projection to /tracking/{trackingCode}
+ * inside a single atomic Firestore writeBatch transaction so partial writes cannot occur.
  */
 export async function persistOrderToCloud(order: OrderRecord): Promise<boolean> {
   const orderPath = `${ORDERS_COLLECTION}/${order.id}`;
   const trackingCodeClean = (order.trackingCode || '').trim().slice(0, 64);
-  const trackingPath = `${TRACKING_COLLECTION}/${trackingCodeClean}`;
 
   try {
+    const batch = writeBatch(db);
     const orderDocRef = doc(db, ORDERS_COLLECTION, order.id);
     const sanitized = sanitizeOrderPayload(order);
-    await setDoc(orderDocRef, sanitized);
+    batch.set(orderDocRef, sanitized);
 
     if (trackingCodeClean) {
       const trackingDocRef = doc(db, TRACKING_COLLECTION, trackingCodeClean);
@@ -196,26 +195,22 @@ export async function persistOrderToCloud(order: OrderRecord): Promise<boolean> 
         ...order,
         trackingCode: trackingCodeClean,
       });
-      await setDoc(trackingDocRef, trackingPayload).catch((err) => {
-        if (err instanceof Error && (err.message.includes('permission') || err.message.includes('insufficient'))) {
-          handleFirestoreError(err, OperationType.CREATE, trackingPath);
-        }
-        console.warn('Tracking projection write warning:', err);
-      });
+      batch.set(trackingDocRef, trackingPayload);
     }
 
+    await batch.commit();
     return true;
   } catch (error) {
     if (error instanceof Error && (error.message.includes('permission') || error.message.includes('insufficient'))) {
       handleFirestoreError(error, OperationType.CREATE, orderPath);
     }
-    console.error('Failed to persist order to Firestore:', error);
+    console.error('Failed to persist atomic order batch to Firestore:', error);
     return false;
   }
 }
 
 /**
- * Update the status of an existing order and its public tracking projection in Firestore (Admin only).
+ * Atomically update the status of an existing order and its public tracking projection in Firestore (Admin only).
  */
 export async function updateOrderStatusInCloud(
   orderId: string,
@@ -224,20 +219,20 @@ export async function updateOrderStatusInCloud(
 ): Promise<boolean> {
   const orderPath = `${ORDERS_COLLECTION}/${orderId}`;
   try {
+    const batch = writeBatch(db);
     const orderDocRef = doc(db, ORDERS_COLLECTION, orderId);
-    await updateDoc(orderDocRef, { status });
+    batch.update(orderDocRef, { status });
 
     if (trackingCode && trackingCode.trim()) {
       const cleanTracking = trackingCode.trim().slice(0, 64);
       const trackingDocRef = doc(db, TRACKING_COLLECTION, cleanTracking);
-      await updateDoc(trackingDocRef, {
+      batch.update(trackingDocRef, {
         status,
         updatedAt: new Date().toISOString().slice(0, 64),
-      }).catch((err) => {
-        console.warn(`Could not update tracking doc ${cleanTracking}:`, err);
       });
     }
 
+    await batch.commit();
     return true;
   } catch (error) {
     if (error instanceof Error && (error.message.includes('permission') || error.message.includes('insufficient'))) {
@@ -249,19 +244,21 @@ export async function updateOrderStatusInCloud(
 }
 
 /**
- * Delete a specific order and its tracking projection from Firestore (Admin only).
+ * Atomically delete a specific order and its tracking projection from Firestore (Admin only).
  */
 export async function deleteOrderFromCloud(orderId: string, trackingCode?: string): Promise<boolean> {
   const path = `${ORDERS_COLLECTION}/${orderId}`;
   try {
+    const batch = writeBatch(db);
     const orderDocRef = doc(db, ORDERS_COLLECTION, orderId);
-    await deleteDoc(orderDocRef);
+    batch.delete(orderDocRef);
 
     if (trackingCode && trackingCode.trim()) {
       const trackingDocRef = doc(db, TRACKING_COLLECTION, trackingCode.trim().slice(0, 64));
-      await deleteDoc(trackingDocRef).catch(() => {});
+      batch.delete(trackingDocRef);
     }
 
+    await batch.commit();
     return true;
   } catch (error) {
     if (error instanceof Error && (error.message.includes('permission') || error.message.includes('insufficient'))) {
