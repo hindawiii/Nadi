@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Heart, BadgeCheck, 
   Gift, Check, ShieldCheck, Award, ArrowLeftRight
@@ -9,6 +9,8 @@ import { StoreCartIcon } from './common/StoreCartIcon';
 import { SmartDiscountBadge } from './common/SmartDiscountBadge';
 import { WhatsAppIcon } from './icons/WhatsAppIcon';
 import { openExternalUrl } from '../lib/navigation';
+import { canAcceptCartAddTap, isAtStockLimit } from '../lib/cartButtonGuard';
+import { getCleanCategoryLabel } from '../lib/productCollections';
 
 export interface ProductCardProps {
   product: Product;
@@ -24,14 +26,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onRemoveFromWishlist
 }) => {
   const { 
-    lang, convertPrice, addToCart, wishlist, toggleWishlist, 
+    lang, convertPrice, cart, addToCart, wishlist, toggleWishlist, 
     openProductPDP, activeData, comparisonList, toggleCompare,
-    setIsCompareModalOpen 
+    setIsCompareModalOpen, showToast
   } = useCommerce();
 
   const isRtl = lang === 'ar';
   const isWishlisted = wishlist.includes(product.id);
   const isCompared = comparisonList.includes(product.id);
+  const inCartQty = cart.reduce(
+    (sum, item) => (item.product.id === product.id ? sum + item.quantity : sum),
+    0
+  );
 
   // Self-Healing Defensive Normalization for any incoming or future product
   const safeBasePrice = typeof product.basePriceUSD === 'number' && !isNaN(product.basePriceUSD) && product.basePriceUSD > 0 
@@ -54,8 +60,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const hasMultipleImages = images.length > 1;
   const [activeImgIndex, setActiveImgIndex] = useState(0);
 
-  // Quick Add feedback
+  // Quick Add feedback & accidental double-tap cooldown guard
   const [justAdded, setJustAdded] = useState(false);
+  const lastAddTapRef = useRef<number>(0);
+  const addedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (addedTimerRef.current) clearTimeout(addedTimerRef.current);
+    };
+  }, []);
 
   // Touch Swipe gesture tracker
   const touchStartRef = useRef<{ x: number; y: number; time: number }>({ x: 0, y: 0, time: 0 });
@@ -117,22 +131,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     setActiveImgIndex(idx);
   };
 
-  // Compact Mobile-Safe Category Label (prevents harsh "..." truncation next to rating badge)
-  const getCompactCategoryLabel = (rawCat: string) => {
-    if (!rawCat) return '';
-    if (lang === 'ar') {
-      if (rawCat.includes('بكجات')) return 'بكجات وعروض';
-      if (rawCat.includes('العناية بالبشرة') || rawCat.includes('عناية بالبشرة')) return 'عناية بالبشرة';
-      if (rawCat.includes('أجهزة')) return 'أجهزة الشعر';
-      if (rawCat.includes('ترميم')) return 'ترميم البشرة';
-    } else {
-      if (rawCat.toLowerCase().includes('bundle') || rawCat.toLowerCase().includes('gift')) return 'Gift Sets';
-      if (rawCat.toLowerCase().includes('skin')) return 'Skincare';
-      if (rawCat.toLowerCase().includes('hair') || rawCat.toLowerCase().includes('device')) return 'Hair Devices';
-    }
-    return rawCat;
-  };
-
   // Dynamic Trust Badge Detection (concise phrasing so it reads in full on narrow mobile cards)
   const getSmartTrustBadge = () => {
     const cat = product.category?.ar || '';
@@ -175,16 +173,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const trustBadge = getSmartTrustBadge();
   const TrustIcon = trustBadge.icon;
 
-  // Direct WhatsApp Order
-  const handleWhatsAppOrder = (e: React.MouseEvent) => {
+  // Direct WhatsApp Order (tailored message for in-stock vs out-of-stock pre-order inquiry)
+  const handleWhatsAppOrder = (e: React.MouseEvent, asRestockInquiry = false) => {
     e.stopPropagation();
     const phone = activeData?.contactInfo?.whatsapp || '249900776688';
     const storeUrl = window.location.origin;
     const storeName = activeData?.storeName?.[lang] || (lang === 'ar' ? 'نَـــــدِي' : 'NADI');
-    
-    const message = lang === 'ar'
-      ? `مرحباً ${storeName}، أود طلب المنتج التالي:\n\n*المنتج:* ${product.name.ar}\n*السعر:* ${currentPrice.text}\n*الضمان/الأصالة:* ${trustBadge.text.ar}\n*الرابط:* ${storeUrl}/product/${product.id}\n\nهل المنتج متوفر للشحن الفوري؟`
-      : `Hello ${storeName}, I would like to order:\n\n*Product:* ${product.name.en}\n*Price:* ${currentPrice.text}\n*Trust:* ${trustBadge.text.en}\n*Link:* ${storeUrl}/product/${product.id}\n\nIs it available for instant delivery?`;
+
+    const message = asRestockInquiry
+      ? lang === 'ar'
+        ? `مرحباً ${storeName}، أود الاستفسار عن موعد توفر المنتج التالي وحجزه فور وصوله:\n\n*المنتج:* ${product.name.ar}\n*السعر:* ${currentPrice.text}\n*الرابط:* ${storeUrl}/product/${product.id}`
+        : `Hello ${storeName}, please notify me when this item is back in stock or available for pre-order:\n\n*Product:* ${product.name.en}\n*Price:* ${currentPrice.text}\n*Link:* ${storeUrl}/product/${product.id}`
+      : lang === 'ar'
+        ? `مرحباً ${storeName}، أود طلب المنتج التالي:\n\n*المنتج:* ${product.name.ar}\n*السعر:* ${currentPrice.text}\n*الضمان/الأصالة:* ${trustBadge.text.ar}\n*الرابط:* ${storeUrl}/product/${product.id}\n\nهل المنتج متوفر للشحن الفوري؟`
+        : `Hello ${storeName}, I would like to order:\n\n*Product:* ${product.name.en}\n*Price:* ${currentPrice.text}\n*Trust:* ${trustBadge.text.en}\n*Link:* ${storeUrl}/product/${product.id}\n\nIs it available for instant delivery?`;
 
     const encoded = encodeURIComponent(message);
     openExternalUrl(`https://wa.me/${phone}?text=${encoded}`);
@@ -193,12 +195,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isOutOfStock) {
-      handleWhatsAppOrder(e);
+      handleWhatsAppOrder(e, true);
       return;
     }
+
+    const now = Date.now();
+    if (!canAcceptCartAddTap(lastAddTapRef.current, now)) {
+      return;
+    }
+    lastAddTapRef.current = now;
+
+    if (isAtStockLimit(inCartQty, product.stock)) {
+      showToast(
+        lang === 'ar'
+          ? `الحد الأقصى المتوفر (${product.stock}) موجود بالفعل في السلة`
+          : `Maximum available stock (${product.stock}) is already in your bag`
+      );
+      return;
+    }
+
     addToCart(product, 1);
     setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 1200);
+    if (addedTimerRef.current) clearTimeout(addedTimerRef.current);
+    addedTimerRef.current = setTimeout(() => setJustAdded(false), 900);
   };
 
   const handleWishlistClick = (e: React.MouseEvent) => {
@@ -312,7 +331,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Category & Rating Row */}
           <div className="flex items-center justify-between gap-1.5 text-[10.5px] sm:text-xs text-slate-500">
             <span className="truncate font-semibold text-slate-500">
-              {getCompactCategoryLabel(product.category[lang])}
+              {getCleanCategoryLabel(product, lang)}
             </span>
 
             <div className="inline-flex items-center gap-0.5 text-[#5A3E7A] shrink-0">
@@ -357,35 +376,90 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </div>
 
-      {/* 3. UNIFIED ACTION ROW (Equal 3-Column Grid on Mobile prevents clipping, Flexible Row on sm+) */}
-      <div className="px-2 pb-2 sm:px-3.5 sm:pb-3.5 pt-2 border-t border-slate-100 grid grid-cols-3 sm:flex items-center gap-1 sm:gap-1.5">
-        {/* Main CTA: Add to Bag */}
+      {/* 3. UNIFIED ACTION ROW (3 buttons when in stock; clean 2 buttons without duplicate WhatsApp when out of stock) */}
+      <div
+        className={`px-2 pb-2 sm:px-3.5 sm:pb-3.5 pt-2 border-t border-slate-100 items-center gap-1 sm:gap-1.5 ${
+          isOutOfStock ? 'flex' : 'grid grid-cols-3 sm:flex'
+        }`}
+      >
+        {/* Main CTA: Add to Bag (with crisp inline quantity counter) OR Single Out-of-Stock WhatsApp Notify CTA */}
         <button
+          type="button"
           onClick={handleAddToCart}
-          className={`w-full sm:flex-1 min-w-0 h-[42px] sm:h-11 py-1.5 sm:py-2 px-1.5 sm:px-2.5 rounded-xl sm:rounded-2xl font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer ${
+          className={`relative overflow-hidden min-w-0 h-[42px] sm:h-11 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl font-bold flex items-center justify-center transition-all shadow-sm cursor-pointer active:scale-[0.98] ${
+            !isOutOfStock && inCartQty > 0 && !justAdded
+              ? 'px-1 sm:px-2.5 gap-1 sm:gap-1.5'
+              : 'px-1.5 sm:px-2.5 gap-1.5'
+          } ${
+            isOutOfStock ? 'flex-1' : 'w-full sm:flex-1'
+          } ${
             justAdded
               ? 'bg-emerald-600 text-white shadow-emerald-600/20'
               : isOutOfStock
-                ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs'
+                ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
                 : 'bg-theme-primary hover:bg-theme-primary-hover text-white shadow-xs hover:shadow-md'
           }`}
-          title={lang === 'ar' ? 'إضافة للسلة' : 'Add to Bag'}
-          aria-label={lang === 'ar' ? 'إضافة للسلة' : 'Add to Bag'}
+          title={
+            isOutOfStock
+              ? lang === 'ar'
+                ? 'تنبيه عند التوفر عبر واتساب'
+                : 'Notify on WhatsApp'
+              : lang === 'ar'
+                ? 'إضافة للسلة'
+                : 'Add to Bag'
+          }
+          aria-label={
+            isOutOfStock
+              ? lang === 'ar'
+                ? 'تنبيه عند التوفر عبر واتساب'
+                : 'Notify on WhatsApp'
+              : inCartQty > 0
+                ? lang === 'ar'
+                  ? `في السلة (${inCartQty}) - إضافة قطعة أخرى`
+                  : `In bag (${inCartQty}) - add one more`
+                : lang === 'ar'
+                  ? 'إضافة للسلة'
+                  : 'Add to Bag'
+          }
         >
           {justAdded ? (
             <>
               <Check className="w-4 h-4 shrink-0 animate-in zoom-in" />
-              <span className="hidden sm:inline text-xs sm:text-sm truncate">{lang === 'ar' ? 'تمت الإضافة ✓' : 'Added ✓'}</span>
+              <span className="hidden sm:inline text-xs sm:text-sm truncate">
+                {lang === 'ar' ? 'تمت الإضافة' : 'Added'}
+              </span>
             </>
           ) : isOutOfStock ? (
             <>
               <WhatsAppIcon variant="white" className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline text-xs sm:text-sm truncate">{lang === 'ar' ? 'حجز واتساب' : 'WhatsApp'}</span>
+              <span className="text-[11px] sm:text-xs truncate">
+                {lang === 'ar' ? 'تنبيه توفر' : 'Notify Me'}
+              </span>
             </>
           ) : (
             <>
-              <StoreCartIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0 text-white" />
-              <span className="hidden sm:inline text-xs sm:text-sm truncate">{lang === 'ar' ? 'إضافة للسلة' : 'Add to Bag'}</span>
+              <StoreCartIcon
+                className={`${
+                  inCartQty > 0 ? 'w-3.5 h-3.5 sm:w-4 sm:h-4' : 'w-4 h-4 sm:w-4.5 sm:h-4.5'
+                } shrink-0 text-white`}
+              />
+              <span className="hidden sm:inline text-xs sm:text-sm truncate">
+                {inCartQty > 0
+                  ? lang === 'ar'
+                    ? 'في السلة'
+                    : 'In Bag'
+                  : lang === 'ar'
+                    ? 'إضافة للسلة'
+                    : 'Add to Bag'}
+              </span>
+              {inCartQty > 0 && (
+                <span
+                  className="min-w-[18px] h-[18px] sm:min-w-[20px] sm:h-5 px-1 sm:px-1.5 rounded-md sm:rounded-full bg-white/25 text-white text-[10.5px] sm:text-[11px] font-black leading-none inline-flex items-center justify-center tabular-nums shrink-0"
+                  aria-hidden="true"
+                >
+                  {inCartQty > 99 ? '99+' : inCartQty}
+                </span>
+              )}
             </>
           )}
         </button>
@@ -400,7 +474,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }
             setIsCompareModalOpen(true);
           }}
-          className={`w-full sm:w-11 h-[42px] sm:h-11 min-w-0 shrink-0 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center relative shadow-2xs hover:scale-105 active:scale-95 cursor-pointer ${
+          className={`${
+            isOutOfStock ? 'w-[42px] sm:w-11' : 'w-full sm:w-11'
+          } h-[42px] sm:h-11 min-w-0 shrink-0 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center relative shadow-2xs hover:scale-105 active:scale-95 cursor-pointer ${
             isCompared
               ? 'bg-[#5A3E7A] text-white border-[#5A3E7A] shadow-purple-900/20'
               : 'bg-purple-50/70 hover:bg-purple-100 text-[#5A3E7A] border-purple-200/70'
@@ -411,16 +487,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <ArrowLeftRight className="w-4 h-4 shrink-0" />
         </button>
 
-        {/* Quick Direct WhatsApp Order Button (Official Brand Icon) */}
-        <button
-          type="button"
-          onClick={handleWhatsAppOrder}
-          className="w-full sm:w-11 h-[42px] sm:h-11 min-w-0 shrink-0 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50/90 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/90 transition-all flex items-center justify-center relative shadow-2xs hover:shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
-          title={lang === 'ar' ? 'طلب مباشر وسريع عبر واتساب' : 'Direct WhatsApp Order'}
-          aria-label="Direct WhatsApp Order"
-        >
-          <WhatsAppIcon variant="gradient" className="w-4 h-4 sm:w-[18px] sm:h-[18px] relative z-10" />
-        </button>
+        {/* Quick Direct WhatsApp Order Button (Hidden when out of stock to avoid duplicate WhatsApp button) */}
+        {!isOutOfStock && (
+          <button
+            type="button"
+            onClick={(e) => handleWhatsAppOrder(e, false)}
+            className="w-full sm:w-11 h-[42px] sm:h-11 min-w-0 shrink-0 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50/90 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/90 transition-all flex items-center justify-center relative shadow-2xs hover:shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+            title={lang === 'ar' ? 'طلب مباشر وسريع عبر واتساب' : 'Direct WhatsApp Order'}
+            aria-label="Direct WhatsApp Order"
+          >
+            <WhatsAppIcon variant="gradient" className="w-4 h-4 sm:w-[18px] sm:h-[18px] relative z-10" />
+          </button>
+        )}
       </div>
     </div>
   );

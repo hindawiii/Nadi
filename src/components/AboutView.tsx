@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Droplets, ShieldCheck, Heart, Eye, Target, 
+  ShieldCheck, Heart, Eye, Target, 
   ArrowRight, ArrowLeft, Leaf, Award, ChevronLeft, ChevronRight, Home 
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
@@ -11,10 +11,10 @@ export const AboutView: React.FC = () => {
 
   const values = [
     {
-      title: { ar: 'مكوّنات طبيعية', en: 'Pure Botanical' },
+      title: { ar: 'مكوّنات طبيعية', en: 'Natural Ingredients' },
       desc: { 
-        ar: 'خلاصات نباتية نقيّة بلا مواد كيميائية قاسية، مستخلصة ومحفوظة بأعلى درجات العناية.', 
-        en: '100% pure botanical extracts without harsh synthetics, carefully preserved.' 
+        ar: 'خلاصات نباتية نقية خالية من المواد القاسية، مختارة بعناية لروتينكِ اليومي.', 
+        en: 'Pure botanical extracts free from harsh synthetics, chosen for daily care.' 
       },
       icon: Leaf,
       bg: 'bg-emerald-50 text-emerald-700 border-emerald-100'
@@ -22,8 +22,8 @@ export const AboutView: React.FC = () => {
     {
       title: { ar: 'جودة مضمونة', en: 'Guaranteed Quality' },
       desc: { 
-        ar: 'منتجات أصلية 100% مختبرة بعناية لضمان أعلى مستويات الأمان والفعالية لبشرتك.', 
-        en: '100% genuine lab-tested formulas for skin safety and proven impact.' 
+        ar: 'منتجات أصلية 100% من مصادر موثوقة ومختبرة لسلامة وفعالية بشرتكِ.', 
+        en: '100% authentic products from trusted sources, tested for safety and efficacy.' 
       },
       icon: ShieldCheck,
       bg: 'bg-purple-50 text-purple-700 border-purple-100'
@@ -31,17 +31,17 @@ export const AboutView: React.FC = () => {
     {
       title: { ar: 'نتائج ملموسة', en: 'Visible Results' },
       desc: { 
-        ar: 'تركيبات فعّالة تمنح بشرتك إشراقة حقيقية وترطيباً عميقاً تلاحظينه من الأيام الأولى.', 
-        en: 'Potent formulations that deliver lasting glow and deep moisture you feel in days.' 
+        ar: 'تركيبات فعالة تمنح بشرتكِ ترطيباً عميقاً وإشراقة صحية تلاحظينها سريعاً.', 
+        en: 'Effective formulas delivering lasting hydration and a healthy glow.' 
       },
       icon: Award,
       bg: 'bg-amber-50 text-amber-700 border-amber-100'
     },
     {
-      title: { ar: 'خدمة صادقة', en: 'Honest Care' },
+      title: { ar: 'استشارات مباشرة', en: 'Direct Support' },
       desc: { 
-        ar: 'دعم قريب واستشارات شخصية على واتساب مع عملائنا في كل خطوة من روتينهم.', 
-        en: 'Dedicated personalized consultations via WhatsApp at every step of your routine.' 
+        ar: 'تواصل قريب عبر واتساب لمساعدتكِ في اختيار المنتجات الأنسب لبشرتكِ.', 
+        en: 'Direct WhatsApp guidance to help you pick the right products for your skin.' 
       },
       icon: Heart,
       bg: 'bg-rose-50 text-rose-700 border-rose-100'
@@ -57,18 +57,22 @@ export const AboutView: React.FC = () => {
         {/* 1. BREADCRUMB & INTRO STORY (Matching Photo 1) */}
         <section className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
           
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-            <button 
+          {/* Unified Top Back Navigation Bar */}
+          <div className="flex items-center justify-between gap-3">
+            <button
               type="button"
-              onClick={() => navigateTo('store')} 
-              className="hover:text-[#5A3E7A] flex items-center gap-1 transition-colors cursor-pointer active:scale-95"
+              onClick={() => navigateTo('store')}
+              className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-[#5A3E7A] bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-2xs transition-all min-h-[44px] cursor-pointer active:scale-95"
             >
-              <Home className="w-3.5 h-3.5" />
-              <span>{lang === 'ar' ? 'الرئيسية' : 'Home'}</span>
+              {isRtl ? <ArrowRight className="w-4 h-4 shrink-0" /> : <ArrowLeft className="w-4 h-4 shrink-0" />}
+              <span className="whitespace-nowrap">{lang === 'ar' ? 'العودة للمتجر' : 'Back to Store'}</span>
             </button>
-            {isRtl ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            <span className="text-purple-800 font-bold">{lang === 'ar' ? 'من نحن' : 'About Us'}</span>
+
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+              <Home className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              {isRtl ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+              <span className="text-[#5A3E7A] font-bold">{lang === 'ar' ? 'من نحن' : 'About Us'}</span>
+            </div>
           </div>
 
           {/* Section Subtitle Tag */}
@@ -86,20 +90,14 @@ export const AboutView: React.FC = () => {
             {activeData.aboutStory.body[lang]}
           </p>
 
-          {/* Studio Hero Photograph (Matching Photo 1: Skincare in wooden bowl with palm leaves & plumeria flowers) */}
+          {/* Studio Hero Photograph */}
           <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white aspect-[4/3] sm:aspect-[16/10] bg-slate-100">
             <img
               src="https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=1200&q=80"
               alt="NADI Natural Skincare Botanical Presentation"
               className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent" />
-            <div className="absolute bottom-4 start-4 bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-purple-100 flex items-center gap-2.5">
-              <Droplets className="w-4 h-4 text-[#5A3E7A]" />
-              <span className="text-xs font-bold text-slate-800">
-                {lang === 'ar' ? 'نقاء نباتي 100% مستوحى من الطبيعة' : '100% Pure Botanical Radiance'}
-              </span>
-            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent to-transparent" />
           </div>
 
         </section>
@@ -117,8 +115,8 @@ export const AboutView: React.FC = () => {
             </h2>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
               {lang === 'ar'
-                ? 'أن نجعل العناية الطبيعية بالبشرة تجربةً يومية سهلة وممتعة لكل امرأة، عبر منتجات موثوقة بأسعار عادلة وخدمة تليق بكِ.'
-                : 'To make natural skincare an effortless, delightful daily ritual for every woman through trusted authentic formulas, honest pricing, and royal customer care.'}
+                ? 'توفير عناية طبيعية موثوقة بأسعار واضحة وتجربة تسوق مريحة لكل امرأة.'
+                : 'To provide trusted natural skincare at fair prices with a smooth, reliable shopping experience.'}
             </p>
           </div>
 
@@ -132,22 +130,22 @@ export const AboutView: React.FC = () => {
             </h2>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
               {lang === 'ar'
-                ? 'أن نكون الوجهة الأولى في السودان لمنتجات العناية الطبيعية، ونبني مجتمعاً يحتفي بجمال البشرة الحقيقي ويدعم ثقة كل أنثى في إشراقتها.'
-                : 'To become the leading premier destination in Sudan and the region for natural skincare, nurturing a community celebrating authentic skin health.'}
+                ? 'أن نكون الخيار الأول للعناية الطبيعية في السودان والمنطقة، بمنتجات أصلية ونتائج تدوم.'
+                : 'To be the trusted destination for natural skincare in Sudan and the region, known for authenticity and real results.'}
             </p>
           </div>
 
         </section>
 
-        {/* 3. OUR 4 PILLARS & VALUES (Matching Photo 3) */}
+        {/* 3. OUR 4 PILLARS & VALUES */}
         <section className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
           
           <div className="text-center space-y-2">
             <h3 className="text-2xl sm:text-3xl font-black text-slate-900">
-              {lang === 'ar' ? 'قيمنا' : 'Our Core Values'}
+              {lang === 'ar' ? 'قيمنا' : 'Our Values'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-              {lang === 'ar' ? 'المبادئ الأساسية التي تضمن لكِ تجربة استثنائية مع كل قطرة' : 'The guiding principles behind every bottle and formula'}
+              {lang === 'ar' ? 'المبادئ التي نلتزم بها في كل منتج نختاره لكِ' : 'The standards behind every product we curate'}
             </p>
           </div>
 
@@ -180,12 +178,12 @@ export const AboutView: React.FC = () => {
           <div className="bg-white rounded-3xl p-8 sm:p-10 border border-purple-100 shadow-xl text-center space-y-6">
             <div className="max-w-lg mx-auto space-y-2">
               <h3 className="text-2xl sm:text-3xl font-black text-slate-900">
-                {lang === 'ar' ? `ابدئي رحلتكِ مع ${activeData.storeName.ar}` : `Begin Your Journey with ${activeData.storeName.en}`}
+                {lang === 'ar' ? `اكتشفي تشكيلة ${activeData.storeName.ar}` : `Explore ${activeData.storeName.en}`}
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                 {lang === 'ar'
-                  ? 'اكتشفي مجموعتنا من منتجات العناية الطبيعية واختاري ما يناسب بشرتكِ لتستمتعي بإشراقة صحية تدوم.'
-                  : 'Explore our curated botanicals and discover the tailored routine that unlocks your natural radiance.'}
+                  ? 'اختاري من مجموعتنا للعناية الطبيعية ما يناسب روتينكِ اليومي.'
+                  : 'Choose from our natural skincare collection tailored to your daily routine.'}
               </p>
             </div>
 

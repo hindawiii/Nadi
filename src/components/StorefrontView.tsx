@@ -11,6 +11,8 @@ import { useCommerce, SectionId } from '../context/CommerceContext';
 import { ProductCard } from './ProductCard';
 import { InfiniteBrandTicker } from './InfiniteBrandTicker';
 import { HairDevicesSpotlight } from './HairDevicesSpotlight';
+import { BeforeAfterSlider } from './common/BeforeAfterSlider';
+import { classifyProductCollection } from '../lib/productCollections';
 
 export const StorefrontView: React.FC = () => {
   const { 
@@ -28,8 +30,8 @@ export const StorefrontView: React.FC = () => {
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating'>('featured');
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement>(null);
-  const [beforeAfterPos, setBeforeAfterPos] = useState<number>(50);
   const [reviewSlide, setReviewSlide] = useState<number>(0);
+  const reviewTouchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   useEffect(() => {
     if (!isSortMenuOpen) return;
@@ -153,26 +155,10 @@ export const StorefrontView: React.FC = () => {
     return true;
   });
 
-  // Single mutually-exclusive source of truth so every product belongs to strictly ONE collection (sum === All)
-  const getProductCollection = (p: (typeof products)[number]): 'box' | 'hair' | 'skin' | 'other' => {
-    const catEn = p.category.en.toLowerCase();
-    const catAr = p.category.ar;
-    if (p.id.startsWith('bundle-') || catEn.includes('box') || catEn.includes('gift') || catAr.includes('بكج')) {
-      return 'box';
-    }
-    if (p.id.startsWith('hd-') || catEn.includes('hair') || catAr.includes('شعر')) {
-      return 'hair';
-    }
-    if (p.id.startsWith('sb-') || catEn.includes('skin') || catAr.includes('بشرة') || catAr.includes('ترميم')) {
-      return 'skin';
-    }
-    return 'other';
-  };
-
   const matchesCollection = (p: (typeof products)[number], catId: string) => {
     if (catId === 'all') return true;
     if (catId === 'skin' || catId === 'box' || catId === 'hair') {
-      return getProductCollection(p) === catId;
+      return classifyProductCollection(p) === catId;
     }
     return p.category.en.toLowerCase().includes(catId.toLowerCase()) || p.category.ar.includes(catId);
   };
@@ -200,7 +186,7 @@ export const StorefrontView: React.FC = () => {
       const hairItems: typeof filteredProducts = [];
 
       for (const p of filteredProducts) {
-        const col = getProductCollection(p);
+        const col = classifyProductCollection(p);
         if (col === 'box') {
           bundleItems.push(p);
         } else if (col === 'hair') {
@@ -713,40 +699,42 @@ export const StorefrontView: React.FC = () => {
             </div>
           </div>
 
-          {/* Horizontal Scrollable Pill Bar (Single sleek swipeable row on mobile, clean horizontal bar on desktop) */}
-          <div
-            role="tablist"
-            aria-label={lang === 'ar' ? 'أركان منتجاتنا' : 'Product collections'}
-            className="flex items-center gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {productCollections.map((cat) => {
-              const Icon = cat.icon;
-              const isActive = selectedCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`shrink-0 snap-start inline-flex items-center gap-2 px-3.5 sm:px-4 rounded-full text-xs sm:text-[13px] font-bold transition-all whitespace-nowrap min-h-[44px] cursor-pointer active:scale-[0.98] ${
-                    isActive
-                      ? 'bg-theme-primary text-white shadow-sm shadow-purple-900/15'
-                      : 'bg-white text-slate-700 border border-slate-200/90 hover:border-purple-200 hover:bg-purple-50/40 hover:text-[#5A3E7A]'
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-purple-100' : 'text-[#5A3E7A]/80'}`} />
-                  <span>{cat.label[lang]}</span>
-                  <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold tabular-nums leading-none ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+          {/* Unified Smart Capsule Collections Dock (Mirrors Header Action Dock geometry & rhythm) */}
+          <div className="w-full overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div
+              role="tablist"
+              aria-label={lang === 'ar' ? 'أركان منتجاتنا' : 'Product collections'}
+              className="inline-flex items-center gap-1 p-1 bg-slate-100/85 border border-slate-200/85 rounded-2xl shadow-2xs backdrop-blur-xs snap-x snap-mandatory"
+            >
+              {productCollections.map((cat) => {
+                const Icon = cat.icon;
+                const isActive = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 rounded-xl text-[11.5px] sm:text-[13px] font-bold transition-all whitespace-nowrap min-h-[42px] sm:min-h-[44px] cursor-pointer active:scale-[0.98] ${
+                      isActive
+                        ? 'bg-theme-primary text-white shadow-sm shadow-purple-900/15'
+                        : 'text-slate-700 hover:text-[#5A3E7A] hover:bg-white/90'
                     }`}
                   >
-                    {cat.count}
-                  </span>
-                </button>
-              );
-            })}
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-purple-100' : 'text-[#5A3E7A]/80'}`} />
+                    <span>{cat.label[lang]}</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold tabular-nums leading-none ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-500 border border-slate-200/70'
+                      }`}
+                    >
+                      {cat.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -1027,103 +1015,13 @@ export const StorefrontView: React.FC = () => {
           </p>
         </div>
 
-        {/* Space-Saving Interactive Before/After Slider */}
-        <div className="max-w-4xl mx-auto bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div 
-            className="relative aspect-[4/3] sm:aspect-[16/10] w-full rounded-2xl overflow-hidden select-none bg-slate-100 shadow-inner border border-slate-200 cursor-ew-resize group"
-            onPointerDown={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const handleMove = (moveEvent: PointerEvent) => {
-                const x = Math.max(0, Math.min(moveEvent.clientX - rect.left, rect.width));
-                const pct = (x / rect.width) * 100;
-                setBeforeAfterPos(Math.round(isRtl ? 100 - pct : pct));
-              };
-              const handleUp = () => {
-                window.removeEventListener('pointermove', handleMove);
-                window.removeEventListener('pointerup', handleUp);
-              };
-              window.addEventListener('pointermove', handleMove);
-              window.addEventListener('pointerup', handleUp);
-              const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-              const pct = (x / rect.width) * 100;
-              setBeforeAfterPos(Math.round(isRtl ? 100 - pct : pct));
-            }}
-          >
-            {/* "After" Image (Background - Luminous, Hydrated, Fresh Radiant Skin) */}
-            <img
-              src={activeData.beforeAfterMedia?.afterImage || "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80"}
-              alt="After Skincare"
-              referrerPolicy="no-referrer"
-              className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none brightness-105 saturate-110"
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80";
-              }}
-            />
-            <span className="absolute top-4 end-4 bg-emerald-600/95 backdrop-blur-md text-white text-xs font-black px-3 py-1 rounded-full shadow-lg z-10 flex items-center gap-1.5 pointer-events-none border border-emerald-400/40">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>
-                {lang === 'ar' ? 'بعد' : 'After'}
-              </span>
-            </span>
-
-            {/* "Before" Image (Clipped Overlay with 0% Distortion using clipPath) */}
-            <div 
-              className="absolute inset-0 w-full h-full pointer-events-none select-none"
-              style={{
-                clipPath: isRtl 
-                  ? `inset(0 ${beforeAfterPos}% 0 0)` 
-                  : `inset(0 0 0 ${beforeAfterPos}%)`
-              }}
-            >
-              <img
-                src={activeData.beforeAfterMedia?.beforeImage || "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80"}
-                alt="Before Skincare"
-                referrerPolicy="no-referrer"
-                className={`absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none ${
-                  (activeData.beforeAfterMedia?.beforeImage === activeData.beforeAfterMedia?.afterImage || !activeData.beforeAfterMedia?.beforeImage || activeData.beforeAfterMedia?.beforeImage.includes('1570172619644'))
-                    ? 'saturate-60 brightness-90 contrast-120 sepia-[0.16]'
-                    : ''
-                }`}
-                onError={(e) => {
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80";
-                }}
-              />
-            </div>
-
-            <span className="absolute top-4 start-4 bg-slate-900/90 backdrop-blur-md text-white text-xs font-black px-3 py-1 rounded-full shadow-lg z-10 flex items-center gap-1.5 pointer-events-none border border-slate-700/60">
-              <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
-              <span>
-                {lang === 'ar' ? 'قبل' : 'Before'}
-              </span>
-            </span>
-
-            {/* Precision Slider Divider Line */}
-            <div
-              className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_15px_rgba(0,0,0,0.5)] z-20 pointer-events-none -translate-x-1/2 flex items-center justify-center"
-              style={{ insetInlineStart: `${beforeAfterPos}%` }}
-            >
-              <div className="w-9 h-9 rounded-full bg-white text-slate-900 shadow-2xl flex items-center justify-center font-black text-sm border-2 border-[#5A3E7A]">
-                ↔
-              </div>
-            </div>
-          </div>
-
-          {/* Interactive Range Input with Safe Distance */}
-          <div className="flex items-center gap-4 px-2 pt-1">
-            <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-              {lang === 'ar' ? 'اسحبي لمعاينة الفرق:' : 'Drag to compare:'}
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={beforeAfterPos}
-              onChange={(e) => setBeforeAfterPos(Number(e.target.value))}
-              className="w-full accent-[#5A3E7A] cursor-ew-resize h-2 bg-slate-200 rounded-lg"
-              aria-label="Before after comparison slider"
-            />
-          </div>
-        </div>
+        {/* Isolated 60fps Before/After Comparison Slider */}
+        <BeforeAfterSlider
+          beforeImage={activeData.beforeAfterMedia?.beforeImage}
+          afterImage={activeData.beforeAfterMedia?.afterImage}
+          lang={lang}
+          isRtl={isRtl}
+        />
       </section>
       ) : null,
 
@@ -1153,8 +1051,34 @@ export const StorefrontView: React.FC = () => {
           </button>
         </div>
 
-        {/* Smart Luxury Testimonial Cards Carousel: 1 on mobile, strictly 2 on all larger devices */}
-        <div className="relative">
+        {/* Smart Luxury Testimonial Cards Carousel: Touch-Swipe enabled + Prev/Next Arrows */}
+        <div
+          className="relative touch-pan-y select-none"
+          onTouchStart={(e) => {
+            if (effectiveTestimonials.length <= 1) return;
+            const touch = e.touches[0];
+            reviewTouchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+          }}
+          onTouchEnd={(e) => {
+            const start = reviewTouchStartRef.current;
+            reviewTouchStartRef.current = null;
+            if (!start || effectiveTestimonials.length <= 1) return;
+            const touch = e.changedTouches[0];
+            const diffX = touch.clientX - start.x;
+            const diffY = touch.clientY - start.y;
+            const elapsed = Date.now() - start.time;
+
+            // Trigger slide change only on intentional horizontal swipe (prevents accidental vertical scroll interference)
+            if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY) * 1.2 && elapsed < 900) {
+              const goNext = isRtl ? diffX > 0 : diffX < 0;
+              setReviewSlide((prev) =>
+                goNext
+                  ? (prev + 1) % effectiveTestimonials.length
+                  : (prev - 1 + effectiveTestimonials.length) % effectiveTestimonials.length
+              );
+            }
+          }}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 sm:gap-6">
             {[effectiveTestimonials[reviewSlide % effectiveTestimonials.length], effectiveTestimonials[(reviewSlide + 1) % effectiveTestimonials.length]].filter(Boolean).map((review, idx) => {
               const reviewId = review.id;

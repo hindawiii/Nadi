@@ -2,22 +2,56 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Phone, PhoneCall, Copy, Check, Clock, ShieldCheck } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 
+const getEdgePadding = () => {
+  if (typeof window === 'undefined') return 16;
+  return window.innerWidth < 640 ? 12 : 24;
+};
+
 /**
  * Clamps coordinates within viewport boundaries with safe paddings
  */
 const clampToViewport = (x: number, y: number) => {
   if (typeof window === 'undefined') return { x, y };
-  const btnSize = 48;
-  const padding = 16;
+  const btnSize = window.innerWidth < 640 ? 44 : 48;
+  const padding = getEdgePadding();
   const minX = padding;
   const maxX = Math.max(padding, window.innerWidth - btnSize - padding);
-  const minY = 70; // Header safe zone
+  const minY = 76; // Header safe zone
   const maxY = Math.max(minY, window.innerHeight - btnSize - padding);
   return {
     x: Math.min(maxX, Math.max(minX, x)),
     y: Math.min(maxY, Math.max(minY, y)),
   };
 };
+
+/**
+ * Magnetic edge-snapping: docks dragged FAB cleanly to the nearest horizontal screen edge
+ * so it never remains stuck in the middle of product cards.
+ */
+const snapToNearestEdge = (x: number, y: number) => {
+  if (typeof window === 'undefined') return { x, y };
+  const clamped = clampToViewport(x, y);
+  const btnSize = window.innerWidth < 640 ? 44 : 48;
+  const padding = getEdgePadding();
+  const centerX = clamped.x + btnSize / 2;
+  const snappedX =
+    centerX < window.innerWidth / 2
+      ? padding
+      : Math.max(padding, window.innerWidth - btnSize - padding);
+  return { x: snappedX, y: clamped.y };
+};
+
+export interface FloatingWhatsAppProps {
+  /** When true, renders inside FloatingActionDock without its own fixed outer wrapper. */
+  embedded?: boolean;
+  isLeftHalfOverride?: boolean;
+  isTopHalfOverride?: boolean;
+  isDraggingOverride?: boolean;
+  hasMovedRefOverride?: React.MutableRefObject<boolean>;
+  onDragPointerDown?: (e: React.PointerEvent<HTMLButtonElement>) => void;
+  onMenuOpenChange?: (isOpen: boolean) => void;
+  onCustomPositionChange?: (hasCustomPosition: boolean) => void;
+}
 
 /**
  * FloatingWhatsApp Component
@@ -31,7 +65,16 @@ const clampToViewport = (x: number, y: number) => {
  * - Responsive Badge Containment: max-width safeguards to prevent any mobile overflow
  * - Native Direct Link Dispatch: avoids pop-up blocker issues across all browsers
  */
-export const FloatingWhatsApp: React.FC = () => {
+export const FloatingWhatsApp: React.FC<FloatingWhatsAppProps> = ({
+  embedded = false,
+  isLeftHalfOverride,
+  isTopHalfOverride,
+  isDraggingOverride,
+  hasMovedRefOverride,
+  onDragPointerDown,
+  onMenuOpenChange,
+  onCustomPositionChange,
+}) => {
   const { lang, activeData, isCartOpen, isReviewModalOpen, currentRoute, showToast } = useCommerce();
   const isRtl = lang === 'ar';
   const phone = activeData.contactInfo.whatsapp;
@@ -44,23 +87,60 @@ export const FloatingWhatsApp: React.FC = () => {
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  // Draggable floating position state { x, y } in viewport pixels with immediate viewport clamping
+  // Scroll-aware subtle dimming so cards beneath remain legible while scrolling
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Draggable floating position state { x, y } (used only in standalone non-embedded mode)
   const [position, setPosition] = useState<{ x: number; y: number } | null>(() => {
+    if (embedded) return null;
     try {
       const saved = sessionStorage.getItem('so_beauty_wa_pos');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
-          return clampToViewport(parsed.x, parsed.y);
+          return snapToNearestEdge(parsed.x, parsed.y);
         }
       }
     } catch {}
     return null;
   });
 
-  const [isDragging, setIsDragging] = useState(false);
+  const [internalIsDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const hasMovedRef = useRef(false);
+  const internalHasMovedRef = useRef(false);
+
+  const isDragging = embedded ? Boolean(isDraggingOverride) : internalIsDragging;
+  const activeHasMovedRef = embedded && hasMovedRefOverride ? hasMovedRefOverride : internalHasMovedRef;
+
+  useEffect(() => {
+    onMenuOpenChange?.(isMenuOpen);
+    return () => {
+      onMenuOpenChange?.(false);
+    };
+  }, [isMenuOpen, onMenuOpenChange]);
+
+  useEffect(() => {
+    if (!embedded) {
+      onCustomPositionChange?.(position !== null);
+    }
+  }, [embedded, position, onCustomPositionChange]);
+
+  useEffect(() => {
+    if (embedded) return;
+    const handleActiveScroll = () => {
+      setIsScrolling(true);
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+      scrollTimerRef.current = setTimeout(() => {
+        setIsScrolling(false);
+      }, 300);
+    };
+    window.addEventListener('scroll', handleActiveScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleActiveScroll);
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
+  }, [embedded]);
 
   // Smart Tooltip: Visible on mount for 4 seconds, or until user scrolls / dismisses
   const [isAutoVisible, setIsAutoVisible] = useState(true);
@@ -115,45 +195,57 @@ export const FloatingWhatsApp: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Window resize handler: Keep active position within valid screen bounds
+  // Window resize handler: Keep snapped position within valid screen bounds (standalone mode only)
   useEffect(() => {
+    if (embedded) return;
     const handleResize = () => {
       setPosition(prev => {
         if (!prev) return null;
-        return clampToViewport(prev.x, prev.y);
+        return snapToNearestEdge(prev.x, prev.y);
       });
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [embedded]);
 
-  // Reset position when language changes if user hasn't explicitly customized it
+  // Reset position when language changes if user hasn't explicitly customized it (standalone mode only)
   useEffect(() => {
+    if (embedded) return;
     try {
       const saved = sessionStorage.getItem('so_beauty_wa_pos');
       if (!saved) {
         setPosition(null);
       }
     } catch {}
-  }, [lang]);
+  }, [embedded, lang]);
 
   // SPATIAL AWARENESS: Determine screen quadrant dynamically
   // If position is null (initial default):
   // - In Arabic (RTL): default corner is bottom-left (isLeftHalf = true, isTopHalf = false)
   // - In English (LTR): default corner is bottom-right (isLeftHalf = false, isTopHalf = false)
-  const isLeftHalf = position !== null
-    ? position.x < (typeof window !== 'undefined' ? window.innerWidth / 2 : 300)
-    : isRtl;
+  const isLeftHalf = embedded && typeof isLeftHalfOverride === 'boolean'
+    ? isLeftHalfOverride
+    : position !== null
+      ? position.x < (typeof window !== 'undefined' ? window.innerWidth / 2 : 300)
+      : isRtl;
 
   const isStartHalf = isRtl ? !isLeftHalf : isLeftHalf;
   const labelSideClass = isStartHalf ? 'start-full ms-3' : 'end-full me-3';
 
-  const isTopHalf = position !== null
-    ? position.y < 240
-    : false;
+  const isTopHalf = embedded && typeof isTopHalfOverride === 'boolean'
+    ? isTopHalfOverride
+    : position !== null
+      ? position.y < 240
+      : false;
 
-  // DRAG ENGINE (Pointer Down Handler with Pointer Capture & native gesture isolation)
+  // DRAG ENGINE (Delegates to FloatingActionDock in embedded mode so both buttons move magnetically together)
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (embedded && onDragPointerDown) {
+      setIsAutoVisible(false);
+      onDragPointerDown(e);
+      return;
+    }
+
     // Only primary mouse button or touch/pen
     if (e.button !== 0 && e.pointerType === 'mouse') return;
 
@@ -170,7 +262,7 @@ export const FloatingWhatsApp: React.FC = () => {
     const initialPosX = rect ? rect.left : (isLeftHalf ? 24 : window.innerWidth - 88);
     const initialPosY = rect ? rect.top : (window.innerHeight - 88);
 
-    hasMovedRef.current = false;
+    activeHasMovedRef.current = false;
     let localMoved = false;
 
     const onPointerMove = (moveEvent: PointerEvent) => {
@@ -180,7 +272,7 @@ export const FloatingWhatsApp: React.FC = () => {
       // 6px threshold prevents minor touch tremors from triggering drag
       if (!localMoved && Math.hypot(deltaX, deltaY) > 6) {
         localMoved = true;
-        hasMovedRef.current = true;
+        activeHasMovedRef.current = true;
         setIsDragging(true);
         setIsAutoVisible(false);
       }
@@ -207,10 +299,11 @@ export const FloatingWhatsApp: React.FC = () => {
 
         setPosition(current => {
           if (!current) return null;
+          const snapped = snapToNearestEdge(current.x, current.y);
           try {
-            sessionStorage.setItem('so_beauty_wa_pos', JSON.stringify(current));
+            sessionStorage.setItem('so_beauty_wa_pos', JSON.stringify(snapped));
           } catch {}
-          return current;
+          return snapped;
         });
       }
     };
@@ -301,8 +394,8 @@ export const FloatingWhatsApp: React.FC = () => {
       e.preventDefault();
       e.stopPropagation();
     }
-    if (hasMovedRef.current) {
-      hasMovedRef.current = false;
+    if (activeHasMovedRef.current) {
+      activeHasMovedRef.current = false;
       return;
     }
     setIsMenuOpen(prev => !prev);
@@ -455,7 +548,7 @@ export const FloatingWhatsApp: React.FC = () => {
       {/* ========================================================================= */}
       <div 
         ref={containerRef}
-        style={position ? {
+        style={!embedded && position ? {
           position: 'fixed',
           left: `${position.x}px`,
           top: `${position.y}px`,
@@ -463,10 +556,18 @@ export const FloatingWhatsApp: React.FC = () => {
           right: 'auto',
           zIndex: 50,
           touchAction: 'none',
-        } : undefined}
-        className={!position 
-          ? "fixed bottom-4 end-4 sm:bottom-6 sm:end-6 z-50 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center select-none touch-none" 
-          : "fixed z-50 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center select-none touch-none"}
+        } : { touchAction: 'none' }}
+        className={`${
+          embedded
+            ? 'relative z-50'
+            : !position
+              ? 'fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] end-3 sm:bottom-6 sm:end-6 z-50'
+              : `fixed z-50 ${!isDragging ? 'transition-[left,top,opacity] duration-300 ease-out' : ''}`
+        } w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center select-none touch-none ${
+          embedded
+            ? ''
+            : `transition-opacity duration-300 ${isScrolling && !isMenuOpen && !isDragging ? 'opacity-80 hover:opacity-100' : 'opacity-100'}`
+        }`}
       >
         
         {/* ========================================================================= */}
@@ -578,10 +679,10 @@ export const FloatingWhatsApp: React.FC = () => {
           type="button"
           onPointerDown={handlePointerDown}
           onClick={(e) => {
-            if (hasMovedRef.current) {
+            if (activeHasMovedRef.current) {
               e.preventDefault();
               e.stopPropagation();
-              hasMovedRef.current = false;
+              activeHasMovedRef.current = false;
               return;
             }
             toggleMenu(e);

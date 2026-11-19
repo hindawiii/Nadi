@@ -11,8 +11,7 @@ import { OrderTrackerView } from './components/OrderTrackerView';
 import { LoginPageView } from './components/LoginPageView';
 import { Footer } from './components/Footer';
 import { ReviewModal } from './components/ReviewModal';
-import { FloatingWhatsApp } from './components/FloatingWhatsApp';
-import { ScrollToTopProgress } from './components/common/ScrollToTopProgress';
+import { FloatingActionDock } from './components/common/FloatingActionDock';
 import { Toast } from './components/Toast';
 import { CompareModal } from './components/CompareModal';
 import { hairStylingDevices } from './components/HairDevicesSpotlight';
@@ -242,9 +241,8 @@ const AppContent: React.FC = () => {
       {/* Global Interactive Overlays & Controls */}
       <ReviewModal />
       
-      {/* Floating Widgets tied dynamically to central sectionsControl - Only on public pages */}
-      {!isControlPanelRoute && sectionsControl.floatingWhatsApp && <FloatingWhatsApp />}
-      {!isControlPanelRoute && sectionsControl.scrollToTop && <ScrollToTopProgress />}
+      {/* Unified Vertical Magnetic Floating Action Dock (WhatsApp on top + collapsible Scroll-to-Top below) */}
+      {!isControlPanelRoute && <FloatingActionDock />}
 
       {/* Floating Comparison Drawer Trigger Bar (Centered cleanly between corner FABs) */}
       {comparisonList.length > 0 && !isControlPanelRoute && (

@@ -138,29 +138,26 @@ export const OrderTrackerView: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
         
         {/* Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={() => navigateTo('store')}
-            className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-[#5A3E7A] bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm transition-all min-h-[44px] cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-[#5A3E7A] bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-2xs transition-all min-h-[44px] cursor-pointer active:scale-95"
           >
-            {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
-            <span>{lang === 'ar' ? 'الرجوع للمتجر' : 'Back to Store'}</span>
+            {isRtl ? <ArrowRight className="w-4 h-4 shrink-0" /> : <ArrowLeft className="w-4 h-4 shrink-0" />}
+            <span className="whitespace-nowrap">{lang === 'ar' ? 'العودة للمتجر' : 'Back to Store'}</span>
           </button>
-          <span className="text-xs font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
-            {lang === 'ar' ? 'نظام التتبع الحي المباشر' : 'Live Delivery Tracker'}
-          </span>
         </div>
 
         {/* Title */}
         <div className="text-center space-y-2">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-            {lang === 'ar' ? 'تتبع حالة شحنتك المباشرة' : 'Track Your Order In Real-Time'}
+            {lang === 'ar' ? 'تتبع شحنتكِ' : 'Track Your Order'}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
             {lang === 'ar'
-              ? 'أدخلي رمز التتبع السحابي (مثل TRK-K9A2B8C) للمتابعة من أي جهاز، أو رقم الهاتف / الطلب (ORD-...) لطلبات هذا المتصفح.'
-              : 'Enter your cloud tracking code (e.g., TRK-K9A2B8C) from any device, or phone/order ID (ORD-...) for orders on this browser.'}
+              ? 'أدخلي رمز التتبع (TRK-...) للمتابعة من أي جهاز، أو رقم الطلب أو الهاتف لطلبات هذا الجهاز.'
+              : 'Enter your tracking code (TRK-...) from any device, or your order ID or phone for orders on this device.'}
           </p>
         </div>
 
@@ -172,7 +169,7 @@ export const OrderTrackerView: React.FC = () => {
               type="text"
               value={searchCode}
               onChange={(e) => setSearchCode(e.target.value)}
-              placeholder={lang === 'ar' ? 'أدخلي رمز التتبع السحابي (TRK-...)...' : 'Enter tracking code (TRK-...)...'}
+              placeholder={lang === 'ar' ? 'أدخلي رمز التتبع (TRK-...)' : 'Enter tracking code (TRK-...)'}
               className="w-full ps-11 pe-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] shadow-sm min-h-[48px]"
             />
           </div>
@@ -402,12 +399,12 @@ export const OrderTrackerView: React.FC = () => {
               <Package className="w-7 h-7" />
             </div>
             <h3 className="text-base sm:text-lg font-bold text-slate-800">
-              {lang === 'ar' ? 'بانتظار استعلامكِ عن الشحنة' : 'Ready to Track Your Order'}
+              {lang === 'ar' ? 'أدخلي رمز التتبع للمتابعة' : 'Enter Your Tracking Code'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto leading-relaxed">
               {lang === 'ar' 
-                ? 'أدخلي رمز التتبع السحابي (TRK-...) أعلاه لعرض حالة الشحنة من أي جهاز، أو رقم طلبكِ المسجل على هذا المتصفح.' 
-                : 'Enter your cloud tracking code (TRK-...) above to track from any device, or your local order ID/phone from this browser.'}
+                ? 'استخدمي رمز التتبع (TRK-...) أعلاه لعرض حالة طلبكِ ومراحل التوصيل.' 
+                : 'Use your tracking code (TRK-...) above to view your order status and delivery progress.'}
             </p>
           </div>
         )}

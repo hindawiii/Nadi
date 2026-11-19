@@ -65,21 +65,13 @@ export const Footer: React.FC = () => {
             {/* Description */}
             <div className="space-y-1.5 max-w-sm w-full">
               <h3 className="text-sm sm:text-base font-extrabold text-white">
-                {activeData.footerAbout?.title ? activeData.footerAbout.title[lang] : (lang === 'ar' ? 'عالم الجمال والعناية' : 'World of Botanical Care')}
+                {activeData.footerAbout?.title ? activeData.footerAbout.title[lang] : (lang === 'ar' ? 'عناية طبيعية أصلية' : 'Authentic Natural Care')}
               </h3>
               <p className="text-xs text-purple-100/85 leading-relaxed font-normal">
                 {activeData.footerAbout?.description ? activeData.footerAbout.description[lang] : (lang === 'ar'
-                  ? 'وجهتكم الأولى لمنتجات العناية الطبيعية بالبشرة والمستخلصات النباتية الأصلية مع ضمان شامل وخدمة استشارات ما بعد الشراء.'
-                  : 'Your premier destination for authentic natural skincare and pure botanicals with comprehensive purity guarantee.')}
+                  ? 'منتجات عناية طبيعية أصلية مع استشارات مخصصة قبل وبعد الشراء.'
+                  : 'Authentic natural skincare with dedicated guidance before and after purchase.')}
               </p>
-            </div>
-
-            {/* Verification Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-900/70 text-emerald-300 text-xs font-bold border border-purple-400/25 backdrop-blur-sm shadow-xs">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>
-                {activeData.footerAbout?.badge ? activeData.footerAbout.badge[lang] : (lang === 'ar' ? 'منتجات أصلية معتمدة 100%' : '100% Certified Authentic')}
-              </span>
             </div>
           </div>
 
@@ -110,7 +102,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-amber-300 transition-colors flex items-center justify-center sm:justify-start gap-2.5 py-1.5 text-center sm:text-start w-full group min-h-[40px]"
                 >
                   <Package className="w-4 h-4 text-purple-300 group-hover:text-amber-300 shrink-0 transition-colors" />
-                  <span>{lang === 'ar' ? 'تصفح الكتالوج بالكامل' : 'Browse Entire Catalog'}</span>
+                  <span>{lang === 'ar' ? 'جميع المنتجات' : 'All Products'}</span>
                 </button>
               </li>
               <li>
@@ -124,7 +116,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-amber-300 transition-colors flex items-center justify-center sm:justify-start gap-2.5 py-1.5 text-center sm:text-start w-full group min-h-[40px]"
                 >
                   <Leaf className="w-4 h-4 text-emerald-300 group-hover:text-amber-300 shrink-0 transition-colors" />
-                  <span>{lang === 'ar' ? 'العناية الطبيعية بالبشرة' : 'Natural Skincare Solutions'}</span>
+                  <span>{lang === 'ar' ? 'العناية بالبشرة' : 'Skincare'}</span>
                 </button>
               </li>
               <li>
@@ -138,7 +130,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-amber-300 transition-colors flex items-center justify-center sm:justify-start gap-2.5 py-1.5 text-center sm:text-start w-full group min-h-[40px]"
                 >
                   <Truck className="w-4 h-4 text-purple-300 group-hover:text-amber-300 shrink-0 transition-colors" />
-                  <span>{lang === 'ar' ? 'أحدث العروض والبكجات' : 'Latest Offers & Routine Sets'}</span>
+                  <span>{lang === 'ar' ? 'العروض والبكجات' : 'Offers & Sets'}</span>
                 </button>
               </li>
             </ul>
@@ -148,7 +140,7 @@ export const Footer: React.FC = () => {
           <div className="flex flex-col items-center sm:items-start text-center sm:text-start space-y-3 w-full">
             <h4 className="text-sm font-extrabold text-white flex items-center justify-center sm:justify-start gap-2 pb-2.5 border-b border-white/15 w-full">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>{lang === 'ar' ? 'خدمة العملاء والضمان' : 'Customer Service & Purity'}</span>
+              <span>{lang === 'ar' ? 'خدمة العملاء' : 'Customer Care'}</span>
             </h4>
             <ul className="space-y-2 text-xs text-purple-100/90 font-medium w-full">
               <li>
@@ -157,7 +149,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-amber-300 transition-colors flex items-center justify-center sm:justify-start gap-2.5 py-1.5 text-center sm:text-start w-full group min-h-[40px]"
                 >
                   <Truck className="w-4 h-4 text-purple-300 group-hover:text-amber-300 shrink-0 transition-colors" />
-                  <span>{lang === 'ar' ? 'تتبع شحنتك المباشرة' : 'Live Order Tracking'}</span>
+                  <span>{lang === 'ar' ? 'تتبع شحنتكِ' : 'Track Your Order'}</span>
                 </button>
               </li>
               <li>
@@ -166,16 +158,16 @@ export const Footer: React.FC = () => {
                   className="hover:text-amber-300 transition-colors flex items-center justify-center sm:justify-start gap-2.5 py-1.5 text-center sm:text-start w-full group min-h-[40px]"
                 >
                   <Info className="w-4 h-4 text-purple-300 group-hover:text-amber-300 shrink-0 transition-colors" />
-                  <span>{lang === 'ar' ? 'من نحن وقصة المتجر' : 'About Our Story'}</span>
+                  <span>{lang === 'ar' ? 'من نحن' : 'About Us'}</span>
                 </button>
               </li>
               <li className="flex items-center justify-center sm:justify-start gap-2.5 py-1.5 min-h-[40px]">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{lang === 'ar' ? 'ضمان المنتجات الأصلية 100%' : '100% Genuine Guarantee'}</span>
+                <span>{lang === 'ar' ? 'منتجات أصلية 100%' : '100% Authentic Products'}</span>
               </li>
               <li className="flex items-center justify-center sm:justify-start gap-2.5 py-1.5 min-h-[40px]">
                 <RotateCcw className="w-4 h-4 text-purple-300 shrink-0" />
-                <span>{lang === 'ar' ? 'خدمة العملاء والاستبدال المرن' : 'Customer Care & Flexible Returns'}</span>
+                <span>{lang === 'ar' ? 'استبدال واسترجاع مرن' : 'Flexible Returns'}</span>
               </li>
             </ul>
           </div>
@@ -250,7 +242,7 @@ export const Footer: React.FC = () => {
         {/* ======================================================== */}
         <div className="py-6 border-y border-white/10 space-y-3 text-center">
           <p className="text-xs font-bold text-purple-200 tracking-wider">
-            {lang === 'ar' ? 'طرق الدفع والتسوق الآمن المعتمدة' : 'Certified Secure Payment Methods'}
+            {lang === 'ar' ? 'طرق الدفع المعتمدة' : 'Accepted Payment Methods'}
           </p>
           
           <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
@@ -278,9 +270,19 @@ export const Footer: React.FC = () => {
             </div>
 
             {/* Apple Pay */}
-            <div className="h-9 px-3 rounded-xl bg-white text-slate-900 font-bold text-xs flex items-center gap-1 shadow-xs border border-slate-200">
-              <span className="text-xs"></span>
-              <span className="text-[11px] font-extrabold">Pay</span>
+            <div
+              dir="ltr"
+              className="h-9 px-3 rounded-xl bg-white text-slate-900 font-bold text-xs flex items-center gap-1 shadow-xs border border-slate-200"
+              aria-label="Apple Pay"
+            >
+              <svg
+                viewBox="0 0 384 512"
+                className="w-3 h-3.5 fill-current shrink-0 -mt-0.5"
+                aria-hidden="true"
+              >
+                <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
+              </svg>
+              <span className="text-[11px] font-extrabold tracking-tight">Pay</span>
             </div>
 
             {/* Bankak (بنكك / Bankak) */}
@@ -318,20 +320,15 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ======================================================== */}
-        {/* BOTTOM BAR - COPYRIGHT & TRUST BADGES                     */}
+        {/* BOTTOM BAR - COPYRIGHT                                   */}
         {/* ======================================================== */}
-        <div className="pt-2 flex flex-col md:flex-row items-center justify-between gap-4 text-center sm:text-start text-xs text-purple-200/90 font-medium">
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-start text-xs text-purple-200/90 font-medium">
           <p>
             © 2026 {activeData.storeName.en} · {activeData.storeName.ar}. {lang === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
           </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[11px] text-purple-200/80">
-            <span>{lang === 'ar' ? 'تسوق آمن وموثوق' : 'Secure & Trusted'}</span>
-            <span>•</span>
-            <span>{lang === 'ar' ? 'الدفع عند الاستلام' : 'Cash on Delivery'}</span>
-            <span>•</span>
-            <span>{lang === 'ar' ? 'توصيل سريع' : 'Fast Delivery'}</span>
-          </div>
+          <p className="text-[11px] text-purple-200/80">
+            {lang === 'ar' ? 'توصيل سريع · دعم مباشر عبر واتساب' : 'Fast Delivery · Direct WhatsApp Support'}
+          </p>
         </div>
 
       </div>

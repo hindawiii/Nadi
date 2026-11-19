@@ -37,7 +37,7 @@ export const SmartPasswordInput: React.FC<SmartPasswordInputProps> = ({
   // State
   const [isFullyRevealed, setIsFullyRevealed] = useState(false);
   const [transientRevealIndex, setTransientRevealIndex] = useState<number | null>(null);
-  const [isSmartPeekActive, setIsSmartPeekActive] = useState(true);
+  const isSmartPeekActive = true;
   const [isCapsOn, setIsCapsOn] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -112,35 +112,11 @@ export const SmartPasswordInput: React.FC<SmartPasswordInputProps> = ({
 
   return (
     <div className="space-y-1.5 text-start w-full">
-      {/* Label & Smart Peek Status Indicator */}
-      <div className="flex items-center justify-between gap-2">
-        <label htmlFor={id} className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-          <span>{label}</span>
-          {required && <span className="text-rose-500 font-bold">*</span>}
-        </label>
-
-        {/* Smart Peek Mode Badge / Toggle */}
-        <button
-          type="button"
-          onClick={() => {
-            setIsSmartPeekActive(!isSmartPeekActive);
-            setTransientRevealIndex(null);
-          }}
-          className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full transition-all border ${
-            isSmartPeekActive 
-              ? 'bg-purple-50 text-[#5A3E7A] border-purple-200/80 hover:bg-purple-100' 
-              : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
-          }`}
-          title={
-            lang === 'ar' 
-              ? (isSmartPeekActive ? 'ميزة الإظهار اللحظي الذكي مفعلة (يُظهر الرقم لثانية ثم يُخفيه للأمان)' : 'انقر لتفعيل الإظهار اللحظي لآخر رقم')
-              : (isSmartPeekActive ? 'Smart Peek Active (Shows typed digit for 1s then hides securely)' : 'Click to enable smart peek')
-          }
-        >
-          <Eye className={`w-3 h-3 ${isSmartPeekActive ? 'text-[#5A3E7A]' : 'text-slate-400'}`} />
-          <span>{lang === 'ar' ? (isSmartPeekActive ? 'إظهار ذكي نشط' : 'إظهار ذكي متوقف') : (isSmartPeekActive ? 'Smart Peek On' : 'Smart Peek Off')}</span>
-        </button>
-      </div>
+      {/* Clean Label */}
+      <label htmlFor={id} className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+        <span>{label}</span>
+        {required && <span className="text-rose-500 font-bold">*</span>}
+      </label>
 
       {/* Input Outer Container */}
       <div className="relative flex items-center">

@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   KeyRound,
+  AlertCircle,
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { SmartPasswordInput } from './SmartInputField';
@@ -39,52 +40,109 @@ export const LoginPageView: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
+  const [authGuidance, setAuthGuidance] = useState<{
+    message: string;
+    suggestGoogle: boolean;
+  } | null>(null);
 
-  // Map Firebase Auth error codes to clear bilingual feedback
-  const getFirebaseAuthErrorMessage = (code: string): string => {
+  const switchAuthMode = (nextMode: AuthMode) => {
+    setAuthMode(nextMode);
+    setAuthGuidance(null);
+  };
+
+  // Map Firebase Auth error codes to clear bilingual feedback + optional 1-click Google recovery
+  const getFirebaseAuthErrorDetails = (
+    code: string
+  ): { message: string; suggestGoogle: boolean } => {
     switch (code) {
       case 'auth/user-not-found':
-        return lang === 'ar'
-          ? 'البريد الإلكتروني غير مسجل في المتجر، يمكنكِ إنشاء حساب جديد'
-          : 'No account found with this email. You can create a new account.';
+        return {
+          message:
+            lang === 'ar'
+              ? 'البريد الإلكتروني غير مسجل في المتجر، يمكنكِ إنشاء حساب جديد أو الدخول مباشرة عبر Google.'
+              : 'No account found with this email. You can create a new account or sign in with Google.',
+          suggestGoogle: true,
+        };
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
-        return lang === 'ar'
-          ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة، يرجى المحاولة مجدداً'
-          : 'Incorrect email or password, please try again.';
+        return {
+          message:
+            lang === 'ar'
+              ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة. إذا سبق لكِ الدخول بحساب Google، يمكنكِ المتابعة به مباشرة أدناه.'
+              : 'Incorrect email or password. If you previously signed in with Google, continue with Google below.',
+          suggestGoogle: true,
+        };
+      case 'auth/account-exists-with-different-credential':
+        return {
+          message:
+            lang === 'ar'
+              ? 'هذا البريد مرتبط مسبقاً بحساب Google. اضغطي أدناه للمتابعة السريعة عبر Google.'
+              : 'This email is already linked to Google. Tap below to continue with Google.',
+          suggestGoogle: true,
+        };
       case 'auth/email-already-in-use':
-        return lang === 'ar'
-          ? 'هذا البريد مسجل مسبقاً، يرجى تسجيل الدخول مباشرة'
-          : 'This email is already registered. Please sign in directly.';
+        return {
+          message:
+            lang === 'ar'
+              ? 'هذا البريد مسجل مسبقاً، يرجى تسجيل الدخول مباشرة أو المتابعة عبر Google.'
+              : 'This email is already registered. Please sign in directly or continue with Google.',
+          suggestGoogle: true,
+        };
       case 'auth/weak-password':
-        return lang === 'ar'
-          ? 'كلمة المرور ضعيفة، يرجى اختيار 6 خانات على الأقل'
-          : 'Password is too weak. Please use at least 6 characters.';
+        return {
+          message:
+            lang === 'ar'
+              ? 'كلمة المرور ضعيفة، يرجى اختيار 6 خانات على الأقل.'
+              : 'Password is too weak. Please use at least 6 characters.',
+          suggestGoogle: false,
+        };
       case 'auth/invalid-email':
-        return lang === 'ar'
-          ? 'صيغة البريد الإلكتروني غير صالحة'
-          : 'Invalid email address format.';
+        return {
+          message:
+            lang === 'ar'
+              ? 'صيغة البريد الإلكتروني غير صالحة، يرجى مراجعة العنوان.'
+              : 'Invalid email address format. Please check your email.',
+          suggestGoogle: false,
+        };
       case 'auth/popup-closed-by-user':
-        return lang === 'ar'
-          ? 'تم إغلاق نافذة تسجيل الدخول قبل إتمام العملية'
-          : 'Sign-in window was closed before completing.';
+        return {
+          message:
+            lang === 'ar'
+              ? 'تم إغلاق نافذة تسجيل الدخول قبل إتمام العملية.'
+              : 'Sign-in window was closed before completing.',
+          suggestGoogle: false,
+        };
       case 'auth/popup-blocked':
-        return lang === 'ar'
-          ? 'المتصفح حظر النافذة المنبثقة، يرجى السماح بالنوافذ المنبثقة ثم المحاولة مجدداً'
-          : 'Sign-in popup was blocked by your browser. Please allow popups and try again.';
+        return {
+          message:
+            lang === 'ar'
+              ? 'المتصفح حظر النافذة المنبثقة، يرجى السماح بالنوافذ المنبثقة ثم المحاولة مجدداً.'
+              : 'Sign-in popup was blocked by your browser. Please allow popups and try again.',
+          suggestGoogle: false,
+        };
       case 'auth/operation-not-allowed':
-        return lang === 'ar'
-          ? 'تسجيل الدخول بالبريد غير مفعّل حالياً؛ يرجى استخدام الدخول السريع عبر Google أعلاه.'
-          : 'Email sign-in is not enabled yet. Please use Fast Sign-In with Google above.';
+      case 'auth/admin-restricted-operation':
+        return {
+          message:
+            lang === 'ar'
+              ? 'الدخول بالبريد الإلكتروني غير مفعّل حالياً في إعدادات المتجر. يمكنكِ الدخول فوراً بنقرة واحدة عبر حساب Google.'
+              : 'Email sign-in is not enabled in the store settings yet. Sign in instantly with one tap via Google.',
+          suggestGoogle: true,
+        };
       default:
-        return lang === 'ar'
-          ? 'تعذر إتمام العملية حالياً، يرجى التحقق من اتصال الإنترنت والمحاولة مجدداً'
-          : 'Could not complete sign-in right now. Please check your connection.';
+        return {
+          message:
+            lang === 'ar'
+              ? 'تعذر إتمام الدخول بالبريد حالياً. يمكنكِ التحقق من الاتصال أو الدخول فوراً عبر Google.'
+              : 'Could not complete email sign-in right now. Check your connection or continue instantly with Google.',
+          suggestGoogle: true,
+        };
     }
   };
 
   // Primary 1-Tap Verified Google Auth via Firebase
   const handleGoogleAuth = async () => {
+    setAuthGuidance(null);
     setIsSubmitting(true);
     try {
       await applyFirebaseAuthPersistence(auth, rememberMe);
@@ -119,7 +177,9 @@ export const LoginPageView: React.FC = () => {
     } catch (err: unknown) {
       const authError = err as { code?: string };
       console.warn('Firebase Google Auth error:', err);
-      showToast(getFirebaseAuthErrorMessage(authError?.code || ''));
+      const details = getFirebaseAuthErrorDetails(authError?.code || '');
+      setAuthGuidance({ message: details.message, suggestGoogle: false });
+      showToast(details.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -128,6 +188,7 @@ export const LoginPageView: React.FC = () => {
   // Email / Password / Recovery Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthGuidance(null);
 
     if (authMode === 'signin') {
       if (!email.trim() || !password) {
@@ -166,7 +227,9 @@ export const LoginPageView: React.FC = () => {
       } catch (err: unknown) {
         const authError = err as { code?: string };
         console.warn('Sign-in error:', err);
-        showToast(getFirebaseAuthErrorMessage(authError?.code || ''));
+        const details = getFirebaseAuthErrorDetails(authError?.code || '');
+        setAuthGuidance(details);
+        showToast(details.message);
       } finally {
         setIsSubmitting(false);
       }
@@ -229,7 +292,9 @@ export const LoginPageView: React.FC = () => {
       } catch (err: unknown) {
         const authError = err as { code?: string };
         console.warn('Registration error:', err);
-        showToast(getFirebaseAuthErrorMessage(authError?.code || ''));
+        const details = getFirebaseAuthErrorDetails(authError?.code || '');
+        setAuthGuidance(details);
+        showToast(details.message);
       } finally {
         setIsSubmitting(false);
       }
@@ -254,11 +319,13 @@ export const LoginPageView: React.FC = () => {
             ? 'تم إرسال رابط آمن لإعادة تعيين كلمة المرور إلى بريدكِ الإلكتروني'
             : 'A secure password reset link has been sent to your email'
         );
-        setAuthMode('signin');
+        switchAuthMode('signin');
       } catch (err: unknown) {
         const authError = err as { code?: string };
         console.warn('Password reset error:', err);
-        showToast(getFirebaseAuthErrorMessage(authError?.code || ''));
+        const details = getFirebaseAuthErrorDetails(authError?.code || '');
+        setAuthGuidance(details);
+        showToast(details.message);
       } finally {
         setIsSubmitting(false);
       }
@@ -392,7 +459,7 @@ export const LoginPageView: React.FC = () => {
                 type="button"
                 role="tab"
                 aria-selected={authMode === 'signin'}
-                onClick={() => setAuthMode('signin')}
+                onClick={() => switchAuthMode('signin')}
                 className={`py-2.5 px-3 text-sm font-bold rounded-xl transition-all text-center min-h-[44px] whitespace-nowrap cursor-pointer ${
                   authMode === 'signin'
                     ? 'bg-white text-[#5A3E7A] shadow-xs'
@@ -406,7 +473,7 @@ export const LoginPageView: React.FC = () => {
                 type="button"
                 role="tab"
                 aria-selected={authMode === 'register'}
-                onClick={() => setAuthMode('register')}
+                onClick={() => switchAuthMode('register')}
                 className={`py-2.5 px-3 text-sm font-bold rounded-xl transition-all text-center min-h-[44px] whitespace-nowrap cursor-pointer ${
                   authMode === 'register'
                     ? 'bg-white text-[#5A3E7A] shadow-xs'
@@ -463,7 +530,10 @@ export const LoginPageView: React.FC = () => {
                 autoComplete="email"
                 dir="ltr"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (authGuidance) setAuthGuidance(null);
+                }}
                 placeholder="name@example.com"
                 required
                 className="w-full ps-10 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:bg-white text-slate-900 transition-all min-h-[48px] text-start"
@@ -503,7 +573,7 @@ export const LoginPageView: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => setAuthMode('forgot')}
+                  onClick={() => switchAuthMode('forgot')}
                   className="text-xs sm:text-sm text-[#5A3E7A] hover:underline font-semibold min-h-[44px] px-1 inline-flex items-center cursor-pointer whitespace-nowrap"
                 >
                   {lang === 'ar' ? 'نسيت كلمة السر؟' : 'Forgot password?'}
@@ -558,6 +628,33 @@ export const LoginPageView: React.FC = () => {
             </div>
           )}
 
+          {/* Persistent Inline Auth Guidance & 1-Click Google Recovery */}
+          {authGuidance && (
+            <div
+              role="alert"
+              className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/90 text-amber-950 space-y-3 text-start"
+            >
+              <div className="flex items-start gap-2.5 text-xs sm:text-sm leading-relaxed">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-1" aria-hidden="true" />
+                <p className="font-semibold">{authGuidance.message}</p>
+              </div>
+              {authGuidance.suggestGoogle && (
+                <button
+                  type="button"
+                  onClick={handleGoogleAuth}
+                  disabled={isSubmitting}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#5A3E7A] hover:bg-[#4A3266] disabled:opacity-60 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 min-h-[44px] transition-colors cursor-pointer"
+                >
+                  <span>
+                    {lang === 'ar'
+                      ? 'المتابعة الآن عبر Google'
+                      : 'Continue with Google Now'}
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Secondary / Form Submit CTA */}
           <button
             type="submit"
@@ -586,7 +683,7 @@ export const LoginPageView: React.FC = () => {
           {authMode === 'forgot' && (
             <button
               type="button"
-              onClick={() => setAuthMode('signin')}
+              onClick={() => switchAuthMode('signin')}
               className="w-full py-2.5 px-4 rounded-2xl text-sm font-semibold text-[#5A3E7A] hover:bg-purple-50 transition-colors min-h-[44px] cursor-pointer"
             >
               {lang === 'ar' ? 'العودة إلى تسجيل الدخول' : 'Back to Sign In'}

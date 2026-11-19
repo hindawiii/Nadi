@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, BadgeCheck, CheckCircle2 } from 'lucide-react';
+import { X, CheckCircle2 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 
 export const ReviewModal: React.FC = () => {
@@ -51,16 +51,12 @@ export const ReviewModal: React.FC = () => {
           <X className="w-5 h-5" />
         </button>
 
-        <div className="text-center space-y-1 mb-6 px-10 sm:px-12">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-[#5A3E7A] text-xs font-bold border border-purple-200 mb-2">
-            <BadgeCheck className="w-3.5 h-3.5 text-[#5A3E7A]" />
-            <span>{lang === 'ar' ? 'تجربة عميلة حقيقية' : 'Verified Experience'}</span>
-          </div>
-          <h3 className="text-2xl font-black text-slate-900">
-            {lang === 'ar' ? `شاركينا تجربتكِ مع ${storeNameText}` : `Share Your Experience with ${storeNameText}`}
+        <div className="text-center space-y-1.5 mb-6 px-8 sm:px-10">
+          <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-relaxed">
+            {lang === 'ar' ? `شاركينا رأيكِ في ${storeNameText}` : `Share Your Review of ${storeNameText}`}
           </h3>
-          <p className="text-xs text-slate-500">
-            {lang === 'ar' ? 'رأيكِ يلهم عميلاتنا في اختيار روتين العناية المناسب' : 'Your honest feedback inspires other customers in our community'}
+          <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+            {lang === 'ar' ? 'تجربتكِ تساعد الأخريات في اختيار الأنسب لهن.' : 'Your experience helps others choose what fits them best.'}
           </p>
         </div>
 
@@ -92,7 +88,7 @@ export const ReviewModal: React.FC = () => {
 
           <div className="space-y-1.5 text-start">
             <label className="text-xs font-bold text-slate-700">
-              {lang === 'ar' ? 'الاسم الكريم' : 'Your Name'}
+              {lang === 'ar' ? 'الاسم' : 'Name'}
             </label>
             <input
               type="text"
@@ -106,26 +102,26 @@ export const ReviewModal: React.FC = () => {
 
           <div className="space-y-1.5 text-start">
             <label className="text-xs font-bold text-slate-700">
-              {lang === 'ar' ? 'المدينة / المنطقة' : 'City / Region'}
+              {lang === 'ar' ? 'المدينة' : 'City'}
             </label>
             <input
               type="text"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder={lang === 'ar' ? 'مثال: أم درمان، الخرطوم، الرياض...' : 'e.g. Omdurman, Riyadh...'}
+              placeholder={lang === 'ar' ? 'مثال: أم درمان، الخرطوم، الرياض' : 'e.g. Omdurman, Riyadh'}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:bg-white text-slate-800"
             />
           </div>
 
           <div className="space-y-1.5 text-start">
             <label className="text-xs font-bold text-slate-700">
-              {lang === 'ar' ? 'رأيكِ الصادق والنتائج التي لمستها' : 'Your Review & Results'}
+              {lang === 'ar' ? 'رأيكِ بالمنتجات' : 'Your Review'}
             </label>
             <textarea
               rows={3}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder={lang === 'ar' ? 'اكتبي هنا كيف أثرت المنتجات على ترطيب ونضارة بشرتك...' : 'Tell us how our products refreshed and nourished your skin...'}
+              placeholder={lang === 'ar' ? 'كيف كانت تجربتكِ مع المنتجات والنتائج؟' : 'How was your experience with the products and results?'}
               required
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:bg-white text-slate-800 resize-none"
             />
@@ -134,10 +130,10 @@ export const ReviewModal: React.FC = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3.5 bg-[#5A3E7A] hover:bg-[#483162] text-white font-extrabold rounded-2xl text-sm shadow-md transition-all flex items-center justify-center gap-2 min-h-[48px]"
+            className="w-full py-3.5 bg-[#5A3E7A] hover:bg-[#483162] text-white font-extrabold rounded-2xl text-sm shadow-md transition-all flex items-center justify-center gap-2 min-h-[48px] cursor-pointer"
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>{isSubmitting ? (lang === 'ar' ? 'جاري النشر...' : 'Publishing...') : (lang === 'ar' ? 'نشر التقييم الموثق' : 'Post Verified Review')}</span>
+            <span>{isSubmitting ? (lang === 'ar' ? 'جاري النشر...' : 'Publishing...') : (lang === 'ar' ? 'نشر التقييم' : 'Post Review')}</span>
           </button>
         </form>
       </div>

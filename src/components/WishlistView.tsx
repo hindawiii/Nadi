@@ -25,19 +25,19 @@ export const WishlistView: React.FC = () => {
     <div className="min-h-screen bg-slate-50/60 pb-20 pt-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Breadcrumb & Navigation */}
-        <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 mb-6">
-          <button 
+        {/* Unified Top Back Navigation Bar */}
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <button
             type="button"
-            onClick={() => navigateTo('store')} 
-            className="hover:text-[#5A3E7A] transition-colors font-medium flex items-center gap-1 cursor-pointer active:scale-95"
+            onClick={() => navigateTo('store')}
+            className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-[#5A3E7A] bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-2xs transition-all min-h-[44px] cursor-pointer active:scale-95"
           >
-            <span>{lang === 'ar' ? 'الرئيسية' : 'Home'}</span>
-            {isRtl ? <ArrowLeft className="w-3.5 h-3.5" /> : <ArrowRight className="w-3.5 h-3.5" />}
+            {isRtl ? <ArrowRight className="w-4 h-4 shrink-0" /> : <ArrowLeft className="w-4 h-4 shrink-0" />}
+            <span className="whitespace-nowrap">{lang === 'ar' ? 'العودة للمتجر' : 'Back to Store'}</span>
           </button>
-          <span className="text-slate-300">/</span>
-          <span className="font-bold text-[#5A3E7A]">
-            {lang === 'ar' ? 'المفضلة الفاخرة' : 'Luxury Wishlist'}
+
+          <span className="text-xs font-bold text-[#5A3E7A]">
+            {lang === 'ar' ? 'المفضلة' : 'Wishlist'}
           </span>
         </div>
 
@@ -49,16 +49,16 @@ export const WishlistView: React.FC = () => {
                 <Heart className="w-5 h-5 fill-current" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                {lang === 'ar' ? 'قائمة المفضلة الفاخرة' : 'My Luxury Wishlist'}
+                {lang === 'ar' ? 'المفضلة' : 'Wishlist'}
               </h1>
               <span className="px-3 py-1 bg-[#5A3E7A] text-white text-xs font-bold rounded-full">
                 {wishlistedProducts.length} {lang === 'ar' ? 'منتجات' : 'items'}
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-2">
+            <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
               {lang === 'ar' 
-                ? 'منتجاتك المختارة بعناية، احفظيها أو انقليها مباشرة إلى سلة التسوق لتجربة فريدة.' 
-                : 'Your curated personal picks. Save them or move them directly to your shopping bag.'}
+                ? 'منتجاتكِ المحفوظة للعودة إليها أو نقلها للسلة بضغطة واحدة.' 
+                : 'Your saved picks, ready to revisit or move to your bag in one tap.'}
             </p>
           </div>
 
@@ -66,16 +66,8 @@ export const WishlistView: React.FC = () => {
             <div className="flex items-center gap-3 shrink-0 flex-wrap">
               <button
                 type="button"
-                onClick={() => navigateTo('store')}
-                className="px-4 py-2.5 rounded-full border border-purple-200 bg-purple-50 hover:bg-purple-100 text-xs font-bold text-[#5A3E7A] transition-all flex items-center gap-1.5 min-h-[44px] cursor-pointer active:scale-95"
-              >
-                {isRtl ? <ArrowRight className="w-3.5 h-3.5" /> : <ArrowLeft className="w-3.5 h-3.5" />}
-                <span>{lang === 'ar' ? 'متابعة التسوق' : 'Continue Shopping'}</span>
-              </button>
-
-              <button
                 onClick={clearWishlist}
-                className="px-4 py-2.5 rounded-full border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1.5 min-h-[44px]"
+                className="px-4 py-2.5 rounded-full border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1.5 min-h-[44px] cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 text-slate-400" />
                 <span>{lang === 'ar' ? 'تفريغ المفضلة' : 'Clear All'}</span>
@@ -100,18 +92,18 @@ export const WishlistView: React.FC = () => {
               <Heart className="w-10 h-10 stroke-[1.5]" />
             </div>
             <h2 className="text-xl font-black text-slate-900 mb-2">
-              {lang === 'ar' ? 'قائمة المفضلة فارغة حالياً' : 'Your Wishlist is Empty'}
+              {lang === 'ar' ? 'قائمة المفضلة فارغة' : 'Your Wishlist is Empty'}
             </h2>
             <p className="text-sm text-slate-500 mb-8 leading-relaxed">
               {lang === 'ar' 
-                ? 'لم تقومي بحفظ أي منتجات حتى الآن. تصفحي تركيباتنا الطبيعية ومجموعاتنا الفاخرة وأضيفي ما يعجبك بضغطة واحدة على رمز القلب.' 
-                : 'You have not added any products yet. Explore our natural botanical formulations and luxury sets to curate your routine.'}
+                ? 'احفظي المنتجات التي تعجبكِ بالضغط على رمز القلب للرجوع إليها بسهولة.' 
+                : 'Tap the heart icon on any product to save it here for later.'}
             </p>
             <button
               onClick={() => navigateTo('store')}
-              className="px-8 py-3.5 bg-[#5A3E7A] hover:bg-[#483162] text-white text-sm font-extrabold rounded-full shadow-lg hover:shadow-xl transition-all inline-flex items-center gap-2 min-h-[48px]"
+              className="px-8 py-3.5 bg-[#5A3E7A] hover:bg-[#483162] text-white text-sm font-extrabold rounded-full shadow-lg hover:shadow-xl transition-all inline-flex items-center gap-2 min-h-[48px] cursor-pointer"
             >
-              <span>{lang === 'ar' ? 'استكشاف تشكيلة المتجر' : 'Explore The Collection'}</span>
+              <span>{lang === 'ar' ? 'تصفح المتجر' : 'Browse Store'}</span>
               {isRtl ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
             </button>
 
