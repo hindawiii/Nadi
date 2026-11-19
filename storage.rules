@@ -1,0 +1,49 @@
+rules_version = '2';
+
+// Firebase Cloud Storage Security Rules for NADI Storefront Media
+// Publish these rules in Firebase Console -> Storage -> Rules before production launch.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Master Gate: Default Deny Catch-All
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    function isVerifiedOwner() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'mohsentiben@gmail.com';
+    }
+
+    function isValidFolder(folder) {
+      return folder in ['products', 'gallery', 'branding', 'hero', 'banners', 'skin'];
+    }
+
+    function isValidFileName(fileName) {
+      return fileName.size() > 0
+        && fileName.size() <= 128
+        && fileName.matches('^[a-zA-Z0-9._-]+$');
+    }
+
+    // Strict raster image allowlist (explicitly blocks SVG/HTML/JS uploads) & 5MB cap
+    function isValidImageUpload() {
+      return request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType != null
+        && request.resource.contentType.matches('^image/(webp|jpeg|jpg|png|avif)$');
+    }
+
+    match /store-media/{folder}/{fileName} {
+      allow read: if isValidFolder(folder) && isValidFileName(fileName);
+      allow create, update: if isVerifiedOwner()
+        && isValidFolder(folder)
+        && isValidFileName(fileName)
+        && isValidImageUpload();
+      allow delete: if isVerifiedOwner()
+        && isValidFolder(folder)
+        && isValidFileName(fileName);
+    }
+  }
+}

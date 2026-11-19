@@ -1,27 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Shield, Lock, KeyRound, Eye, EyeOff, CheckCircle2, 
-  AlertTriangle, ArrowLeft, ArrowRight, Check, 
-  RotateCcw, Globe, Store, Terminal, HelpCircle,
-  Phone, Mail, X, Key, ShieldCheck, Cpu, Send, RefreshCw
+import {
+  Shield, Lock, KeyRound, Eye, EyeOff, CheckCircle2,
+  AlertTriangle, ArrowLeft, ArrowRight, Check,
+  Globe, Terminal, X, Key, ShieldCheck, LogOut, ShieldAlert
 } from 'lucide-react';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useCommerce } from '../../context/CommerceContext';
 import { auth } from '../../lib/firebase';
-import { deobfuscateKey, verifySecretSync } from '../../lib/security';
+import { verifySecretSync } from '../../lib/security';
 
 export interface SmartAuthPortalProps {
   portalType: 'admin' | 'developer';
   pinLength: number; // 4 for admin, 6 for developer
-  defaultPin: string; // '2026' or '998877'
+  defaultPin: string; // Used ONLY internally to warn verified owner if factory PIN is unchanged — never shown on screen
   title: { ar: string; en: string };
   subtitle: { ar: string; en: string };
   roleBadge: { ar: string; en: string };
   accent: 'purple' | 'amber';
-  onAuthenticate: (pin: string, rememberLogin: boolean, rememberPin: boolean) => boolean;
+  onAuthenticate: (pin: string) => boolean;
   onReturnToStore: () => void;
-  savedAuthKey: string;
-  savedPinKey: string;
+  savedAuthKey?: string;
+  savedPinKey?: string;
 }
 
 export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
@@ -37,20 +36,46 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
   savedAuthKey,
   savedPinKey,
 }) => {
-  const { lang, setLang, showToast, dynamicConfig, resetDeveloperPinWithAdminAuth } = useCommerce();
+  const {
+    lang,
+    setLang,
+    showToast,
+    dynamicConfig,
+    isCloudAdminVerified,
+    firebaseAdminEmail,
+    logoutCustomer,
+    resetAdminPinWithOwnerAuth,
+    resetDeveloperPinWithAdminAuth,
+  } = useCommerce();
   const isRtl = lang === 'ar';
 
-  const isFactoryAdminPinActive =
-    portalType === 'admin' &&
-    verifySecretSync(defaultPin, dynamicConfig?.security?.adminPin || '');
+  // Warn verified owner (without exposing PIN digits) if factory PIN is still active
+  const isFactoryPinActive = verifySecretSync(
+    defaultPin,
+    portalType === 'admin'
+      ? dynamicConfig?.security?.adminPin || ''
+      : dynamicConfig?.security?.developerPin || ''
+  );
 
-  // Developer Emergency Recovery State (Firebase Google Verified Owner Flow)
-  const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
+  // Purge any legacy persisted PIN or auth-bypass keys on portal mount
+  useEffect(() => {
+    try {
+      if (savedAuthKey) {
+        localStorage.removeItem(savedAuthKey);
+        localStorage.removeItem(`${savedAuthKey}_pref`);
+      }
+      if (savedPinKey) {
+        localStorage.removeItem(savedPinKey);
+        localStorage.removeItem(`${savedPinKey}_pref`);
+      }
+    } catch (_) {}
+  }, [savedAuthKey, savedPinKey]);
+
+  // Step 1: Firebase Cloud Owner Verification state
   const [isGoogleVerifying, setIsGoogleVerifying] = useState(false);
-  const [verifiedOwnerEmail, setVerifiedOwnerEmail] = useState<string | null>(() => {
-    const u = auth.currentUser;
-    return u && u.emailVerified && u.email === 'mohsentiben@gmail.com' ? u.email : null;
-  });
+
+  // Verified Owner PIN Reset Modal state (available for both Admin & Developer once Cloud Owner is verified)
+  const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
   const [recoveryNewPin, setRecoveryNewPin] = useState('');
 
   const handleGoogleOwnerVerify = async () => {
@@ -60,25 +85,25 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
       provider.setCustomParameters({ prompt: 'select_account' });
       const cred = await signInWithPopup(auth, provider);
       if (cred.user.emailVerified && cred.user.email === 'mohsentiben@gmail.com') {
-        setVerifiedOwnerEmail(cred.user.email);
         showToast({
           type: 'success',
-          message: lang === 'ar'
-            ? 'تم التحقق من حساب المالك السحابي بنجاح! أدخل رمز المطور الجديد.'
-            : 'Verified owner Google account! Set your new Developer PIN.',
+          message:
+            lang === 'ar'
+              ? 'تم التحقق من هوية المالك السحابي بنجاح! أدخل الرمز السري لإكمال الدخول.'
+              : 'Verified cloud owner identity! Enter your session PIN to unlock.',
         });
       } else {
         showToast(
           lang === 'ar'
-            ? 'هذا الحساب غير مصرح له باستعادة صلاحيات المطور.'
-            : 'This Google account is not authorized as system owner.'
+            ? 'هذا الحساب لا يملك صلاحية المالك السحابي لهذا المتجر.'
+            : 'This Google account is not authorized as the store owner.'
         );
       }
     } catch (err) {
-      console.warn('Google recovery verification aborted or failed:', err);
+      console.warn('Google owner verification aborted or failed:', err);
       showToast(
         lang === 'ar'
-          ? 'تعذر إتمام التحقق عبر Google. يرجى التأكد من السماح بالنوافذ المنبثقة والمحاولة مجدداً.'
+          ? 'تعذر إتمام التحقق عبر Google. يرجى السماح بالنوافذ المنبثقة والمحاولة مجدداً.'
           : 'Could not complete Google verification. Please check popup permissions and try again.'
       );
     } finally {
@@ -88,48 +113,27 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
 
   const handleSubmitRecoveryNewPin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^\d{6}$/.test(recoveryNewPin.trim())) {
-      showToast(lang === 'ar' ? 'يرجى إدخال رمز جديد مكون من 6 أرقام' : 'Please enter a valid 6-digit PIN');
+    const expectedRegex = pinLength === 4 ? /^\d{4}$/ : /^\d{6}$/;
+    if (!expectedRegex.test(recoveryNewPin.trim())) {
+      showToast(
+        lang === 'ar'
+          ? `يرجى إدخال رمز جديد مكون من ${pinLength} أرقام`
+          : `Please enter a valid ${pinLength}-digit PIN`
+      );
       return;
     }
-    const ok = resetDeveloperPinWithAdminAuth(recoveryNewPin.trim());
+    const ok =
+      portalType === 'admin'
+        ? resetAdminPinWithOwnerAuth(recoveryNewPin.trim())
+        : resetDeveloperPinWithAdminAuth(recoveryNewPin.trim());
     if (ok) {
       setIsRecoveryModalOpen(false);
       setRecoveryNewPin('');
     }
   };
 
-  // Read saved preferences from LocalStorage
-  const [rememberLogin, setRememberLogin] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(`${savedAuthKey}_pref`) === 'true';
-    } catch {
-      return true;
-    }
-  });
-
-  const [rememberPin, setRememberPin] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(`${savedPinKey}_pref`) === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  // Digits state array
-  const [digits, setDigits] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem(savedPinKey);
-      if (raw) {
-        const decoded = deobfuscateKey(raw);
-        if (decoded && decoded.length === pinLength) {
-          return decoded.split('');
-        }
-      }
-    } catch {}
-    return Array(pinLength).fill('');
-  });
-
+  // Step 2: Session-only PIN digits (never pre-populated from localStorage)
+  const [digits, setDigits] = useState<string[]>(() => Array(pinLength).fill(''));
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [hasError, setHasError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -179,19 +183,18 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Focus first empty digit or first input on mount
+  // Focus first empty digit once Cloud Owner is verified and not locked out
   useEffect(() => {
-    if (lockoutSeconds > 0) return;
+    if (!isCloudAdminVerified || lockoutSeconds > 0) return;
     const firstEmpty = digits.findIndex((d) => d === '');
     const targetIdx = firstEmpty === -1 ? 0 : firstEmpty;
     inputRefs.current[targetIdx]?.focus();
-  }, [lockoutSeconds]);
+  }, [isCloudAdminVerified, lockoutSeconds]);
 
   const handleDigitChange = (index: number, value: string) => {
     setHasError(false);
     setErrorMessage('');
 
-    // Handle single character
     const sanitized = value.replace(/\D/g, '');
     if (!sanitized) {
       const newDigits = [...digits];
@@ -205,7 +208,6 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
     newDigits[index] = lastChar;
     setDigits(newDigits);
 
-    // Auto-advance to next input
     if (index < pinLength - 1) {
       inputRefs.current[index + 1]?.focus();
       setFocusedIndex(index + 1);
@@ -215,7 +217,6 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace') {
       if (digits[index] === '' && index > 0) {
-        // Move back and clear previous
         const newDigits = [...digits];
         newDigits[index - 1] = '';
         setDigits(newDigits);
@@ -258,7 +259,6 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
     setFocusedIndex(focusTarget);
 
     if (pastedData.length === pinLength) {
-      // Auto verify when pasted full code
       setTimeout(() => {
         validateAndSubmit(newDigits.join(''));
       }, 100);
@@ -266,6 +266,16 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
   };
 
   const validateAndSubmit = (fullPin: string) => {
+    if (!isCloudAdminVerified) {
+      setHasError(true);
+      setErrorMessage(
+        lang === 'ar'
+          ? 'يجب توثيق هوية المالك عبر Google أولاً قبل إدخال الرمز السري.'
+          : 'You must verify your store owner Google account first.'
+      );
+      return;
+    }
+
     if (lockoutSeconds > 0) {
       setHasError(true);
       setErrorMessage(
@@ -286,7 +296,7 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
       return;
     }
 
-    const success = onAuthenticate(fullPin, rememberLogin, rememberPin);
+    const success = onAuthenticate(fullPin);
 
     if (success) {
       setIsSuccess(true);
@@ -296,19 +306,6 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
         sessionStorage.removeItem(`luxe_auth_fails_${portalType}`);
         sessionStorage.removeItem(`luxe_auth_lockout_${portalType}`);
       } catch {}
-
-      // Save preferences in localStorage
-      try {
-        localStorage.setItem(`${savedAuthKey}_pref`, String(rememberLogin));
-        localStorage.setItem(`${savedPinKey}_pref`, String(rememberPin));
-        if (rememberPin) {
-          localStorage.setItem(savedPinKey, fullPin);
-        } else {
-          localStorage.removeItem(savedPinKey);
-        }
-      } catch (err) {
-        console.warn('Storage preference error:', err);
-      }
     } else {
       const nextFails = failedAttempts + 1;
       setFailedAttempts(nextFails);
@@ -338,7 +335,6 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
             ? `رمز الدخول غير صحيح. (متبقي ${remainingTries} ${remainingTries === 1 ? 'محاولة' : 'محاولات'} قبل القفل المؤقت)`
             : `Invalid PIN. (${remainingTries} attempts remaining before temporary lock)`
         );
-        // Trigger error vibration/shake and refocus first box
         setTimeout(() => {
           inputRefs.current[0]?.focus();
           setFocusedIndex(0);
@@ -357,20 +353,6 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
     setErrorMessage('');
     inputRefs.current[0]?.focus();
     setFocusedIndex(0);
-  };
-
-  const handleAutoFillDefault = () => {
-    const defaultDigits = defaultPin.split('');
-    setDigits(defaultDigits);
-    setHasError(false);
-    setErrorMessage('');
-    inputRefs.current[pinLength - 1]?.focus();
-    setFocusedIndex(pinLength - 1);
-    showToast(
-      lang === 'ar'
-        ? `تم ملء الرمز الافتراضي: ${defaultPin}`
-        : `Default PIN ${defaultPin} filled!`
-    );
   };
 
   // Color Tokens based on Accent
@@ -394,8 +376,8 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
   const isFull = digits.every((d) => d !== '');
 
   return (
-    <div 
-      className={`min-h-screen w-full bg-slate-950 bg-gradient-to-b ${glowGradient} text-white flex flex-col justify-between items-center p-4 sm:p-6 md:p-10 select-none relative overflow-x-hidden`}
+    <div
+      className={`min-h-screen w-full bg-slate-950 bg-gradient-to-b ${glowGradient} text-white flex flex-col justify-between items-center p-4 sm:p-6 md:p-10 select-none relative overflow-x-clip`}
       dir={isRtl ? 'rtl' : 'ltr'}
     >
       {/* Ambient background decoration */}
@@ -414,11 +396,10 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
         </button>
 
         <div className="flex items-center gap-2">
-          {/* Language Switcher */}
           <button
             type="button"
             onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white transition-all min-h-[44px]"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white transition-all cursor-pointer min-h-[44px]"
           >
             <Globe className="w-3.5 h-3.5 text-amber-400" />
             <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
@@ -426,9 +407,9 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
         </div>
       </header>
 
-      {/* Center Interactive Authentication Card */}
+      {/* Center Interactive 2-Layer Authentication Card */}
       <main className="w-full max-w-lg my-auto py-8 z-10">
-        <div 
+        <div
           className={`bg-slate-900/90 backdrop-blur-2xl border ${
             hasError ? 'border-rose-500/50' : isSuccess ? 'border-emerald-500/60' : 'border-slate-800/80'
           } rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6 sm:space-y-8 transition-all duration-300 ${
@@ -438,35 +419,45 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
           {/* Icon and Branding Badge */}
           <div className="text-center space-y-4">
             <div className="relative inline-block">
-              <div 
+              <div
                 className={`w-20 h-20 rounded-3xl mx-auto flex items-center justify-center border shadow-xl ${
-                  isPurple 
-                    ? 'bg-purple-950/60 border-purple-500/30 text-purple-300' 
+                  isPurple
+                    ? 'bg-purple-950/60 border-purple-500/30 text-purple-300'
                     : 'bg-amber-950/60 border-amber-500/30 text-amber-300'
                 }`}
               >
                 {isSuccess ? (
                   <CheckCircle2 className="w-10 h-10 text-emerald-400 animate-bounce" />
                 ) : portalType === 'developer' ? (
-                  <Terminal className="w-10 h-10 animate-pulse" />
+                  <Terminal className="w-10 h-10" />
                 ) : (
                   <Shield className="w-10 h-10" />
                 )}
               </div>
 
               {/* Status Dot */}
-              <span className={`absolute bottom-0 end-0 w-5 h-5 rounded-full border-2 border-slate-900 ${
-                isSuccess ? 'bg-emerald-500' : hasError ? 'bg-rose-500' : isPurple ? 'bg-purple-500' : 'bg-amber-500'
-              }`} />
+              <span
+                className={`absolute bottom-0 end-0 w-5 h-5 rounded-full border-2 border-slate-900 ${
+                  isSuccess
+                    ? 'bg-emerald-500'
+                    : hasError
+                    ? 'bg-rose-500'
+                    : isCloudAdminVerified
+                    ? 'bg-emerald-400'
+                    : isPurple
+                    ? 'bg-purple-500'
+                    : 'bg-amber-500'
+                }`}
+              />
             </div>
 
             <div className="space-y-2">
-              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border ${badgeColors}`}>
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border ${badgeColors}`}>
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>{roleBadge[lang]}</span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-relaxed">
                 {title[lang]}
               </h1>
 
@@ -476,320 +467,372 @@ export const SmartAuthPortal: React.FC<SmartAuthPortalProps> = ({
             </div>
           </div>
 
-          {/* Smart Separate Digit Boxes */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
-              <span>{lang === 'ar' ? `رمز التحقق (${pinLength} أرقام):` : `Verification PIN (${pinLength} digits):`}</span>
-              
-              {/* Show / Hide Toggle Button */}
+          {/* LAYER 1: Mandatory Firebase Verified Cloud Owner Gate */}
+          {!isCloudAdminVerified ? (
+            <div className="space-y-4">
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/75 border border-slate-800 space-y-3 text-start">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    isPurple ? 'bg-purple-500/15 text-purple-300' : 'bg-amber-500/15 text-amber-300'
+                  }`}>
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-extrabold text-white">
+                      {lang === 'ar'
+                        ? 'المرحلة 1 من 2: توثيق هوية المالك السحابي (إلزامي)'
+                        : 'Step 1 of 2: Cloud Owner Identity Verification (Required)'}
+                    </p>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      {lang === 'ar'
+                        ? 'لا يمكن فتح لوحة التحكم أو اختبار الرمز السري قبل تسجيل الدخول بحساب Google المعتمد للمالك.'
+                        : 'Dashboard access and PIN entry are locked until you sign in with the verified store owner Google account.'}
+                    </p>
+                  </div>
+                </div>
+
+                {firebaseAdminEmail && (
+                  <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/35 text-xs text-rose-200 flex items-start gap-2 leading-relaxed">
+                    <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="font-bold">
+                        {lang === 'ar'
+                          ? 'الحساب الحالي غير مصرح له بصلاحيات المالك:'
+                          : 'Current signed-in account lacks owner privileges:'}
+                      </p>
+                      <p className="font-mono text-rose-300 truncate mt-0.5" dir="ltr">
+                        {firebaseAdminEmail}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="inline-flex items-center gap-1.5 text-xs text-slate-300 hover:text-white transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-slate-800"
+                onClick={handleGoogleOwnerVerify}
+                disabled={isGoogleVerifying}
+                className={`w-full py-4 rounded-2xl font-black text-sm shadow-xl transition-all duration-200 flex items-center justify-center gap-2.5 cursor-pointer min-h-[48px] disabled:opacity-60 ${primaryBtnColors}`}
               >
-                {showPassword ? (
-                  <>
-                    <EyeOff className="w-4 h-4 text-amber-400" />
-                    <span>{lang === 'ar' ? 'إخفاء الأرقام' : 'Mask Digits'}</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-4 h-4 text-slate-400" />
-                    <span>{lang === 'ar' ? 'إظهار الأرقام' : 'Show Digits'}</span>
-                  </>
-                )}
+                <ShieldCheck className="w-5 h-5 shrink-0" />
+                <span>
+                  {isGoogleVerifying
+                    ? lang === 'ar'
+                      ? 'جاري التحقق عبر Google...'
+                      : 'Verifying with Google...'
+                    : lang === 'ar'
+                    ? 'توثيق حساب المالك عبر Google'
+                    : 'Verify Store Owner with Google'}
+                </span>
               </button>
+
+              <p className="text-center text-xs text-slate-500 leading-relaxed">
+                {lang === 'ar'
+                  ? 'التحقق محمي بواسطة Firebase Authentication وقواعد Firestore السحابية.'
+                  : 'Enforced by Firebase Authentication & Cloud Firestore security rules.'}
+              </p>
             </div>
-
-            {/* Segmented Digit Grid */}
-            <div 
-              className={`grid ${pinLength === 4 ? 'grid-cols-4' : 'grid-cols-6'} gap-2 sm:gap-3`}
-              dir="ltr" // Always render left-to-right numerically for consistency
-            >
-              {digits.map((digit, idx) => {
-                const isFocused = focusedIndex === idx;
-                const isFilled = digit !== '';
-
-                return (
-                  <div key={idx} className="relative flex flex-col items-center">
-                    <input
-                      ref={(el) => { inputRefs.current[idx] = el; }}
-                      type={showPassword ? 'text' : 'password'}
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleDigitChange(idx, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(idx, e)}
-                      onPaste={handlePaste}
-                      onFocus={() => setFocusedIndex(idx)}
-                      disabled={lockoutSeconds > 0}
-                      className={`w-full h-14 sm:h-16 text-center text-xl sm:text-2xl font-mono font-black rounded-2xl border transition-all duration-200 outline-none ${
-                        lockoutSeconds > 0
-                          ? 'border-slate-800 bg-slate-900/40 text-slate-600 cursor-not-allowed opacity-60'
-                          : hasError
-                          ? 'border-rose-500 bg-rose-950/30 text-rose-200 ring-2 ring-rose-500/30'
-                          : isSuccess
-                          ? 'border-emerald-500 bg-emerald-950/30 text-emerald-200 ring-2 ring-emerald-500/30'
-                          : isFocused
-                          ? digitActiveRing
-                          : isFilled
-                          ? 'border-slate-600 bg-slate-800 text-white'
-                          : 'border-slate-800 bg-slate-950/70 text-slate-400 hover:border-slate-700'
-                      }`}
-                    />
-
-                    {/* Active Bottom Glow Indicator */}
-                    <div 
-                      className={`h-1 rounded-full mt-1.5 transition-all duration-200 ${
-                        isFocused 
-                          ? isPurple ? 'w-6 bg-purple-400' : 'w-6 bg-amber-400' 
-                          : isFilled 
-                          ? 'w-2 bg-slate-600' 
-                          : 'w-1 bg-transparent'
-                      }`} 
-                    />
+          ) : (
+            /* LAYER 2: Verified Owner Confirmed -> Unlock Secondary Session PIN Lock */
+            <div className="space-y-6">
+              {/* Verified Owner Status Banner */}
+              <div className="p-3.5 rounded-2xl bg-emerald-950/35 border border-emerald-500/35 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <div className="min-w-0 text-start">
+                    <p className="text-xs font-extrabold text-emerald-300">
+                      {lang === 'ar' ? 'تم توثيق المالك السحابي بنجاح' : 'Cloud Owner Verified'}
+                    </p>
+                    <p className="text-xs font-mono text-emerald-200/80 truncate" dir="ltr">
+                      {firebaseAdminEmail}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Error Message with Clear Button */}
-            {hasError && (
-              <div className="p-3 bg-rose-950/40 border border-rose-800/60 rounded-2xl flex items-center justify-between gap-3 text-xs text-rose-300 animate-fadeIn">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span className="font-semibold">{errorMessage}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleClearAll}
-                  className="text-[11px] font-bold underline hover:text-white shrink-0 cursor-pointer"
-                >
-                  {lang === 'ar' ? 'إعادة الإدخال' : 'Clear'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Options: Remember Me & Remember PIN */}
-          <div className="space-y-3 pt-2 border-t border-slate-800/80">
-            {/* Option 1: Keep Signed In (Remember Me) */}
-            <label className="flex items-start gap-3 p-3 rounded-2xl bg-slate-950/50 hover:bg-slate-950/80 border border-slate-800/60 transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={rememberLogin}
-                onChange={(e) => setRememberLogin(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700 cursor-pointer"
-              />
-              <div className="space-y-0.5 text-start">
-                <span className="text-xs font-bold text-slate-200 group-hover:text-white block">
-                  {lang === 'ar' ? 'حفظ تسجيل الدخول (البقاء متصلاً دائماً)' : 'Keep me signed in on this device'}
-                </span>
-                <span className="text-[11px] text-slate-400 block">
-                  {lang === 'ar' 
-                    ? 'لن يُطلب منك إدخال الرمز في كل مرة تفتح فيها اللوحة من هذا المتصفح' 
-                    : 'Stay authenticated without entering your PIN every session'}
-                </span>
-              </div>
-            </label>
-
-            {/* Option 2: Remember PIN */}
-            <label className="flex items-start gap-3 p-3 rounded-2xl bg-slate-950/50 hover:bg-slate-950/80 border border-slate-800/60 transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={rememberPin}
-                onChange={(e) => setRememberPin(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700 cursor-pointer"
-              />
-              <div className="space-y-0.5 text-start">
-                <span className="text-xs font-bold text-slate-200 group-hover:text-white block">
-                  {lang === 'ar' ? 'تذكر رمز الدخول تلقائياً' : 'Remember PIN code for quick fill'}
-                </span>
-                <span className="text-[11px] text-slate-400 block">
-                  {lang === 'ar'
-                    ? 'حفظ الرمز في المربعات تلقائياً للولوج بنقرة واحدة مستقبلاً'
-                    : 'Pre-populate the PIN boxes on future visits'}
-                </span>
-              </div>
-            </label>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="space-y-3 pt-2">
-            <button
-              type="button"
-              onClick={triggerAuthentication}
-              disabled={isSuccess || lockoutSeconds > 0}
-              className={`w-full py-4 rounded-2xl font-black text-sm shadow-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer min-h-[48px] active:scale-98 ${
-                lockoutSeconds > 0
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/60'
-                  : primaryBtnColors
-              } ${
-                !isFull && lockoutSeconds === 0 ? 'opacity-90' : 'hover:opacity-100 hover:scale-[1.01]'
-              }`}
-            >
-              {isSuccess ? (
-                <>
-                  <Check className="w-5 h-5 animate-spin" />
-                  <span>{lang === 'ar' ? 'جاري الفتح والتوجيه...' : 'Authenticating...'}</span>
-                </>
-              ) : lockoutSeconds > 0 ? (
-                <>
-                  <Lock className="w-4 h-4 text-rose-400" />
-                  <span>{lang === 'ar' ? `مقفول مؤقتاً (${lockoutSeconds} ثانية)` : `Locked (${lockoutSeconds}s)`}</span>
-                </>
-              ) : (
-                <>
-                  <KeyRound className="w-4 h-4" />
-                  <span>{lang === 'ar' ? 'تأكيد الدخول للوحة' : 'Verify & Enter Dashboard'}</span>
-                </>
-              )}
-            </button>
-
-            {/* Recovery / Factory Demo Helper */}
-            {portalType === 'developer' ? (
-              <div className="flex items-center justify-between pt-1 text-[11px]">
-                <span className="flex items-center gap-1 text-slate-500 font-mono text-[10px]">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-                  <span>SHA-256 & GOOGLE VERIFIED</span>
-                </span>
 
                 <button
                   type="button"
-                  onClick={() => setIsRecoveryModalOpen(true)}
-                  className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 transition-colors cursor-pointer underline text-[11px]"
+                  onClick={() => {
+                    void logoutCustomer();
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0 min-h-[44px]"
+                  title={lang === 'ar' ? 'تسجيل الخروج من الحساب السحابي' : 'Sign out cloud account'}
                 >
-                  <Key className="w-3 h-3" />
-                  <span>{lang === 'ar' ? 'نسيت الرمز؟ استعادة عبر حساب المالك 🛡️' : 'Reset via Verified Owner Account 🛡️'}</span>
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'تبديل' : 'Switch'}</span>
                 </button>
               </div>
-            ) : isFactoryAdminPinActive ? (
-              <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
-                <span className="flex items-center gap-1">
-                  <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+
+              {/* Advisory ONLY for verified owner if factory PIN has not been customized yet (never reveals PIN digits) */}
+              {isFactoryPinActive && (
+                <div className="p-3.5 rounded-2xl bg-amber-950/35 border border-amber-500/35 flex items-start gap-2.5 text-xs text-amber-200 text-start leading-relaxed">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                   <span>
-                    {lang === 'ar' ? `الرمز الافتراضي الأولي: ${defaultPin}` : `Initial Default PIN: ${defaultPin}`}
+                    {lang === 'ar'
+                      ? 'تنبيه أمني للمالك: ما زال الرمز الافتراضي الأولي مفعّلاً. نوصي بتعيين رمز خاص بك فور الدخول أو عبر زر إعادة التعيين أدناه.'
+                      : 'Owner security notice: Factory PIN is still active. We recommend setting your own custom PIN right away.'}
                   </span>
-                </span>
+                </div>
+              )}
 
+              {/* Smart Separate Digit Boxes */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-300 px-1 gap-2">
+                  <span>
+                    {lang === 'ar'
+                      ? `المرحلة 2 من 2 — رمز الجلسة (${pinLength} أرقام):`
+                      : `Step 2 of 2 — Session PIN (${pinLength} digits):`}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-300 hover:text-white transition-colors cursor-pointer px-2.5 rounded-xl hover:bg-slate-800 min-h-[44px]"
+                  >
+                    {showPassword ? (
+                      <>
+                        <EyeOff className="w-4 h-4 text-amber-400" />
+                        <span>{lang === 'ar' ? 'إخفاء' : 'Hide'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-4 h-4 text-slate-400" />
+                        <span>{lang === 'ar' ? 'إظهار' : 'Show'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Segmented Digit Grid */}
+                <div
+                  className={`grid ${pinLength === 4 ? 'grid-cols-4' : 'grid-cols-6'} gap-2 sm:gap-3`}
+                  dir="ltr"
+                >
+                  {digits.map((digit, idx) => {
+                    const isFocused = focusedIndex === idx;
+                    const isFilled = digit !== '';
+
+                    return (
+                      <div key={idx} className="relative flex flex-col items-center">
+                        <input
+                          ref={(el) => {
+                            inputRefs.current[idx] = el;
+                          }}
+                          type={showPassword ? 'text' : 'password'}
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleDigitChange(idx, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(idx, e)}
+                          onPaste={handlePaste}
+                          onFocus={() => setFocusedIndex(idx)}
+                          disabled={lockoutSeconds > 0}
+                          className={`w-full h-14 sm:h-16 text-center text-xl sm:text-2xl font-mono font-black rounded-2xl border transition-all duration-200 outline-none ${
+                            lockoutSeconds > 0
+                              ? 'border-slate-800 bg-slate-900/40 text-slate-600 cursor-not-allowed opacity-60'
+                              : hasError
+                              ? 'border-rose-500 bg-rose-950/30 text-rose-200 ring-2 ring-rose-500/30'
+                              : isSuccess
+                              ? 'border-emerald-500 bg-emerald-950/30 text-emerald-200 ring-2 ring-emerald-500/30'
+                              : isFocused
+                              ? digitActiveRing
+                              : isFilled
+                              ? 'border-slate-600 bg-slate-800 text-white'
+                              : 'border-slate-800 bg-slate-950/70 text-slate-400 hover:border-slate-700'
+                          }`}
+                        />
+
+                        <div
+                          className={`h-1 rounded-full mt-1.5 transition-all duration-200 ${
+                            isFocused
+                              ? isPurple
+                                ? 'w-6 bg-purple-400'
+                                : 'w-6 bg-amber-400'
+                              : isFilled
+                              ? 'w-2 bg-slate-600'
+                              : 'w-1 bg-transparent'
+                          }`}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Error Message with Clear Button */}
+                {hasError && (
+                  <div className="p-3 bg-rose-950/40 border border-rose-800/60 rounded-2xl flex items-center justify-between gap-3 text-xs text-rose-300 animate-fadeIn">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                      <span className="font-semibold leading-relaxed">{errorMessage}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearAll}
+                      className="text-xs font-bold underline hover:text-white shrink-0 cursor-pointer px-2 min-h-[44px]"
+                    >
+                      {lang === 'ar' ? 'مسح' : 'Clear'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons & Verified Owner PIN Reset */}
+              <div className="space-y-3 pt-1">
                 <button
                   type="button"
-                  onClick={handleAutoFillDefault}
-                  className="text-purple-400 hover:text-purple-300 font-bold underline transition-colors cursor-pointer"
+                  onClick={triggerAuthentication}
+                  disabled={isSuccess || lockoutSeconds > 0}
+                  className={`w-full py-4 rounded-2xl font-black text-sm shadow-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer min-h-[48px] ${
+                    lockoutSeconds > 0
+                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/60'
+                      : primaryBtnColors
+                  } ${
+                    !isFull && lockoutSeconds === 0 ? 'opacity-90' : 'hover:opacity-100 hover:scale-[1.01]'
+                  }`}
                 >
-                  {lang === 'ar' ? 'ملء تجريبي سريع' : 'Quick Auto-fill'}
+                  {isSuccess ? (
+                    <>
+                      <Check className="w-5 h-5 animate-spin" />
+                      <span>{lang === 'ar' ? 'جاري فتح اللوحة...' : 'Unlocking Dashboard...'}</span>
+                    </>
+                  ) : lockoutSeconds > 0 ? (
+                    <>
+                      <Lock className="w-4 h-4 text-rose-400" />
+                      <span>
+                        {lang === 'ar'
+                          ? `مقفول مؤقتاً (${lockoutSeconds} ثانية)`
+                          : `Locked (${lockoutSeconds}s)`}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="w-4 h-4" />
+                      <span>{lang === 'ar' ? 'تأكيد الدخول للوحة' : 'Verify & Enter Dashboard'}</span>
+                    </>
+                  )}
                 </button>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                  <span className="flex items-center gap-1.5 text-slate-400">
+                    <ShieldCheck className={`w-4 h-4 ${isPurple ? 'text-purple-400' : 'text-amber-400'}`} />
+                    <span>
+                      {lang === 'ar'
+                        ? 'جلسة ذاكرة مؤقتة بدون حفظ الرمز محلياً'
+                        : 'In-memory session · No local PIN storage'}
+                    </span>
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsRecoveryModalOpen(true)}
+                    className={`font-bold flex items-center gap-1.5 transition-colors cursor-pointer underline min-h-[44px] ${
+                      isPurple ? 'text-purple-300 hover:text-purple-200' : 'text-amber-400 hover:text-amber-300'
+                    }`}
+                  >
+                    <Key className="w-3.5 h-3.5" />
+                    <span>
+                      {lang === 'ar' ? 'تعيين أو استعادة الرمز السري' : 'Set / Reset PIN'}
+                    </span>
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="flex items-center justify-center pt-1 text-[11px] text-slate-500">
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-                  <span>{lang === 'ar' ? 'محمي برمز خاص مشفر SHA-256' : 'Protected by custom SHA-256 PIN'}</span>
-                </span>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* DEVELOPER EMERGENCY RECOVERY MODAL (Verified Google Owner Only) */}
-        {isRecoveryModalOpen && portalType === 'developer' && (
+        {/* VERIFIED OWNER PIN RESET MODAL (Both Admin & Developer) */}
+        {isRecoveryModalOpen && isCloudAdminVerified && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-            <div 
-              className="bg-slate-900 border border-amber-500/40 rounded-3xl w-full max-w-md p-6 sm:p-7 shadow-2xl shadow-amber-950/40 space-y-5 text-start relative"
+            <div
+              className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6 sm:p-7 shadow-2xl space-y-5 text-start relative"
               dir={isRtl ? 'rtl' : 'ltr'}
             >
-              {/* Close Button */}
               <button
                 type="button"
                 onClick={() => setIsRecoveryModalOpen(false)}
-                className="absolute top-5 end-5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                aria-label={lang === 'ar' ? 'إغلاق' : 'Close'}
+                className="absolute top-4 end-4 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              {/* Modal Header */}
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+              <div className="flex items-center gap-3 pe-10">
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0 ${
+                    isPurple
+                      ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                      : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                  }`}
+                >
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-black text-white">
-                    {lang === 'ar' ? 'استعادة رمز المطور السحابية' : 'Verified Owner PIN Recovery'}
+                  <h3 className="text-base sm:text-lg font-black text-white leading-relaxed">
+                    {portalType === 'admin'
+                      ? lang === 'ar'
+                        ? 'تعيين رمز إدارة جديد'
+                        : 'Set New Admin PIN'
+                      : lang === 'ar'
+                      ? 'تعيين رمز مطور جديد'
+                      : 'Set New Developer PIN'}
                   </h3>
-                  <p className="text-xs text-slate-400">
-                    {lang === 'ar' ? 'يتطلب التحقق الفعلي من حساب Google المعتمد للمالك' : 'Requires verified owner Google authentication'}
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {lang === 'ar'
+                      ? 'مصرح به بناءً على جلسة المالك الموثقة عبر Google'
+                      : 'Authorized via verified Google Owner session'}
                   </p>
                 </div>
               </div>
 
-              {!verifiedOwnerEmail ? (
-                <div className="space-y-4 pt-1">
-                  <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 text-xs text-slate-300 leading-relaxed">
-                    {lang === 'ar'
-                      ? 'لحماية متجرك، تم إلغاء مفاتيح الطوارئ المكشوفة. يرجى تسجيل الدخول بحساب Google المالك لتعيين رمز مطور جديد مشفر.'
-                      : 'For storefront security, static bypass keys are disabled. Sign in with the verified owner Google account to set a new encrypted PIN.'}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleGoogleOwnerVerify}
-                    disabled={isGoogleVerifying}
-                    className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-950/50 min-h-[44px]"
-                  >
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>
-                      {isGoogleVerifying
-                        ? (lang === 'ar' ? 'جاري التحقق عبر Google...' : 'Verifying with Google...')
-                        : (lang === 'ar' ? 'توثيق حساب المالك عبر Google' : 'Verify Owner via Google')}
-                    </span>
-                  </button>
+              <form onSubmit={handleSubmitRecoveryNewPin} className="space-y-4 pt-1">
+                <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span className="truncate font-mono" dir="ltr">
+                    {firebaseAdminEmail}
+                  </span>
                 </div>
-              ) : (
-                <form onSubmit={handleSubmitRecoveryNewPin} className="space-y-4 pt-1">
-                  <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span className="truncate font-mono" dir="ltr">{verifiedOwnerEmail}</span>
-                  </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300">
-                      {lang === 'ar' ? 'رمز المطور الجديد (6 أرقام):' : 'New Developer PIN (6 digits):'}
-                    </label>
-                    <input
-                      type="password"
-                      inputMode="numeric"
-                      maxLength={6}
-                      value={recoveryNewPin}
-                      onChange={(e) => setRecoveryNewPin(e.target.value.replace(/\D/g, ''))}
-                      placeholder="••••••"
-                      className="w-full h-12 text-center font-mono text-xl font-black rounded-2xl bg-slate-950 border border-amber-500/50 text-white outline-none focus:ring-2 focus:ring-amber-400"
-                      dir="ltr"
-                    />
-                  </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">
+                    {lang === 'ar'
+                      ? `الرمز السري الجديد (${pinLength} أرقام):`
+                      : `New Session PIN (${pinLength} digits):`}
+                  </label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={pinLength}
+                    value={recoveryNewPin}
+                    onChange={(e) => setRecoveryNewPin(e.target.value.replace(/\D/g, ''))}
+                    placeholder={'•'.repeat(pinLength)}
+                    className="w-full h-12 text-center font-mono text-xl font-black rounded-2xl bg-slate-950 border border-slate-700 focus:border-amber-400 text-white outline-none focus:ring-2 focus:ring-amber-400/40"
+                    dir="ltr"
+                  />
+                </div>
 
-                  <button
-                    type="submit"
-                    disabled={recoveryNewPin.length !== 6}
-                    className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black text-xs flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span>{lang === 'ar' ? 'تعيين الرمز الجديد وفتح اللوحة' : 'Save New PIN & Unlock'}</span>
-                  </button>
-                </form>
-              )}
+                <button
+                  type="submit"
+                  disabled={recoveryNewPin.length !== pinLength}
+                  className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black text-xs flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{lang === 'ar' ? 'حفظ الرمز المشفر وفتح اللوحة' : 'Save Encrypted PIN & Unlock'}</span>
+                </button>
+              </form>
             </div>
           </div>
         )}
       </main>
 
       {/* Footer Info */}
-      <footer className="w-full max-w-4xl text-center py-4 z-10 text-[11px] text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-900">
+      <footer className="w-full max-w-4xl text-center py-4 z-10 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-900">
         <span>
-          {lang === 'ar' 
-            ? 'بوابة تحكم مؤمنة بنظام التشفير وحصانة المتصفح' 
-            : 'Protected by Encrypted Client-Side Isolation'}
+          {lang === 'ar'
+            ? 'بوابة محمية بتحقق Google السحابي وقفل جلسة SHA-256'
+            : 'Protected by Firebase Owner Auth & SHA-256 Session Lock'}
         </span>
         <span className="font-mono text-slate-400">
-          SECURITY PROTOCOL v3.0 • LUXE ENGINE
+          SECURITY PROTOCOL v4.0 • NADI COMMERCE
         </span>
       </footer>
     </div>

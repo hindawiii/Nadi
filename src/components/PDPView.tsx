@@ -311,40 +311,40 @@ export const PDPView: React.FC = () => {
     }
   };
 
-  // WhatsApp personalized message with Tier and Package details
+  // WhatsApp formal text order message with tier details (zero emojis)
   const handleWhatsAppOrder = () => {
     const phone = activeData.contactInfo.whatsapp;
     const storeUrl = window.location.href;
     const tierLabelAr = selectedTier === 3 
-      ? `باقة التوفير القصوى (3 عبوات + هدية مجانية 🎁 - خصم 20%)` 
-      : (selectedTier === 2 ? `باقة التوفير الأكثر طلباً (عبوتان - خصم 10%)` : `عبوة واحدة أساسية`);
+      ? `باقة التوفير القصوى (3 عبوات + هدية مجانية — خصم 20%)` 
+      : (selectedTier === 2 ? `باقة التوفير (عبوتان — خصم 10%)` : `عبوة واحدة`);
     const tierLabelEn = selectedTier === 3 
-      ? `High Value Pack (3 units + Free Gift 🎁 - 20% OFF)` 
-      : (selectedTier === 2 ? `Popular Pack (2 units - 10% OFF)` : `Single Pack`);
+      ? `Value Pack (3 units + Free Gift — 20% OFF)` 
+      : (selectedTier === 2 ? `Duo Pack (2 units — 10% OFF)` : `Single Unit`);
 
     const message = lang === 'ar'
-      ? `🛍️ *طلب مباشر من متجر ${activeData.storeName.ar}*\n` +
-        `━━━━━━━━━━━━━━━\n` +
-        `• *المنتج:* ${product.name.ar}\n` +
-        `📦 *الباقة المختارة:* ${tierLabelAr}\n` +
-        `🔢 *الكمية الإجمالية:* ${effectiveQuantity} قطعة\n` +
-        `💰 *السعر الإجمالي:* ${currentPrice.text}\n` +
-        (selectedTier === 3 ? `🎁 *ملاحظة العرض:* مؤهل لهدية العناية الفاخرة المجانية!\n` : '') +
-        `🚚 *موعد التوصيل المتوقع:* ${estDeliveryText}\n` +
-        `🔗 *رابط المنتج:* ${storeUrl}\n` +
-        `━━━━━━━━━━━━━━━\n` +
-        `يرجى تأكيد توفر الحجز وبدء الشحن الفوري مع الدفع عند الاستلام!`
-      : `🛍️ *Direct Order from ${activeData.storeName.en}*\n` +
-        `━━━━━━━━━━━━━━━\n` +
-        `• *Product:* ${product.name.en}\n` +
-        `📦 *Selected Pack:* ${tierLabelEn}\n` +
-        `🔢 *Total Items:* ${effectiveQuantity} items\n` +
-        `💰 *Total Amount:* ${currentPrice.text}\n` +
-        (selectedTier === 3 ? `🎁 *Offer Note:* Qualified for Free Luxury Care Gift!\n` : '') +
-        `🚚 *Est. Delivery:* ${estDeliveryText}\n` +
-        `🔗 *Product Link:* ${storeUrl}\n` +
-        `━━━━━━━━━━━━━━━\n` +
-        `Please confirm availability and dispatch for Cash on Delivery!`;
+      ? `*طلب مباشر — متجر ${activeData.storeName.ar}*\n` +
+        `────────────────\n` +
+        `*المنتج:* ${product.name.ar}\n` +
+        `*الباقة:* ${tierLabelAr}\n` +
+        `*الكمية:* ${effectiveQuantity} قطعة\n` +
+        `*الإجمالي:* ${currentPrice.text}\n` +
+        (selectedTier === 3 ? `*ملاحظة:* مؤهل لهدية مجانية.\n` : '') +
+        `*التوصيل المتوقع:* ${estDeliveryText}\n` +
+        `*الرابط:* ${storeUrl}\n` +
+        `────────────────\n` +
+        `يرجى تأكيد التوفر والبدء في التوصيل (الدفع عند الاستلام).`
+      : `*Direct Order — ${activeData.storeName.en}*\n` +
+        `────────────────\n` +
+        `*Product:* ${product.name.en}\n` +
+        `*Pack:* ${tierLabelEn}\n` +
+        `*Quantity:* ${effectiveQuantity}\n` +
+        `*Total:* ${currentPrice.text}\n` +
+        (selectedTier === 3 ? `*Note:* Qualified for complimentary gift.\n` : '') +
+        `*Est. Delivery:* ${estDeliveryText}\n` +
+        `*Link:* ${storeUrl}\n` +
+        `────────────────\n` +
+        `Please confirm availability and dispatch (Cash on Delivery).`;
 
     openExternalUrl(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`);
   };
@@ -724,7 +724,7 @@ export const PDPView: React.FC = () => {
                     {/* Best Value Ribbon Tag */}
                     <span className="absolute -top-2.5 end-3 px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-500 text-white shadow-xs flex items-center gap-1">
                       <Gift className="w-2.5 h-2.5" />
-                      <span>{lang === 'ar' ? 'أعلى قيمة 🎁' : 'Best Value 🎁'}</span>
+                      <span>{lang === 'ar' ? 'أعلى قيمة' : 'Best Value'}</span>
                     </span>
 
                     <div className="space-y-1">
@@ -1164,15 +1164,15 @@ export const PDPView: React.FC = () => {
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 lg:gap-3 pt-1">
                         <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs font-bold text-slate-700">
-                          {lang === 'ar' ? '🌿 100% نباتي نقي' : '🌿 100% Botanical'}
+                          {lang === 'ar' ? 'نباتي نقي 100%' : '100% Botanical'}
                         </div>
                         <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs font-bold text-slate-700">
-                          {lang === 'ar' ? '💧 خفيف سريع الامتصاص' : '💧 Fast Absorbing'}
+                          {lang === 'ar' ? 'خفيف سريع الامتصاص' : 'Fast Absorbing'}
                         </div>
                         <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs font-bold text-slate-700 col-span-2 sm:col-span-1">
-                          {lang === 'ar' ? '🛡️ آمن للبشرة الحساسة' : '🛡️ Sensitive Skin Safe'}
+                          {lang === 'ar' ? 'آمن للبشرة الحساسة' : 'Sensitive Skin Safe'}
                         </div>
                       </div>
                     </div>

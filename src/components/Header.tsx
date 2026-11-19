@@ -46,16 +46,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   // Top Announcement Multi-Slide Animated Messages (Read dynamically from activeData)
   const defaultSlides = [
     {
-      ar: "تسوقي بذكاء: احفظي في المفضلة ❤️ • قارني المواصفات ⚖️ • اطلبي فـوراً عبر السلة أو واتساب 💬",
-      en: "Smart Shopping: Save to Wishlist ❤️ • Compare Specs ⚖️ • Order via Cart or WhatsApp 💬"
+      ar: "احفظي مفضلتكِ واطلبي عبر السلة أو واتساب",
+      en: "Save favorites & order via bag or WhatsApp"
     },
     {
-      ar: "شحن سريع وعناية نباتية فائقة 🚚 • دفع آمن عند الاستلام أو أونلاين",
-      en: "Fast Delivery & Pure Botanical Care 🚚 • Cash on Delivery or Secure Online Checkout"
+      ar: "توصيل سريع • الدفع عند الاستلام أو أونلاين",
+      en: "Fast delivery • Pay on delivery or online"
     },
     {
-      ar: "مستحضرات نَدِي الأصلية 100% 🌿 • ترطيب يدوم 24 ساعة ونقاء طبيعي",
-      en: "100% Authentic NADI Skincare 🌿 • 24H Lasting Moisture & Natural Purity"
+      ar: "مستحضرات نَدِي الأصلية • نقاء طبيعي يدوم",
+      en: "Authentic NADI care • Lasting natural purity"
     }
   ];
 
@@ -113,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                 onClick={() => {
                   setIsCurrencyDropdownOpen(!isCurrencyDropdownOpen);
                 }}
-                className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider transition-colors min-h-[32px] border border-white/10"
+                className="flex items-center gap-1 bg-white/15 hover:bg-white/25 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider transition-colors min-h-[32px] border border-white/10 cursor-pointer"
                 aria-label="Currency Selector"
               >
                 <span>{currentCurrencyObj.country}</span>
@@ -125,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                 <div 
                   className={`absolute top-full mt-2 w-44 bg-white/95 backdrop-blur-xl text-slate-800 rounded-2xl shadow-2xl border border-purple-100/80 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 ${isRtl ? 'end-0 sm:start-0' : 'end-0'}`}
                 >
-                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
+                  <div className="px-3 py-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
                     <span>{lang === 'ar' ? 'تحويل العملة' : 'Currency'}</span>
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   </div>
@@ -137,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                           setCurrency(code);
                           setIsCurrencyDropdownOpen(false);
                         }}
-                        className={`w-full text-start px-3 py-2 text-xs flex items-center justify-between hover:bg-purple-50 transition-colors ${currency === code ? 'font-bold text-[#5A3E7A] bg-purple-50/70' : 'text-slate-600'}`}
+                        className={`w-full text-start px-3 py-2.5 min-h-[44px] text-xs flex items-center justify-between hover:bg-purple-50 transition-colors cursor-pointer ${currency === code ? 'font-bold text-[#5A3E7A] bg-purple-50/70' : 'text-slate-600'}`}
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-base">{config.country}</span>
@@ -154,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             {/* Language Switcher */}
             <button
               onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-              className="flex items-center gap-1 bg-white/15 hover:bg-white/25 px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider transition-colors min-h-[32px]"
+              className="flex items-center gap-1 bg-white/15 hover:bg-white/25 px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider transition-colors min-h-[32px] cursor-pointer"
             >
               <Globe className="w-3 h-3 text-slate-200 shrink-0" />
               <span>{lang === 'ar' ? 'EN' : 'عربي'}</span>
@@ -195,7 +195,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               /* Pure Text Name Lockup (No logo icon, English LARGER Top, Arabic Elongated Bottom, Safe Spacing) */
               <div className="flex flex-col items-start justify-center gap-1 sm:gap-1.5">
                 {/* English Name: Modern Geometric Luxury Uppercase (Always on Top & LARGER) */}
-                <span className="font-brand-geometric font-black text-lg sm:text-2xl text-slate-950 group-hover:text-[#5A3E7A] transition-colors tracking-[0.24em] sm:tracking-[0.28em] uppercase leading-none">
+                <span className="font-brand-geometric font-black text-base sm:text-2xl text-slate-950 group-hover:text-[#5A3E7A] transition-colors tracking-[0.14em] sm:tracking-[0.26em] uppercase leading-none">
                   {activeData.storeName.en}
                 </span>
                 {/* Arabic Name: Professionally Elongated, Clear, Bold & Symmetrical */}
@@ -259,7 +259,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
 
         {/* Smart Auto-Adaptive Action Dock (Search, Wishlist, Cart, Login) */}
         {/* Uniform geometry, auto-rebalancing gaps, resilient to deletion/reordering */}
-        <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-slate-100/70 sm:bg-slate-50/80 border border-slate-200/80 rounded-2xl shrink-0 shadow-2xs backdrop-blur-xs">
+        <div className="flex items-center gap-0.5 sm:gap-1.5 p-0.5 sm:p-1 bg-slate-100/70 sm:bg-slate-50/80 border border-slate-200/80 rounded-2xl shrink-0 shadow-2xs backdrop-blur-xs">
           
           {/* Search Toggle Button */}
           <button

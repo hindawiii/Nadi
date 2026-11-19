@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Truck, ShieldCheck, CreditCard, ArrowRight, ArrowLeft, 
   CheckCircle2, ChevronRight, ChevronLeft, MessageCircle, Heart, 
   MapPin, Phone, Mail, Award, Droplets, Sun, Shield, 
   Layers, MessageSquarePlus, SlidersHorizontal, Quote, ThumbsUp, Check, BadgeCheck,
   ZoomIn, Maximize2, X, Plus, Minus, ShoppingBag, Gift, ChevronDown, ChevronUp,
-  ScanFace, Gem, Flower2, LayoutGrid
+  ScanFace, Gem, Flower2, LayoutGrid, Wind
 } from 'lucide-react';
 import { useCommerce, SectionId } from '../context/CommerceContext';
 import { ProductCard } from './ProductCard';
@@ -26,8 +26,36 @@ export const StorefrontView: React.FC = () => {
   const [helpfulVotes, setHelpfulVotes] = useState<Record<number, number>>({ 0: 42, 1: 37, 2: 56, 3: 29 });
   const [userVoted, setUserVoted] = useState<Record<number, boolean>>({});
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating'>('featured');
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
   const [beforeAfterPos, setBeforeAfterPos] = useState<number>(50);
   const [reviewSlide, setReviewSlide] = useState<number>(0);
+
+  useEffect(() => {
+    if (!isSortMenuOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
+        setIsSortMenuOpen(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsSortMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    window.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      window.removeEventListener('keydown', handleKey);
+    };
+  }, [isSortMenuOpen]);
+
+  const sortOptions: Array<{ value: 'featured' | 'rating' | 'price-asc' | 'price-desc'; label: { ar: string; en: string } }> = [
+    { value: 'featured', label: { ar: 'المقترحة', en: 'Featured' } },
+    { value: 'rating', label: { ar: 'الأعلى تقييماً', en: 'Top Rated' } },
+    { value: 'price-asc', label: { ar: 'الأقل سعراً', en: 'Price: Low to High' } },
+    { value: 'price-desc', label: { ar: 'الأعلى سعراً', en: 'Price: High to Low' } },
+  ];
+  const activeSortOption = sortOptions.find((opt) => opt.value === sortBy) || sortOptions[0];
 
   // Progressive Disclosure / Accordion Products Pagination: 8 on mobile (4 rows of 2), 12 on tablet/desktop (4 rows of 3)
   const [isMobileScreen, setIsMobileScreen] = useState<boolean>(() => 
@@ -61,30 +89,30 @@ export const StorefrontView: React.FC = () => {
     {
       id: 1,
       image: activeData.promoBanner?.image1 || "https://images.unsplash.com/photo-1608248597359-25b82877fb18?auto=format&fit=crop&w=800&q=80",
-      badge: activeData.promoBanner?.image1Badge ? activeData.promoBanner.image1Badge[lang] : (isRtl ? 'مكوّنات نباتية 100% 🌿' : '100% Botanicals 🌿'),
-      title: isRtl ? 'خلاصات نباتية نقية موثقة' : '100% Pure Certified Botanicals',
-      desc: isRtl ? 'مستخلصة على البارد بعناية فائقة لتغذية أعماق خلايا البشرة وتحفيز الحيوية الطبيعية.' : 'Cold-pressed botanical extracts deeply nourishing skin layers.'
+      badge: activeData.promoBanner?.image1Badge ? activeData.promoBanner.image1Badge[lang] : (isRtl ? 'مكوّنات نباتية 100%' : '100% Botanicals'),
+      title: isRtl ? 'خلاصات نباتية نقية' : '100% Pure Botanicals',
+      desc: isRtl ? 'مكوّنات معصورة على البارد تغذّي البشرة بعمق.' : 'Cold-pressed extracts that nourish skin deeply.'
     },
     {
       id: 2,
       image: activeData.promoBanner?.image2 || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80",
-      badge: activeData.promoBanner?.image2Badge ? activeData.promoBanner.image2Badge[lang] : (isRtl ? 'خصم 25% على البوكس 🎁' : '25% OFF Box 🎁'),
-      title: isRtl ? 'بوكس النضارة الكامل الشامل' : 'Natural Bloom Complete Routine Box',
-      desc: isRtl ? 'البرنامج الأكثر شمولاً الذي يضم 4 مستحضرات عناية متكاملة تمنح بشرتك نضارة قطرات الندى.' : 'The complete 4-step radiance routine in a luxury gift package.'
+      badge: activeData.promoBanner?.image2Badge ? activeData.promoBanner.image2Badge[lang] : (isRtl ? 'خصم 25% على البوكس' : '25% OFF Box'),
+      title: isRtl ? 'بوكس النضارة الكامل' : 'Complete Radiance Box',
+      desc: isRtl ? '4 مستحضرات متكاملة لروتينكِ اليومي في بوكس واحد.' : '4 daily essentials in one gift box.'
     },
     {
       id: 3,
       image: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80",
-      badge: isRtl ? 'حقيبة مخملية هدية 👝' : 'Complimentary Velvet Pouch 👝',
-      title: isRtl ? 'حقيبة مخملية + عينات تجريبية مجاناً' : 'Complimentary Velvet Cosmetic Pouch',
-      desc: isRtl ? 'تأتيك كهدية تقديرية مجانية مبطنة لحفظ مستحضراتك بأمان مع 3 عينات تجريبية سفرية.' : 'Included free with every Diamond Box order to protect your essentials.'
+      badge: isRtl ? 'حقيبة مخملية هدية' : 'Complimentary Velvet Pouch',
+      title: isRtl ? 'حقيبة مخملية وعينات مجانية' : 'Velvet Pouch & Free Samples',
+      desc: isRtl ? 'هدية مجانية مع البوكس لحفظ مستحضراتكِ مع 3 عينات سفرية.' : 'Included free with the box along with 3 travel samples.'
     },
     {
       id: 4,
       image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
-      badge: isRtl ? 'نتائج مثبتة خلال 14 يوماً' : 'Visible 14-Day Results',
-      title: isRtl ? 'نضارة وترطيب عميق مستدام' : 'Deep Hydration & Long-Lasting Glow',
-      desc: isRtl ? 'نتائج سريرية واستطلاعية مؤكدة بنسبة رضا تتجاوز 98% في استعادة نضارة البشرة.' : 'Clinically observed improvements with over 98% customer satisfaction.'
+      badge: isRtl ? 'نتائج خلال 14 يوماً' : '14-Day Results',
+      title: isRtl ? 'ترطيب ونضارة تدوم' : 'Lasting Hydration & Glow',
+      desc: isRtl ? 'فرق ملحوظ في النضارة والترطيب خلال أسبوعين.' : 'Noticeable glow and hydration in two weeks.'
     }
   ];
 
@@ -106,39 +134,58 @@ export const StorefrontView: React.FC = () => {
 
   const products = activeData.products;
 
-  // Filter products by category and active smart skin routine
-  const filteredProducts = products.filter((p) => {
-    if (activeSkinFilter) {
-      const pName = (p.name.ar + ' ' + p.name.en + ' ' + p.tabs.description.ar).toLowerCase();
-      if (activeSkinFilter === 'hydrated') {
-        const matchesHydrated = p.id.includes('01') || p.id.includes('04') || ['sb-06', 'sb-15', 'sb-16', 'sb-22', 'sb-27', 'sb-32'].includes(p.id) || pName.includes('هيالورونيك') || pName.includes('ترطيب') || pName.includes('صبار') || pName.includes('سيراميد');
-        if (!matchesHydrated) return false;
-      }
-      if (activeSkinFilter === 'even') {
-        const matchesEven = p.id.includes('02') || p.id.includes('04') || ['sb-07', 'sb-21', 'sb-25', 'sb-31'].includes(p.id) || pName.includes('فيتامين سي') || pName.includes('نياسيناميد') || pName.includes('تفتيح') || pName.includes('تصبغات');
-        if (!matchesEven) return false;
-      }
-      if (activeSkinFilter === 'firm') {
-        const matchesFirm = p.id.includes('03') || p.id.includes('04') || ['sb-10', 'sb-14', 'sb-19', 'sb-26', 'sb-34'].includes(p.id) || pName.includes('كولاجين') || pName.includes('ريتينول') || pName.includes('ببتيد') || pName.includes('شد');
-        if (!matchesFirm) return false;
-      }
-      if (activeSkinFilter === 'radiant') {
-        const matchesRadiant = p.id.includes('02') || p.id.includes('03') || p.id.includes('04') || ['sb-09', 'sb-12', 'sb-13', 'sb-20', 'sb-30'].includes(p.id) || pName.includes('إشراقة') || pName.includes('نضارة') || pName.includes('ورد') || pName.includes('ذهب');
-        if (!matchesRadiant) return false;
-      }
+  // Step 1: Apply active smart skin diagnosis filter first so category pill counters stay 100% live & accurate
+  const skinFilteredProducts = products.filter((p) => {
+    if (!activeSkinFilter) return true;
+    const pName = (p.name.ar + ' ' + p.name.en + ' ' + p.tabs.description.ar).toLowerCase();
+    if (activeSkinFilter === 'hydrated') {
+      return p.id.includes('01') || p.id.includes('04') || ['sb-06', 'sb-15', 'sb-16', 'sb-22', 'sb-27', 'sb-32'].includes(p.id) || pName.includes('هيالورونيك') || pName.includes('ترطيب') || pName.includes('صبار') || pName.includes('سيراميد');
     }
-    if (selectedCategory === 'all') return true;
-    if (selectedCategory === 'hair') {
-      return p.category.en.toLowerCase().includes('hair') || p.category.ar.includes('شعر') || p.id.startsWith('hd-');
+    if (activeSkinFilter === 'even') {
+      return p.id.includes('02') || p.id.includes('04') || ['sb-07', 'sb-21', 'sb-25', 'sb-31'].includes(p.id) || pName.includes('فيتامين سي') || pName.includes('نياسيناميد') || pName.includes('تفتيح') || pName.includes('تصبغات');
     }
-    if (selectedCategory === 'skin') {
-      return p.category.en.toLowerCase().includes('skin') || p.category.ar.includes('بشرة') || p.id.startsWith('sb-01') || p.id.startsWith('sb-02') || p.id.startsWith('sb-03');
+    if (activeSkinFilter === 'firm') {
+      return p.id.includes('03') || p.id.includes('04') || ['sb-10', 'sb-14', 'sb-19', 'sb-26', 'sb-34'].includes(p.id) || pName.includes('كولاجين') || pName.includes('ريتينول') || pName.includes('ببتيد') || pName.includes('شد');
     }
-    if (selectedCategory === 'box') {
-      return p.category.en.toLowerCase().includes('box') || p.category.en.toLowerCase().includes('gift') || p.category.ar.includes('بكج') || !!p.bundle;
+    if (activeSkinFilter === 'radiant') {
+      return p.id.includes('02') || p.id.includes('03') || p.id.includes('04') || ['sb-09', 'sb-12', 'sb-13', 'sb-20', 'sb-30'].includes(p.id) || pName.includes('إشراقة') || pName.includes('نضارة') || pName.includes('ورد') || pName.includes('ذهب');
     }
-    return p.category.en.toLowerCase().includes(selectedCategory.toLowerCase()) || p.category.ar.includes(selectedCategory);
+    return true;
   });
+
+  // Single mutually-exclusive source of truth so every product belongs to strictly ONE collection (sum === All)
+  const getProductCollection = (p: (typeof products)[number]): 'box' | 'hair' | 'skin' | 'other' => {
+    const catEn = p.category.en.toLowerCase();
+    const catAr = p.category.ar;
+    if (p.id.startsWith('bundle-') || catEn.includes('box') || catEn.includes('gift') || catAr.includes('بكج')) {
+      return 'box';
+    }
+    if (p.id.startsWith('hd-') || catEn.includes('hair') || catAr.includes('شعر')) {
+      return 'hair';
+    }
+    if (p.id.startsWith('sb-') || catEn.includes('skin') || catAr.includes('بشرة') || catAr.includes('ترميم')) {
+      return 'skin';
+    }
+    return 'other';
+  };
+
+  const matchesCollection = (p: (typeof products)[number], catId: string) => {
+    if (catId === 'all') return true;
+    if (catId === 'skin' || catId === 'box' || catId === 'hair') {
+      return getProductCollection(p) === catId;
+    }
+    return p.category.en.toLowerCase().includes(catId.toLowerCase()) || p.category.ar.includes(catId);
+  };
+
+  const productCollections = [
+    { id: 'all', icon: LayoutGrid, label: { ar: 'الكل', en: 'All' }, count: skinFilteredProducts.length },
+    { id: 'skin', icon: Droplets, label: { ar: 'عناية بالبشرة', en: 'Skincare' }, count: skinFilteredProducts.filter((p) => matchesCollection(p, 'skin')).length },
+    { id: 'box', icon: Gift, label: { ar: 'بكجات وعروض', en: 'Gift Sets' }, count: skinFilteredProducts.filter((p) => matchesCollection(p, 'box')).length },
+    { id: 'hair', icon: Wind, label: { ar: 'أجهزة الشعر', en: 'Hair Devices' }, count: skinFilteredProducts.filter((p) => matchesCollection(p, 'hair')).length },
+  ].filter((cat) => cat.id === 'all' || activePresetId === 'cosmetics' || cat.count > 0);
+
+  // Step 2: Filter products by selected collection pill
+  const filteredProducts = skinFilteredProducts.filter((p) => matchesCollection(p, selectedCategory));
 
   // Sort products (with balanced round-robin interleaving on default cosmetics 'All' view so bundles & hair devices appear immediately)
   const sortedProducts = (() => {
@@ -149,23 +196,20 @@ export const StorefrontView: React.FC = () => {
       !activeSkinFilter
     ) {
       const skincareItems: typeof filteredProducts = [];
-      const newBundles: typeof filteredProducts = [];
-      const legacyBundles: typeof filteredProducts = [];
+      const bundleItems: typeof filteredProducts = [];
       const hairItems: typeof filteredProducts = [];
 
       for (const p of filteredProducts) {
-        if (p.id.startsWith('bundle-') || p.category.ar.includes('بكج')) {
-          newBundles.push(p);
-        } else if (p.bundle) {
-          legacyBundles.push(p);
-        } else if (p.id.startsWith('hd-') || p.category.ar.includes('أجهزة') || p.category.en.toLowerCase().includes('hair')) {
+        const col = getProductCollection(p);
+        if (col === 'box') {
+          bundleItems.push(p);
+        } else if (col === 'hair') {
           hairItems.push(p);
         } else {
           skincareItems.push(p);
         }
       }
 
-      const bundleItems = [...newBundles, ...legacyBundles];
       const interleaved: typeof filteredProducts = [];
       const maxLen = Math.max(skincareItems.length, bundleItems.length, hairItems.length);
 
@@ -195,7 +239,7 @@ export const StorefrontView: React.FC = () => {
       icon: Droplets,
       image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=700&q=80', // High-end dewy skin hydration
       fallbackImage: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=700&q=80',
-      badge: { ar: 'ترطيب عميق 💧', en: 'Deep Moisture 💧' },
+      badge: { ar: 'ترطيب عميق', en: 'Deep Moisture' },
       bg: 'bg-blue-50/70 border-blue-200/80 hover:border-blue-400 text-blue-900',
       badgeColor: 'bg-blue-600 text-white'
     },
@@ -207,7 +251,7 @@ export const StorefrontView: React.FC = () => {
       icon: Sun,
       image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=700&q=80', // Pure even-toned natural beauty
       fallbackImage: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=700&q=80',
-      badge: { ar: 'تفتيح وتوحيد ☀️', en: 'Even Tone ☀️' },
+      badge: { ar: 'تفتيح وتوحيد', en: 'Even Tone' },
       bg: 'bg-amber-50/70 border-amber-200/80 hover:border-amber-400 text-amber-900',
       badgeColor: 'bg-amber-600 text-white'
     },
@@ -219,7 +263,7 @@ export const StorefrontView: React.FC = () => {
       icon: Shield,
       image: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=700&q=80', // Youthful firm facial contour
       fallbackImage: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=700&q=80',
-      badge: { ar: 'شد ومرونة 🌿', en: 'Firm & Elastic 🌿' },
+      badge: { ar: 'شد ومرونة', en: 'Firm & Elastic' },
       bg: 'bg-purple-50/70 border-purple-200/80 hover:border-purple-400 text-purple-900',
       badgeColor: 'bg-purple-700 text-white'
     },
@@ -297,8 +341,8 @@ export const StorefrontView: React.FC = () => {
     ? activeData.skinDiagnosisCards.map(s => ({
         ...s,
         badge: {
-          ar: s.badge.ar.replace(/\s*[✨⭐🌟★✦]/g, '').trim(),
-          en: s.badge.en.replace(/\s*[✨⭐🌟★✦]/g, '').trim()
+          ar: s.badge.ar.replace(/\s*[\u2728\u2B50\u{1F31F}\u2605\u2726]/gu, '').trim(),
+          en: s.badge.en.replace(/\s*[\u2728\u2B50\u{1F31F}\u2605\u2726]/gu, '').trim()
         },
         icon: s.id === 'hydrated' ? Droplets : (s.id === 'even' ? Sun : (s.id === 'firm' ? Shield : Flower2))
       }))
@@ -312,7 +356,6 @@ export const StorefrontView: React.FC = () => {
   const effectiveTestimonials = approvedTestimonials.length > 0 ? approvedTestimonials : rawTestimonials;
 
   const iconMap: Record<string, any> = {
-    Sparkles: Award,
     Award,
     Truck,
     ShieldCheck,
@@ -362,18 +405,6 @@ export const StorefrontView: React.FC = () => {
                   >
                     <span>{activeData.heroCtaSecondary[lang]}</span>
                   </button>
-                </div>
-
-                {/* Social trust badge */}
-                <div className="pt-4 flex items-center justify-center lg:justify-start gap-4 text-xs text-slate-500 font-medium">
-                  <div className="flex -space-x-2 rtl:space-x-reverse">
-                    <img className="w-7 h-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80" alt="avatar" />
-                    <img className="w-7 h-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="avatar" />
-                    <img className="w-7 h-7 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="avatar" />
-                  </div>
-                  <span>
-                    {lang === 'ar' ? 'أكثر من 1,200+ عميلة موثقة راضية تماماً' : 'Over 1,200+ happy verified customers'}
-                  </span>
                 </div>
               </div>
 
@@ -433,7 +464,7 @@ export const StorefrontView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 text-xs font-bold flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-amber-300" />
-                  {(clonedSections.valueProps.badgeAr || 'نسخة إضافية مخصصة').replace(/\s*[✨⭐🌟★✦]/g, '')}
+                  {(clonedSections.valueProps.badgeAr || 'نسخة إضافية مخصصة').replace(/\s*[\u2728\u2B50\u{1F31F}\u2605\u2726]/gu, '')}
                 </span>
                 <h3 className="text-base sm:text-lg font-black text-white">
                   {lang === 'ar' ? (clonedSections.valueProps.titleAr || 'ضماناتنا وعروضنا الحصرية') : (clonedSections.valueProps.titleEn || 'Exclusive Guarantees')}
@@ -477,15 +508,15 @@ export const StorefrontView: React.FC = () => {
           <div className="space-y-1.5 text-start">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-200/80 text-purple-900 text-xs font-bold">
               <ScanFace className="w-3.5 h-3.5 text-purple-600" />
-              <span>{lang === 'ar' ? 'تشخيص ذكي مخصص لبشرتكِ' : 'Smart Tailored Regimen'}</span>
+              <span>{lang === 'ar' ? 'اختاري حسب بشرتكِ' : 'By Skin Goal'}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-brand-ar">
               {lang === 'ar' ? 'اختاري ما يلائم بشرتكِ' : 'Tailored For Your Skin'}
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 max-w-xl">
               {lang === 'ar'
-                ? 'انقري على نوع بشرتكِ لتصفية الروتين الملائم فوراً ومشاهدة المنتجات المتوافقة مع احتياجاتكِ.'
-                : 'Click your skin type to instantly activate tailored regimen and filter matching botanical products.'}
+                ? 'اختاري احتياج بشرتكِ لعرض الروتين الأنسب.'
+                : 'Pick your skin goal to view matching products.'}
             </p>
           </div>
 
@@ -518,7 +549,7 @@ export const StorefrontView: React.FC = () => {
         </div>
 
         {/* 4 Smart Cards: Exactly 4 in a single row on all larger devices (sm:grid-cols-4), and 2 on Mobile (grid-cols-2) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3.5 lg:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-2 lg:gap-3">
           {effectiveSkinDiagnosis.map((type) => {
             const Icon = type.icon;
             const isSelected = activeSkinFilter === type.id;
@@ -616,89 +647,111 @@ export const StorefrontView: React.FC = () => {
       </section>
       ) : null,
 
-      // 4. PRODUCTS GRID (With Category Filter & Product Cards)
+      // 4. PRODUCTS GRID (With Horizontal Pill Bar Collections & Product Cards)
       productsCatalog: sectionsControl.productsCatalog ? (
-        <section id="products-section" className="max-w-7xl mx-auto px-2.5 sm:px-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-4">
-          <div className="space-y-1">
-            <span className="text-xs font-bold text-purple-700 uppercase tracking-widest">
-              {lang === 'ar' ? 'الأكثر طلباً وتألقاً' : 'Best Sellers & New Arrivals'}
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-              {lang === 'ar' ? 'منتجاتنا' : 'Our Products'}
-            </h2>
+        <section id="products-section" className="max-w-7xl mx-auto px-2.5 sm:px-6 space-y-5 sm:space-y-6">
+        <div className="space-y-3.5 border-b border-slate-100 pb-4">
+          {/* Top Row: Section Heading + Compact Smart Sort Selector */}
+          <div className="flex items-end justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+              <span className="text-[11px] sm:text-xs font-bold text-purple-700 uppercase tracking-widest block">
+                {lang === 'ar' ? 'تصفّحي حسب الركن' : 'Browse by Collection'}
+              </span>
+              <h2 className="text-xl sm:text-3xl font-extrabold text-slate-900 font-brand-ar leading-tight">
+                {lang === 'ar' ? 'أركان منتجاتنا' : 'Our Collections'}
+              </h2>
+            </div>
+
+            {/* Custom Popover Sort Dropdown (Anchored strictly below trigger, zero native OS popup drift) */}
+            <div className="relative shrink-0" ref={sortMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsSortMenuOpen((prev) => !prev)}
+                aria-haspopup="listbox"
+                aria-expanded={isSortMenuOpen}
+                aria-label={lang === 'ar' ? 'ترتيب المنتجات' : 'Sort products'}
+                className={`inline-flex items-center gap-2 bg-white hover:bg-slate-50 px-3.5 rounded-full border shadow-2xs min-h-[44px] text-xs font-bold text-slate-700 transition-all cursor-pointer ${
+                  isSortMenuOpen ? 'border-[#5A3E7A] ring-2 ring-purple-100' : 'border-slate-200/90'
+                }`}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#5A3E7A] shrink-0" />
+                <span className="whitespace-nowrap">{activeSortOption.label[lang]}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isSortMenuOpen ? 'rotate-180 text-[#5A3E7A]' : ''}`} />
+              </button>
+
+              {isSortMenuOpen && (
+                <div
+                  role="listbox"
+                  aria-label={lang === 'ar' ? 'خيارات الترتيب' : 'Sort options'}
+                  className="absolute top-full mt-2 end-0 w-48 bg-white/95 backdrop-blur-xl text-slate-800 rounded-2xl shadow-2xl border border-purple-100/80 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 divide-y divide-slate-50"
+                >
+                  {sortOptions.map((option) => {
+                    const isSelected = sortBy === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => {
+                          setSortBy(option.value);
+                          setIsSortMenuOpen(false);
+                        }}
+                        className={`w-full text-start px-3.5 py-2.5 min-h-[44px] text-xs flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'font-bold text-[#5A3E7A] bg-purple-50/70'
+                            : 'font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className="truncate">{option.label[lang]}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-[#5A3E7A] shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Controls: Responsive Wrapping Filter Pills + Always-Visible Smart Sort */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full sm:w-auto">
-            {/* Filter Pills - Ergonomic wrapping on narrow screens so zero tabs clip */}
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('all')}
-                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all whitespace-nowrap min-h-[40px] cursor-pointer ${
-                  selectedCategory === 'all'
-                    ? 'bg-theme-primary text-white shadow-xs'
-                    : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50'
-                }`}
-              >
-                {lang === 'ar' ? 'الكل' : 'All'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('skin')}
-                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all whitespace-nowrap min-h-[40px] cursor-pointer ${
-                  selectedCategory === 'skin'
-                    ? 'bg-theme-primary text-white shadow-xs'
-                    : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50'
-                }`}
-              >
-                {lang === 'ar' ? 'عناية بالبشرة' : 'Skincare'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('box')}
-                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all whitespace-nowrap min-h-[40px] cursor-pointer ${
-                  selectedCategory === 'box'
-                    ? 'bg-theme-primary text-white shadow-xs'
-                    : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50'
-                }`}
-              >
-                {lang === 'ar' ? 'بكجات وعروض' : 'Gift Sets'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('hair')}
-                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all whitespace-nowrap min-h-[40px] cursor-pointer ${
-                  selectedCategory === 'hair'
-                    ? 'bg-theme-primary text-white shadow-xs'
-                    : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50'
-                }`}
-              >
-                {lang === 'ar' ? 'أجهزة الشعر' : 'Hair Devices'}
-              </button>
-            </div>
-
-            {/* Smart Sort Dropdown - Always visible & aligned */}
-            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs shrink-0 self-start sm:self-auto min-h-[40px]">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#5A3E7A] shrink-0" />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer py-0.5"
-                aria-label="Sort products"
-              >
-                <option value="featured">{lang === 'ar' ? 'المقترحة' : 'Featured'}</option>
-                <option value="rating">{lang === 'ar' ? 'الأعلى تقييماً' : 'Top Rated'}</option>
-                <option value="price-asc">{lang === 'ar' ? 'السعر: الأقل للأعلى' : 'Price: Low to High'}</option>
-                <option value="price-desc">{lang === 'ar' ? 'السعر: الأعلى للأقل' : 'Price: High to Low'}</option>
-              </select>
-            </div>
+          {/* Horizontal Scrollable Pill Bar (Single sleek swipeable row on mobile, clean horizontal bar on desktop) */}
+          <div
+            role="tablist"
+            aria-label={lang === 'ar' ? 'أركان منتجاتنا' : 'Product collections'}
+            className="flex items-center gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {productCollections.map((cat) => {
+              const Icon = cat.icon;
+              const isActive = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`shrink-0 snap-start inline-flex items-center gap-2 px-3.5 sm:px-4 rounded-full text-xs sm:text-[13px] font-bold transition-all whitespace-nowrap min-h-[44px] cursor-pointer active:scale-[0.98] ${
+                    isActive
+                      ? 'bg-theme-primary text-white shadow-sm shadow-purple-900/15'
+                      : 'bg-white text-slate-700 border border-slate-200/90 hover:border-purple-200 hover:bg-purple-50/40 hover:text-[#5A3E7A]'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-purple-100' : 'text-[#5A3E7A]/80'}`} />
+                  <span>{cat.label[lang]}</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold tabular-nums leading-none ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    {cat.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Product Cards Grid: 2 columns on mobile, strictly 3 columns on tablet & desktop with optimized tight spacing */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-3.5 md:gap-4 transition-all duration-500 ease-out">
+        {/* Product Cards Grid: Balanced gap-2 on mobile/tablet and lg:gap-3 on large desktop */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-3 transition-all duration-500 ease-out">
           {sortedProducts.slice(0, visibleProductsCount).map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -784,20 +837,20 @@ export const StorefrontView: React.FC = () => {
                 <div className="lg:col-span-6 space-y-4 text-start">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider text-pink-200 border border-white/20">
                     <Gem className="w-3.5 h-3.5 text-amber-300" />
-                    {(activeData.promoBanner?.badge ? activeData.promoBanner.badge[lang] : (lang === 'ar' ? 'عرض نَـــــدِي الماسي الخاص' : 'Exclusive Diamond Offer')).replace(/\s*[💎✨⭐🌟★✦]/g, '')}
+                    {activeData.promoBanner?.badge ? activeData.promoBanner.badge[lang] : (lang === 'ar' ? 'عرض خاص' : 'Special Offer')}
                   </span>
                   
                   {/* Balanced, Proportioned Heading Scale according to Luxe Pro Guidelines */}
                   <h3 className="text-xl sm:text-2xl lg:text-3xl font-extrabold leading-relaxed tracking-tight text-white">
                     {activeData.promoBanner?.title ? activeData.promoBanner.title[lang] : (lang === 'ar'
-                      ? 'وفّري 25% مع بوكس العناية بالنضارة الكاملة'
-                      : 'Save 25% On Complete Botanical Glow Routine')}
+                      ? 'وفّري 25% على بوكس العناية الكامل'
+                      : 'Save 25% on the Complete Care Box')}
                   </h3>
                   
                   <p className="text-xs sm:text-sm lg:text-base text-purple-100/90 leading-relaxed max-w-xl">
                     {activeData.promoBanner?.subtitle ? activeData.promoBanner.subtitle[lang] : (lang === 'ar'
-                      ? 'احصلي على حقيبة التجميل المخملية + عينات تجريبية مجانية + شحن سريع لكافة الطلبات فوق 20,000 ج.س'
-                      : 'Get a luxury velvet pouch + free botanical trial samples + fast delivery on all qualifying orders.')}
+                      ? 'مع حقيبة مخملية وعينات مجانية وتوصيل سريع.'
+                      : 'Includes a velvet pouch, free samples & fast shipping.')}
                   </p>
 
 
@@ -830,7 +883,7 @@ export const StorefrontView: React.FC = () => {
                         }
                         addToCart(targetBundle, 1);
                         showToast({
-                          message: isRtl ? 'تمت إضافة بوكس نَدِي إلى سلتك بنجاح! 🎁' : 'Bundle added to cart! 🎁',
+                          message: isRtl ? 'تمت إضافة البوكس إلى السلة.' : 'Bundle added to bag.',
                           type: 'cart_add'
                         });
                         setIsCartOpen(true);
@@ -1190,7 +1243,7 @@ export const StorefrontView: React.FC = () => {
                         if (hasVoted) return;
                         setUserVoted(prev => ({ ...prev, [reviewId]: true }));
                         setHelpfulVotes(prev => ({ ...prev, [reviewId]: (prev[reviewId] || 40) + 1 }));
-                        showToast(lang === 'ar' ? 'شكراً لتقييمك لمصداقية الرأي 👍' : 'Thank you for your feedback! 👍');
+                        showToast(lang === 'ar' ? 'شكراً لتقييمك لمصداقية الرأي' : 'Thank you for your feedback!');
                       }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all min-h-[36px] ${
                         hasVoted 
@@ -1257,7 +1310,7 @@ export const StorefrontView: React.FC = () => {
             <div className="space-y-1.5 text-start">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 border border-purple-300 text-purple-900 text-xs font-bold">
                 <Award className="w-3.5 h-3.5 text-purple-700" />
-                <span>{(clonedSections.testimonials.badgeAr || (lang === 'ar' ? 'تجارب إضافية موثقة' : 'Additional Highlights')).replace(/\s*[✨⭐🌟★✦]/g, '')}</span>
+                <span>{(clonedSections.testimonials.badgeAr || (lang === 'ar' ? 'تجارب إضافية موثقة' : 'Additional Highlights')).replace(/\s*[\u2728\u2B50\u{1F31F}\u2605\u2726]/gu, '')}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-brand-ar">
                 {lang === 'ar' ? (clonedSections.testimonials.titleAr || 'قصص نجاح وتجارب عميلاتنا الإضافية') : (clonedSections.testimonials.titleEn || 'Additional Verified Testimonials')}
@@ -1360,10 +1413,10 @@ export const StorefrontView: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-pink-200 block">
-                      {isRtl ? 'عرض استثنائي محدود' : 'Limited Exclusive'}
+                      {isRtl ? 'عرض خاص' : 'Special Offer'}
                     </span>
                     <h3 className="text-base sm:text-lg font-black leading-snug">
-                      {(activeData.promoBanner?.badge ? activeData.promoBanner.badge[lang] : (isRtl ? 'عرض نَــــدِي الماسي الخاص' : 'Exclusive Diamond Offer')).replace(/\s*[💎✨⭐🌟★✦]/g, '')}
+                      {(activeData.promoBanner?.badge ? activeData.promoBanner.badge[lang] : (isRtl ? 'عرض البوكس المتكامل' : 'Complete Box Offer')).replace(/\s*[\u{1F48E}\u2728\u2B50\u{1F31F}\u2605\u2726]/gu, '')}
                     </h3>
                   </div>
                 </div>
@@ -1480,7 +1533,7 @@ export const StorefrontView: React.FC = () => {
                     addToCart(targetBundle, diamondBundleQty);
                     setIsDiamondBundleModalOpen(false);
                     showToast({
-                      message: isRtl ? `تمت إضافة ${diamondBundleQty} من بوكس نَدِي الماسي لسلتك بنجاح! 🎁` : `Added ${diamondBundleQty} Diamond Box to your cart! 🎁`,
+                      message: isRtl ? `تمت إضافة ${diamondBundleQty} من بوكس نَدِي الماسي لسلتك بنجاح!` : `Added ${diamondBundleQty} Diamond Box to your cart!`,
                       type: 'cart_add'
                     });
                     setIsCartOpen(true);

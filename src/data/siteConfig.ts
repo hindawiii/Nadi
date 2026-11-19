@@ -243,9 +243,9 @@ export const siteConfig: SiteConfig = {
     AED: { symbol: { ar: "د.إ", en: "AED" }, name: "AED", rate: 3.67, country: "🇦🇪" },
     EGP: { symbol: { ar: "ج.م", en: "EGP" }, name: "EGP", rate: 48.20, country: "🇪🇬" },
     KWD: { symbol: { ar: "د.ك", en: "KWD" }, name: "KWD", rate: 0.31, country: "🇰🇼" },
-    USDT: { symbol: { ar: "₮", en: "USDT" }, name: "USDT", rate: 1.0, country: "🌐", isCrypto: true },
-    BTC: { symbol: { ar: "₿", en: "BTC" }, name: "BTC", rate: 0.000015, country: "🌐", isCrypto: true },
-    ETH: { symbol: { ar: "Ξ", en: "ETH" }, name: "ETH", rate: 0.00029, country: "🌐", isCrypto: true },
+    USDT: { symbol: { ar: "₮", en: "USDT" }, name: "USDT", rate: 1.0, country: "₮", isCrypto: true },
+    BTC: { symbol: { ar: "₿", en: "BTC" }, name: "BTC", rate: 0.000015, country: "₿", isCrypto: true },
+    ETH: { symbol: { ar: "Ξ", en: "ETH" }, name: "ETH", rate: 0.00029, country: "Ξ", isCrypto: true },
   },
 
   presets: {
@@ -256,21 +256,21 @@ export const siteConfig: SiteConfig = {
       storeLogo: "",
       storeSlogan: { ar: "إشراقة طبيعية، تليق بك.", en: "Natural radiance, made for you." },
       topAnnouncement: {
-        ar: "تسوقي بذكاء: احفظي في المفضلة ❤️ • قارني المواصفات ⚖️ • اطلبي فـوراً عبر السلة أو واتساب 💬",
-        en: "Smart Shopping: Save to Wishlist ❤️ • Compare Specs ⚖️ • Order via Cart or WhatsApp 💬"
+        ar: "احفظي مفضلتكِ واطلبي عبر السلة أو واتساب",
+        en: "Save favorites & order via bag or WhatsApp"
       },
       announcementSlides: [
         {
-          ar: "تسوقي بذكاء: احفظي في المفضلة ❤️ • قارني المواصفات ⚖️ • اطلبي فـوراً عبر السلة أو واتساب 💬",
-          en: "Smart Shopping: Save to Wishlist ❤️ • Compare Specs ⚖️ • Order via Cart or WhatsApp 💬"
+          ar: "احفظي مفضلتكِ واطلبي عبر السلة أو واتساب",
+          en: "Save favorites & order via bag or WhatsApp"
         },
         {
-          ar: "شحن سريع وعناية نباتية فائقة 🚚 • دفع آمن عند الاستلام أو أونلاين 🌿",
-          en: "Fast Delivery & Pure Botanical Care 🚚 • Cash on Delivery or Secure Online Checkout 🌿"
+          ar: "توصيل سريع • الدفع عند الاستلام أو أونلاين",
+          en: "Fast delivery • Pay on delivery or online"
         },
         {
-          ar: "مستحضرات نَدِي الأصلية 100% 🌿 • ترطيب يدوم 24 ساعة ونقاء طبيعي",
-          en: "100% Authentic NADI Skincare 🌿 • 24H Lasting Moisture & Natural Purity"
+          ar: "مستحضرات نَدِي الأصلية • نقاء طبيعي يدوم",
+          en: "Authentic NADI care • Lasting natural purity"
         }
       ],
       brandTickerItems: [
@@ -291,28 +291,28 @@ export const siteConfig: SiteConfig = {
           tagEn: "Dermatologically Tested"
         }
       ],
-      heroTitle: { ar: "نضارةٌ تتنفس.. كما أرادتها الطبيعة", en: "Radiance That Breathes.. Crafted By Nature" },
+      heroTitle: { ar: "عناية طبيعية، لنضارة يومية", en: "Natural care, everyday glow" },
       heroSubtitle: {
-        ar: "مستحضرات عناية نقية تمنح بشرتك حيوية قطرات الندى وإشراقة تدوم طوال اليوم بنقاء نباتي متكامل.",
-        en: "Pure skincare essentials infusing your skin with dew-fresh vitality and a lasting natural glow."
+        ar: "تركيبات نباتية نقية لترطيب وإشراقة تدوم طوال اليوم.",
+        en: "Pure botanical formulas for lasting hydration and glow."
       },
       heroCtaPrimary: { ar: "تسوّق الآن", en: "Shop Now" },
       heroCtaSecondary: { ar: "شاهد العروض", en: "View Offers" },
       heroImage: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=1200&q=80",
       promoBanner: {
-        badge: { ar: "عرض نَــــدِي الماسي الخاص 💎", en: "Exclusive NADI Diamond Offer 💎" },
-        title: { ar: "وفّري 25% مع بوكس العناية بالنضارة الكاملة", en: "Save 25% On Complete Botanical Glow Routine" },
-        subtitle: { ar: "احصلي على حقيبة التجميل المخملية + عينات تجريبية مجانية + شحن سريع لكافة الطلبات فوق 20,000 ج.س", en: "Get a luxury velvet pouch + free botanical trial samples + fast delivery on all qualifying orders." },
+        badge: { ar: "عرض خاص", en: "Special Offer" },
+        title: { ar: "وفّري 25% على بوكس العناية الكامل", en: "Save 25% on the Complete Care Box" },
+        subtitle: { ar: "مع حقيبة مخملية وعينات مجانية وتوصيل سريع.", en: "Includes a velvet pouch, free samples & fast shipping." },
         image1: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=700&q=80",
-        image1Badge: { ar: "مكوّنات نباتية 100% 🌿", en: "100% Botanicals 🌿" },
+        image1Badge: { ar: "مكوّنات نباتية 100%", en: "100% Botanicals" },
         image2: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=700&q=80",
-        image2Badge: { ar: "خصم 25% على البوكس 🎁", en: "25% OFF Boxes 🎁" },
+        image2Badge: { ar: "خصم 25% على البوكس", en: "25% OFF Boxes" },
         ctaText: { ar: "اطلبي البوكس الآن", en: "Order Routine Bundle" }
       },
       beforeAfterMedia: {
-        title: { ar: "قبل وبعد (14 يوماً من النضارة)", en: "Before & After (14 Days)" },
-        subtitle: { ar: "مقارنة حقيقية لنضارة وترطيب البشرة قبل وبعد 14 يوماً من الاستخدام المنتظم لمنتجات نَدِي الطبيعية. اسحبي المؤشر لمعاينة الفرق.", en: "Real photographic comparison of skin radiance and hydration before and after 14 days of NADI care. Drag to compare." },
-        badge: { ar: "نتائج واقعية ومثبتة", en: "Proven Transformations" },
+        title: { ar: "قبل وبعد (14 يوماً)", en: "Before & After (14 Days)" },
+        subtitle: { ar: "اسحبي المؤشر لمشاهدة الفرق خلال 14 يوماً.", en: "Drag to compare 14-day results." },
+        badge: { ar: "نتائج خلال أسبوعين", en: "14-Day Results" },
         beforeImage: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80",
         afterImage: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80",
         beforeLabel: { ar: "قبل", en: "Before" },
@@ -363,7 +363,7 @@ export const siteConfig: SiteConfig = {
           desc: { ar: 'حمض الهيالورونيك المكثف لحبس الرطوبة ومحاربة الجفاف.', en: 'Hyaluronic acid deep hydration barrier.' },
           image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80',
           fallbackImage: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80',
-          badge: { ar: 'ترطيب عميق 💧', en: 'Deep Moisture 💧' },
+          badge: { ar: 'ترطيب عميق', en: 'Deep Moisture' },
           bg: 'bg-blue-50/70 border-blue-200/80 hover:border-blue-400 text-blue-900',
           badgeColor: 'bg-blue-600 text-white'
         },
@@ -374,7 +374,7 @@ export const siteConfig: SiteConfig = {
           desc: { ar: 'فيتامين سي العضوي لتفتيح التصبغات وتوحيد لون البشرة.', en: 'Active Vitamin C to combat hyperpigmentation.' },
           image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
           fallbackImage: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80',
-          badge: { ar: 'تفتيح وتوحيد ☀️', en: 'Even Tone ☀️' },
+          badge: { ar: 'تفتيح وتوحيد', en: 'Even Tone' },
           bg: 'bg-amber-50/70 border-amber-200/80 hover:border-amber-400 text-amber-900',
           badgeColor: 'bg-amber-600 text-white'
         },
@@ -385,7 +385,7 @@ export const siteConfig: SiteConfig = {
           desc: { ar: 'مستخلصات نباتية لتجديد الكولاجين والمرونة الطبيعية.', en: 'Plant botanicals restoring elasticity.' },
           image: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=800&q=80',
           fallbackImage: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80',
-          badge: { ar: 'شد ومرونة 🌿', en: 'Firm & Elastic 🌿' },
+          badge: { ar: 'شد ومرونة', en: 'Firm & Elastic' },
           bg: 'bg-purple-50/70 border-purple-200/80 hover:border-purple-400 text-purple-900',
           badgeColor: 'bg-purple-700 text-white'
         },
@@ -441,7 +441,7 @@ export const siteConfig: SiteConfig = {
             ar: 'كمتخصصة صيدلانية، أعجبني جداً وضوح قائمة المكونات النقية. النعومة والترطيب تدوم طوال الليل.',
             en: 'As a pharmacist, I deeply appreciate the clean ingredient deck. Rich moisture lasts all night.'
           },
-          badge: { ar: 'طبيبة معتمدة 🌿', en: 'Verified Specialist 🌿' },
+          badge: { ar: 'طبيبة معتمدة', en: 'Verified Specialist' },
           rating: 5
         }
       ],
@@ -456,23 +456,23 @@ export const siteConfig: SiteConfig = {
       valueProps: [
         {
           icon: "Award",
-          title: { ar: "نتائج فعّالة", en: "Effective Results" },
-          desc: { ar: "منتجات مصنوعة بعناية لأفضل النتائج المستدامة.", en: "Crafted with botanical care for visible results." },
+          title: { ar: "نتائج ملموسة", en: "Visible Results" },
+          desc: { ar: "تركيبات مدروسة لنتائج واضحة.", en: "Thoughtful formulas that work." },
         },
         {
           icon: "Truck",
-          title: { ar: "شحن سريع", en: "Fast Delivery" },
-          desc: { ar: "توصيل طلبك في أسرع وقت وبحرص فائق.", en: "Quick and delicate handling of your orders." },
+          title: { ar: "توصيل سريع", en: "Fast Delivery" },
+          desc: { ar: "يصلكِ طلبكِ بعناية وفي موعده.", en: "Packed with care, delivered fast." },
         },
         {
           icon: "ShieldCheck",
           title: { ar: "أصلية 100%", en: "100% Authentic" },
-          desc: { ar: "نضمن جودة وأصالة كل عبوة ومستحضر.", en: "Guaranteed authentic pure natural ingredients." },
+          desc: { ar: "جودة مضمونة في كل عبوة.", en: "Guaranteed quality in every bottle." },
         },
         {
           icon: "CreditCard",
-          title: { ar: "دفع آمن ومريح", en: "Secure Payment" },
-          desc: { ar: "ادفع عند الاستلام أو بأمان عبر الإنترنت.", en: "Cash on delivery or seamless online checkout." },
+          title: { ar: "دفع مرن وآمن", en: "Flexible Payment" },
+          desc: { ar: "عند الاستلام أو أونلاين.", en: "Pay on delivery or online." },
         },
       ],
       contactInfo: {
@@ -622,7 +622,7 @@ export const siteConfig: SiteConfig = {
         },
         {
           id: "sb-04",
-          name: { ar: "مجموعة Natural Bloom الكاملة (بوكس التوفير)", en: "Natural Bloom Complete Box" },
+          name: { ar: "بوكس Natural Bloom الكامل", en: "Natural Bloom Complete Box" },
           category: { ar: "البكجات والعروض", en: "Gift Sets" },
           basePriceUSD: 18.0,
           originalPriceUSD: 24.0,
@@ -657,8 +657,8 @@ export const siteConfig: SiteConfig = {
         {
           id: "hd-01",
           name: { 
-            ar: "جهاز تجعيد الشعر من سل تيك - SLTK-12", 
-            en: "Siltek Triple Barrel Hair Waver - SLTK-12" 
+            ar: "جهاز تجعيد سل تيك SLTK-12", 
+            en: "Siltek Hair Waver SLTK-12" 
           },
           category: { ar: "أجهزة الشعر", en: "Hair Devices" },
           basePriceUSD: 29.44,
@@ -694,8 +694,8 @@ export const siteConfig: SiteConfig = {
         {
           id: "hd-02",
           name: { 
-            ar: "جهاز تمويج الشعر بيتش بيب من شيقلام - 25مم", 
-            en: "Sheglam Beach Babe Hair Waver - 25mm" 
+            ar: "مموج شيقلام بيتش بيب 25مم", 
+            en: "Sheglam Beach Waver 25mm" 
           },
           category: { ar: "أجهزة الشعر", en: "Hair Devices" },
           basePriceUSD: 22.55,
@@ -731,8 +731,8 @@ export const siteConfig: SiteConfig = {
         {
           id: "hd-03",
           name: { 
-            ar: "مكواة تجعيد الشعر الفورية كيوبيدز تشارم من شيقلام - 32 مم", 
-            en: "Cupid's Charm Instant Auto Hair Curler - 32mm" 
+            ar: "كيرلي شيقلام الفوري 32مم", 
+            en: "Sheglam Auto Curler 32mm" 
           },
           category: { ar: "أجهزة الشعر", en: "Hair Devices" },
           basePriceUSD: 25.97,
@@ -768,8 +768,8 @@ export const siteConfig: SiteConfig = {
         {
           id: "hd-04",
           name: { 
-            ar: "فرشاة تصفيف الشعر 6 في 1 من سل تيك - SLTK-10", 
-            en: "Siltek 6-in-1 Multi Hair Styler Air Brush - SLTK-10" 
+            ar: "مصفف سل تيك 6 في 1 SLTK-10", 
+            en: "Siltek 6-in-1 Air Brush" 
           },
           category: { ar: "أجهزة الشعر", en: "Hair Devices" },
           basePriceUSD: 63.78,
@@ -805,8 +805,8 @@ export const siteConfig: SiteConfig = {
         {
           id: "hd-05",
           name: { 
-            ar: "مكواة تمليس الشعر الاحترافية كلارا بالأيونات", 
-            en: "Clara Pro Ionic Tourmaline Flat Iron" 
+            ar: "مكواة فرد كلارا بالأيونات", 
+            en: "Clara Pro Ionic Flat Iron" 
           },
           category: { ar: "أجهزة الشعر", en: "Hair Devices" },
           basePriceUSD: 51.00,
@@ -842,8 +842,8 @@ export const siteConfig: SiteConfig = {
         {
           id: "hd-06",
           name: { 
-            ar: "مجفف الشعر الذكي السريع فائق الهدوء أوكيما", 
-            en: "Okema Ultra-Quiet Smart Ionic Blow Dryer" 
+            ar: "مجفف أوكيما الذكي الهادئ", 
+            en: "Okema Quiet Smart Dryer" 
           },
           category: { ar: "أجهزة الشعر", en: "Hair Devices" },
           basePriceUSD: 61.20,
@@ -1106,7 +1106,7 @@ export const siteConfig: SiteConfig = {
           discountPercentage: 16,
           stock: 5,
           hasAR: true,
-          badge: { ar: "ميزة AR مفعّلة 📷", en: "AR Try-On 📷" },
+          badge: { ar: "ميزة AR مفعّلة", en: "AR Try-On" },
           rating: 4.92,
           reviewsCount: 110,
           images: [
@@ -1153,7 +1153,7 @@ export const siteConfig: SiteConfig = {
           discountPercentage: 15,
           stock: 7,
           hasAR: true,
-          badge: { ar: "ميزة AR مفعّلة 📷", en: "AR Try-On 📷" },
+          badge: { ar: "ميزة AR مفعّلة", en: "AR Try-On" },
           rating: 4.8,
           reviewsCount: 65,
           images: [
@@ -1535,7 +1535,7 @@ export const curatedImportableTemplates: ImportableTemplate[] = [
     id: 'royal-perfumes',
     name: { ar: 'قالب عطور ومسك ملكي (Misk & Royal Oud)', en: 'Royal Oud & Haute Parfumerie' },
     nicheLabel: { ar: 'عطور ومسك شرقي', en: 'Haute Perfumery & Oud' },
-    badge: { ar: 'قالب جاهز للاستيراد 💎', en: 'Ready Template 💎' },
+    badge: { ar: 'قالب جاهز للاستيراد', en: 'Ready Template' },
     description: {
       ar: 'قالب فاخر مخصص لدور العطور الشرقية والفرنسية، مع بنرات دهن العود، والمسك الأبيض، وبكجات الهدايا الملكية.',
       en: 'Pre-configured bespoke template for Arabian Oud and luxury perfumes with gift set showcases.'
@@ -1614,7 +1614,7 @@ export const curatedImportableTemplates: ImportableTemplate[] = [
           originalPriceUSD: 195.0,
           discountPercentage: 25,
           stock: 6,
-          badge: { ar: 'معتق 15 سنة 🪵', en: 'Aged 15 Years' },
+          badge: { ar: 'معتق 15 سنة', en: 'Aged 15 Years' },
           rating: 4.96,
           reviewsCount: 142,
           images: [
@@ -1648,7 +1648,7 @@ export const curatedImportableTemplates: ImportableTemplate[] = [
           originalPriceUSD: 98.0,
           discountPercentage: 20,
           stock: 12,
-          badge: { ar: 'الأكثر طلباً 🌸', en: 'Best Seller 🌸' },
+          badge: { ar: 'الأكثر طلباً', en: 'Best Seller' },
           rating: 4.92,
           reviewsCount: 210,
           images: [
@@ -1681,7 +1681,7 @@ export const curatedImportableTemplates: ImportableTemplate[] = [
     id: 'fine-jewelry',
     name: { ar: 'قالب مجوهرات وألماس رفيع (Lumière Fine Jewelry)', en: 'Lumière Haute Joaillerie' },
     nicheLabel: { ar: 'مجوهرات وألماس', en: 'Diamonds & High Jewelry' },
-    badge: { ar: 'قالب جاهز للاستيراد 💍', en: 'Ready Template 💍' },
+    badge: { ar: 'قالب جاهز للاستيراد', en: 'Ready Template' },
     description: {
       ar: 'قالب صُمم للمجوهرات الراقية، وخواتم السوليتير، وعقود الذهب عيار 18 مع شهادات نقاء الألماس GIA.',
       en: 'Haute Joaillerie template featuring diamond grading certificates and bespoke gold creations.'
@@ -1760,7 +1760,7 @@ export const curatedImportableTemplates: ImportableTemplate[] = [
           originalPriceUSD: 2900.0,
           discountPercentage: 17,
           stock: 3,
-          badge: { ar: 'GIA VVS1 💎', en: 'GIA Certified' },
+          badge: { ar: 'GIA VVS1', en: 'GIA Certified' },
           rating: 4.98,
           reviewsCount: 88,
           images: [
@@ -1793,7 +1793,7 @@ export const curatedImportableTemplates: ImportableTemplate[] = [
     id: 'artisan-roastery',
     name: { ar: 'قالب محمصة وقهوة مختصة (Origin Specialty Coffee)', en: 'Origin Artisanal Roastery' },
     nicheLabel: { ar: 'قهوة مختصة ومحامص', en: 'Specialty Coffee & Roastery' },
-    badge: { ar: 'قالب جاهز للاستيراد ☕', en: 'Ready Template ☕' },
+    badge: { ar: 'قالب جاهز للاستيراد', en: 'Ready Template' },
     description: {
       ar: 'قالب للمحامص ومحبي القهوة المختصة، يعرض درجات التحميص، درجات التذوق (Cupping Score)، ومعدات الباريستا الاحترافية.',
       en: 'Curated specialty coffee roastery template featuring single-origin beans and cupping scores.'
@@ -1872,7 +1872,7 @@ export const curatedImportableTemplates: ImportableTemplate[] = [
           originalPriceUSD: 28.0,
           discountPercentage: 21,
           stock: 18,
-          badge: { ar: 'كبينج 89.5 🫐', en: 'Score 89.5' },
+          badge: { ar: 'كبينج 89.5', en: 'Score 89.5' },
           rating: 4.95,
           reviewsCount: 165,
           images: [

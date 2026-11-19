@@ -1,7 +1,18 @@
-import React, { useEffect } from 'react';
-import { 
-  X, Heart, Globe, ChevronDown, User, Leaf, LogOut,
-  ArrowRight, ArrowLeft, Truck, Package, ShieldCheck, Check
+import React, { useEffect, useState } from 'react';
+import {
+  X,
+  Home,
+  Package,
+  LayoutGrid,
+  Wind,
+  Heart,
+  Leaf,
+  Truck,
+  Globe,
+  ChevronDown,
+  User,
+  LogOut,
+  Check,
 } from 'lucide-react';
 import { StoreCartIcon } from './common/StoreCartIcon';
 import { useCommerce } from '../context/CommerceContext';
@@ -12,350 +23,428 @@ interface MobileNavigationDrawerProps {
   onClose: () => void;
 }
 
-export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({ isOpen, onClose }) => {
-  const { 
-    lang, setLang, currency, setCurrency, dynamicConfig, 
-    activeData, cartCount, wishlist, 
-    currentRoute, navigateTo, customerUser, logoutCustomer 
+export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
+  isOpen,
+  onClose,
+}) => {
+  const {
+    lang,
+    setLang,
+    currency,
+    setCurrency,
+    dynamicConfig,
+    activeData,
+    cartCount,
+    cartTotalUSD,
+    convertPrice,
+    wishlist,
+    currentRoute,
+    navigateTo,
+    customerUser,
+    logoutCustomer,
+    sectionsControl,
   } = useCommerce();
 
   const isRtl = lang === 'ar';
   const currencyList = Object.entries(dynamicConfig.currencies);
-  const currentCurrencyObj = dynamicConfig.currencies[currency] || dynamicConfig.currencies['SDG'] || dynamicConfig.currencies['USD'];
-  const [isCurrencyListOpen, setIsCurrencyListOpen] = React.useState(false);
+  const currentCurrencyObj =
+    dynamicConfig.currencies[currency] ||
+    dynamicConfig.currencies['SDG'] ||
+    dynamicConfig.currencies['USD'];
+  const [isCurrencyListOpen, setIsCurrencyListOpen] = useState(false);
 
-  // Prevent background scroll when side drawer is open
+  // Lock background scroll & close on Escape key
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (!isOpen) return;
+
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
+  // Resolve currency symbol whether stored as plain string or bilingual map
+  const resolveCurrencySymbol = (sym: string | { ar: string; en: string }): string =>
+    typeof sym === 'string' ? sym : sym[lang];
+
+  // Format currency label cleanly without duplicating code (e.g. "SDG · ج.س" instead of "SDG · SDG")
+  const formatCurrencyTag = (code: string, symbolValue: string | { ar: string; en: string }) => {
+    const cleanSymbol = resolveCurrencySymbol(symbolValue)?.trim();
+    if (!cleanSymbol || cleanSymbol.toUpperCase() === code.toUpperCase()) {
+      return code;
+    }
+    return `${code} · ${cleanSymbol}`;
+  };
+
+  const navigateToSection = (sectionId: string) => {
+    if (currentRoute !== 'store') {
+      navigateTo('store');
+      setTimeout(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+      }, 140);
+    } else {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+    }
+    onClose();
+  };
+
+  const cartSubtotalFormatted = cartCount > 0 ? convertPrice(cartTotalUSD).text : null;
+  const firstCustomerName = customerUser?.name?.split(' ')[0] || '';
+
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[9999] isolate"
-      role="dialog" 
+      role="dialog"
       aria-modal="true"
-      aria-label={lang === 'ar' ? 'قائمة المتجر الجانبية الفاخرة' : 'Store Side Navigation Drawer'}
+      aria-label={lang === 'ar' ? 'قائمة التنقل الجانبية' : 'Store Navigation Drawer'}
     >
-      {/* 1. Translucent Soft Backdrop (Allows seeing products and store content through a soft blur) */}
-      <div 
-        className="fixed inset-0 bg-slate-950/30 backdrop-blur-[3px] transition-opacity duration-300 animate-in fade-in"
+      {/* Translucent Soft Backdrop */}
+      <div
+        className="fixed inset-0 bg-slate-950/35 backdrop-blur-[3px] transition-opacity duration-300 animate-in fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* 2. Side Sliding Panel (Logical Start-edge anchored so RTL/LTR flip cleanly) */}
-      <aside 
-        className={`fixed top-0 bottom-0 start-0 z-10 w-[78vw] max-w-[340px] h-[100dvh] bg-white/95 backdrop-blur-2xl shadow-[-10px_0_40px_rgba(0,0,0,0.18)] flex flex-col justify-between overflow-hidden transition-transform duration-300 ease-out animate-in rounded-e-[28px] border-e border-purple-100/80 ${
+      {/* Side Sliding Panel (Logical start-edge for seamless RTL/LTR flipping) */}
+      <aside
+        className={`fixed top-0 bottom-0 start-0 z-10 w-[82vw] max-w-[340px] h-[100dvh] bg-white shadow-2xl flex flex-col justify-between overflow-hidden transition-transform duration-300 ease-out animate-in rounded-e-[28px] border-e border-slate-200/80 ${
           isRtl ? 'slide-in-from-right' : 'slide-in-from-left'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ============================================================ */}
-        {/* TOP HEADER: Store Identity & Smooth Close Action             */}
-        {/* ============================================================ */}
-        <div className="p-4 border-b border-purple-100/60 flex items-center justify-between shrink-0 bg-purple-50/40">
-          <div 
+        {/* TOP HEADER: Brand Identity + Subtle Member Greeting + 44px Close */}
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/60">
+          <button
+            type="button"
             onClick={() => {
               navigateTo('store');
               onClose();
             }}
-            className="cursor-pointer flex items-center select-none"
+            className="text-start flex flex-col items-start justify-center cursor-pointer min-h-[44px]"
           >
             {activeData.storeLogo ? (
-              <img 
-                src={activeData.storeLogo} 
-                alt={`${activeData.storeName.en} - ${activeData.storeName.ar}`} 
-                className="h-8 w-auto max-h-8 object-contain" 
+              <img
+                src={activeData.storeLogo}
+                alt={`${activeData.storeName.en} - ${activeData.storeName.ar}`}
+                className="h-8 w-auto max-h-8 object-contain"
               />
             ) : (
               <div className="flex flex-col items-start justify-center gap-0.5">
-                <span className="font-brand-geometric font-black text-lg text-slate-950 tracking-[0.2em] uppercase leading-none">
+                <span className="font-brand-geometric font-black text-lg text-slate-900 tracking-[0.2em] uppercase leading-none">
                   {activeData.storeName.en}
                 </span>
-                <span className="font-brand-ar font-extrabold text-xs text-slate-700 leading-tight">
-                  {activeData.storeName.ar.includes('ـ') ? activeData.storeName.ar : (activeData.storeName.ar === 'نَدِي' || activeData.storeName.ar === 'ندي' ? 'نَـــــدِي' : activeData.storeName.ar)}
+                <span className="font-brand-ar font-bold text-xs text-slate-600 leading-tight">
+                  {activeData.storeName.ar}
                 </span>
               </div>
             )}
-          </div>
+            {firstCustomerName && (
+              <span className="text-[11px] font-medium text-[#5A3E7A] mt-0.5 leading-relaxed">
+                {lang === 'ar'
+                  ? `أهلاً بكِ، ${firstCustomerName}`
+                  : `Welcome, ${firstCustomerName}`}
+              </span>
+            )}
+          </button>
 
           <button
+            type="button"
             onClick={onClose}
-            className="w-10 h-10 rounded-full text-slate-500 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-colors min-h-[44px] min-w-[44px] border border-transparent hover:border-purple-100 shadow-2xs"
+            className="w-11 h-11 rounded-full text-slate-500 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-colors min-h-[44px] min-w-[44px] border border-transparent hover:border-slate-200 cursor-pointer"
             aria-label={lang === 'ar' ? 'إغلاق القائمة' : 'Close Menu'}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* ============================================================ */}
-        {/* SCROLLABLE BODY: Navigation Links, Preferences & Settings    */}
-        {/* ============================================================ */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-5">
-          
-          {/* Main Navigation Links */}
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-black text-slate-400 tracking-wider uppercase block px-2 mb-1">
-              {lang === 'ar' ? 'أقسام المتجر' : 'Navigation'}
+        {/* SCROLLABLE BODY: Clean Grouped Lists (Material 3 / Luxe Pro) */}
+        <nav
+          className="flex-1 overflow-y-auto overscroll-contain px-3.5 py-4 space-y-5"
+          aria-label={lang === 'ar' ? 'روابط المتجر' : 'Store Links'}
+        >
+          {/* GROUP 1: Shop & Quick Shortcuts */}
+          <div className="space-y-1">
+            <span className="text-xs font-semibold text-slate-400 block px-3 pb-1 leading-relaxed">
+              {lang === 'ar' ? 'التسوق والأقسام' : 'Shop & Explore'}
             </span>
 
-            {/* Home Link */}
+            {/* Home (Real Home Icon + Crisp Active Pill State) */}
             <button
+              type="button"
               onClick={() => {
                 navigateTo('store');
                 onClose();
               }}
-              className={`w-full text-start px-3.5 py-3 rounded-2xl font-bold text-sm flex items-center justify-between transition-colors min-h-[46px] ${
-                currentRoute === 'store' 
-                  ? 'bg-purple-100/90 text-[#5A3E7A] shadow-xs' 
-                  : 'text-slate-800 hover:bg-purple-50/50'
+              aria-current={currentRoute === 'store' ? 'page' : undefined}
+              className={`w-full text-start px-3.5 py-2.5 rounded-full text-sm sm:text-base flex items-center gap-3.5 transition-colors min-h-[46px] cursor-pointer leading-relaxed ${
+                currentRoute === 'store'
+                  ? 'bg-[#5A3E7A]/12 text-[#5A3E7A] font-bold'
+                  : 'text-slate-800 font-medium hover:bg-slate-100/80'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <span className="w-2 h-2 rounded-full bg-[#5A3E7A]" />
-                <span>{lang === 'ar' ? 'الرئيسية' : 'Home'}</span>
-              </div>
-              {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}
+              <Home className="w-5 h-5 shrink-0" />
+              <span>{lang === 'ar' ? 'الرئيسية' : 'Home'}</span>
             </button>
 
             {/* All Products */}
             <button
-              onClick={() => {
-                if (currentRoute !== 'store') {
-                  navigateTo('store');
-                  setTimeout(() => {
-                    document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
-                  }, 120);
-                } else {
-                  document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
-                }
-                onClose();
-              }}
-              className="w-full text-start px-3.5 py-3 rounded-2xl font-bold text-sm flex items-center justify-between text-slate-800 hover:bg-purple-50/50 transition-colors min-h-[46px]"
+              type="button"
+              onClick={() => navigateToSection('products-section')}
+              className="w-full text-start px-3.5 py-2.5 rounded-full text-sm sm:text-base font-medium text-slate-800 hover:bg-slate-100/80 flex items-center gap-3.5 transition-colors min-h-[46px] cursor-pointer leading-relaxed"
             >
-              <div className="flex items-center gap-3">
-                <Package className="w-4 h-4 text-[#5A3E7A]" />
-                <span>{lang === 'ar' ? 'منتجاتنا بالكامل' : 'All Products'}</span>
-              </div>
-              {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}
+              <Package className="w-5 h-5 text-slate-500 shrink-0" />
+              <span>{lang === 'ar' ? 'جميع المنتجات' : 'All Products'}</span>
             </button>
 
-            {/* Wishlist */}
-            <button
-              onClick={() => {
-                navigateTo('wishlist');
-                onClose();
-              }}
-              className={`w-full text-start px-3.5 py-3 rounded-2xl font-bold text-sm flex items-center justify-between transition-colors min-h-[46px] ${
-                currentRoute === 'wishlist' 
-                  ? 'bg-purple-100/90 text-[#5A3E7A] shadow-xs' 
-                  : 'text-slate-800 hover:bg-purple-50/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Heart className={`w-4 h-4 ${wishlist.length > 0 ? 'text-rose-500 fill-rose-500' : 'text-slate-600'}`} />
-                <span>{lang === 'ar' ? 'المفضلة الفاخرة' : 'Wishlist'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {wishlist.length > 0 && (
-                  <span className="px-2 py-0.5 bg-rose-500 text-white text-[10px] font-black rounded-full">
-                    {wishlist.length}
-                  </span>
-                )}
-                {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}
-              </div>
-            </button>
+            {/* Quick Jump: Store Categories */}
+            {sectionsControl.productsCatalog && (
+              <button
+                type="button"
+                onClick={() => navigateToSection('categories-section')}
+                className="w-full text-start px-3.5 py-2.5 rounded-full text-sm sm:text-base font-medium text-slate-800 hover:bg-slate-100/80 flex items-center gap-3.5 transition-colors min-h-[46px] cursor-pointer leading-relaxed"
+              >
+                <LayoutGrid className="w-5 h-5 text-slate-500 shrink-0" />
+                <span>{lang === 'ar' ? 'أركان منتجاتنا' : 'Shop by Category'}</span>
+              </button>
+            )}
 
-            {/* Shopping Basket */}
-            <button
-              onClick={() => {
-                navigateTo('cart');
-                onClose();
-              }}
-              className={`w-full text-start px-3.5 py-3 rounded-2xl font-bold text-sm flex items-center justify-between transition-colors min-h-[46px] ${
-                currentRoute === 'cart' 
-                  ? 'bg-purple-100/90 text-[#5A3E7A] shadow-xs' 
-                  : 'text-slate-800 hover:bg-purple-50/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <StoreCartIcon size="sm" className="text-[#5A3E7A]" />
-                <span>{lang === 'ar' ? 'سلة المشتريات' : 'Shopping Basket'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {cartCount > 0 && (
-                  <span className="px-2.5 py-0.5 bg-[#5A3E7A] text-white text-[11px] font-black rounded-full shadow-xs">
-                    {cartCount}
-                  </span>
-                )}
-                {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}
-              </div>
-            </button>
-
-            {/* Our Story */}
-            <button
-              onClick={() => {
-                navigateTo('about');
-                onClose();
-              }}
-              className={`w-full text-start px-3.5 py-3 rounded-2xl font-bold text-sm flex items-center justify-between transition-colors min-h-[46px] ${
-                currentRoute === 'about' 
-                  ? 'bg-purple-100/90 text-[#5A3E7A] shadow-xs' 
-                  : 'text-slate-800 hover:bg-purple-50/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Leaf className="w-4 h-4 text-[#5A3E7A]" />
-                <span>{lang === 'ar' ? 'من نحن وقصة المتجر' : 'Our Story'}</span>
-              </div>
-              {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}
-            </button>
+            {/* Quick Jump: Hair Devices Spotlight */}
+            {sectionsControl.hairDevices && (
+              <button
+                type="button"
+                onClick={() => navigateToSection('hair-devices-section')}
+                className="w-full text-start px-3.5 py-2.5 rounded-full text-sm sm:text-base font-medium text-slate-800 hover:bg-slate-100/80 flex items-center gap-3.5 transition-colors min-h-[46px] cursor-pointer leading-relaxed"
+              >
+                <Wind className="w-5 h-5 text-slate-500 shrink-0" />
+                <span>{lang === 'ar' ? 'أجهزة تصفيف الشعر' : 'Hair Styling Devices'}</span>
+              </button>
+            )}
 
             {/* Live Order Tracking */}
             <button
+              type="button"
               onClick={() => {
                 navigateTo('tracker');
                 onClose();
               }}
-              className={`w-full text-start px-3.5 py-3 rounded-2xl font-bold text-sm flex items-center justify-between transition-colors min-h-[46px] ${
-                currentRoute === 'tracker' 
-                  ? 'bg-purple-100/90 text-[#5A3E7A] shadow-xs' 
-                  : 'text-slate-800 hover:bg-purple-50/50'
+              aria-current={currentRoute === 'tracker' ? 'page' : undefined}
+              className={`w-full text-start px-3.5 py-2.5 rounded-full text-sm sm:text-base flex items-center gap-3.5 transition-colors min-h-[46px] cursor-pointer leading-relaxed ${
+                currentRoute === 'tracker'
+                  ? 'bg-[#5A3E7A]/12 text-[#5A3E7A] font-bold'
+                  : 'text-slate-800 font-medium hover:bg-slate-100/80'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <Truck className="w-4 h-4 text-emerald-600" />
-                <span>{lang === 'ar' ? 'تتبع الشحنة المباشر' : 'Live Order Tracking'}</span>
-              </div>
-              {isRtl ? <ArrowLeft className="w-4 h-4 text-slate-400" /> : <ArrowRight className="w-4 h-4 text-slate-400" />}
+              <Truck className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>{lang === 'ar' ? 'تتبع شحنتكِ' : 'Track Your Order'}</span>
             </button>
           </div>
 
-          {/* ============================================================ */}
-          {/* STORE PREFERENCES & SETTINGS PANEL                          */}
-          {/* ============================================================ */}
-          <div className="pt-3 border-t border-purple-100/70 space-y-3">
-            <span className="text-[11px] font-black text-slate-400 tracking-wider uppercase block px-2">
-              {lang === 'ar' ? 'إعدادات المتجر والتخصيص' : 'Settings & Preferences'}
+          {/* Hairline Group Divider */}
+          <div className="border-t border-slate-100 mx-2" aria-hidden="true" />
+
+          {/* GROUP 2: My Bag, Wishlist & Brand Story */}
+          <div className="space-y-1">
+            <span className="text-xs font-semibold text-slate-400 block px-3 pb-1 leading-relaxed">
+              {lang === 'ar' ? 'حقيبتي وحسابي' : 'My Bag & Store'}
             </span>
 
-            {/* Currency Selector Accordion Card */}
-            <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl overflow-hidden transition-all">
+            {/* Shopping Basket with Live Count & Subtotal */}
+            <button
+              type="button"
+              onClick={() => {
+                navigateTo('cart');
+                onClose();
+              }}
+              aria-current={currentRoute === 'cart' ? 'page' : undefined}
+              className={`w-full text-start px-3.5 py-2.5 rounded-full text-sm sm:text-base flex items-center justify-between gap-2 transition-colors min-h-[46px] cursor-pointer leading-relaxed ${
+                currentRoute === 'cart'
+                  ? 'bg-[#5A3E7A]/12 text-[#5A3E7A] font-bold'
+                  : 'text-slate-800 font-medium hover:bg-slate-100/80'
+              }`}
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <StoreCartIcon size="sm" className="text-[#5A3E7A] shrink-0" />
+                <span className="truncate">
+                  {lang === 'ar' ? 'سلة المشتريات' : 'Shopping Bag'}
+                </span>
+              </div>
+              {cartCount > 0 && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {cartSubtotalFormatted && (
+                    <span className="text-xs font-semibold text-slate-500">
+                      {cartSubtotalFormatted}
+                    </span>
+                  )}
+                  <span className="min-w-[24px] h-6 px-1.5 bg-[#5A3E7A] text-white text-xs font-bold rounded-full inline-flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                </div>
+              )}
+            </button>
+
+            {/* Wishlist */}
+            <button
+              type="button"
+              onClick={() => {
+                navigateTo('wishlist');
+                onClose();
+              }}
+              aria-current={currentRoute === 'wishlist' ? 'page' : undefined}
+              className={`w-full text-start px-3.5 py-2.5 rounded-full text-sm sm:text-base flex items-center justify-between gap-2 transition-colors min-h-[46px] cursor-pointer leading-relaxed ${
+                currentRoute === 'wishlist'
+                  ? 'bg-[#5A3E7A]/12 text-[#5A3E7A] font-bold'
+                  : 'text-slate-800 font-medium hover:bg-slate-100/80'
+              }`}
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <Heart
+                  className={`w-5 h-5 shrink-0 ${
+                    wishlist.length > 0
+                      ? 'text-rose-500 fill-rose-500'
+                      : 'text-slate-500'
+                  }`}
+                />
+                <span className="truncate">
+                  {lang === 'ar' ? 'المفضلة' : 'Wishlist'}
+                </span>
+              </div>
+              {wishlist.length > 0 && (
+                <span className="min-w-[24px] h-6 px-1.5 bg-rose-500 text-white text-xs font-bold rounded-full inline-flex items-center justify-center shrink-0">
+                  {wishlist.length}
+                </span>
+              )}
+            </button>
+
+            {/* Our Story */}
+            <button
+              type="button"
+              onClick={() => {
+                navigateTo('about');
+                onClose();
+              }}
+              aria-current={currentRoute === 'about' ? 'page' : undefined}
+              className={`w-full text-start px-3.5 py-2.5 rounded-full text-sm sm:text-base flex items-center gap-3.5 transition-colors min-h-[46px] cursor-pointer leading-relaxed ${
+                currentRoute === 'about'
+                  ? 'bg-[#5A3E7A]/12 text-[#5A3E7A] font-bold'
+                  : 'text-slate-800 font-medium hover:bg-slate-100/80'
+              }`}
+            >
+              <Leaf className="w-5 h-5 text-slate-500 shrink-0" />
+              <span>{lang === 'ar' ? 'قصتنا وهوية المتجر' : 'Our Story'}</span>
+            </button>
+          </div>
+
+          {/* Hairline Group Divider */}
+          <div className="border-t border-slate-100 mx-2" aria-hidden="true" />
+
+          {/* COMPACT SINGLE-ROW PREFERENCES STRIP (Zero Bulky Cards / Zero Clipping) */}
+          <div className="px-1.5 space-y-2.5">
+            <span className="text-xs font-semibold text-slate-400 block px-1.5 leading-relaxed">
+              {lang === 'ar' ? 'العملة واللغة' : 'Currency & Language'}
+            </span>
+
+            <div className="grid grid-cols-2 gap-2">
+              {/* Compact Currency Picker */}
               <button
                 type="button"
-                onClick={() => setIsCurrencyListOpen(!isCurrencyListOpen)}
-                className="w-full p-3 flex items-center justify-between text-start"
+                onClick={() => setIsCurrencyListOpen((prev) => !prev)}
+                aria-expanded={isCurrencyListOpen}
+                className="px-3 py-2.5 rounded-2xl bg-slate-100/90 hover:bg-slate-100 border border-slate-200/80 text-slate-800 text-xs font-bold flex items-center justify-between gap-1.5 min-h-[44px] transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xl">{currentCurrencyObj.country}</span>
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 block">
-                      {lang === 'ar' ? 'عملة المتجر والأسعار' : 'Store Currency'}
-                    </span>
-                    <span className="text-[11px] text-slate-500 font-mono font-bold">
-                      {currency} · {currentCurrencyObj.name}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-purple-100 text-xs font-black text-[#5A3E7A] shadow-2xs">
-                  <span>{currency}</span>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isCurrencyListOpen ? 'rotate-180' : ''}`} />
-                </div>
+                <span className="flex items-center gap-1.5 min-w-0 truncate">
+                  <span className="text-base leading-none shrink-0">
+                    {currentCurrencyObj.country}
+                  </span>
+                  <span className="truncate">
+                    {formatCurrencyTag(currency, currentCurrencyObj.symbol)}
+                  </span>
+                </span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform duration-200 ${
+                    isCurrencyListOpen ? 'rotate-180' : ''
+                  }`}
+                />
               </button>
 
-              {isCurrencyListOpen && (
-                <div className="px-3 pb-3 pt-1 border-t border-slate-200/60 max-h-48 overflow-y-auto space-y-1">
-                  {currencyList.map(([code, config]) => (
+              {/* Compact Secondary Language Toggle (Does not compete with primary CTA) */}
+              <button
+                type="button"
+                onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+                className="px-3 py-2.5 rounded-2xl bg-slate-100/90 hover:bg-purple-50 border border-slate-200/80 hover:border-purple-200 text-slate-800 hover:text-[#5A3E7A] text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px] transition-colors cursor-pointer whitespace-nowrap"
+              >
+                <Globe className="w-4 h-4 text-[#5A3E7A] shrink-0" />
+                <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
+              </button>
+            </div>
+
+            {/* Expandable Compact Currency List */}
+            {isCurrencyListOpen && (
+              <div className="p-1.5 rounded-2xl bg-slate-50 border border-slate-200/80 max-h-44 overflow-y-auto space-y-0.5">
+                {currencyList.map(([code, config]) => {
+                  const localizedSymbol = resolveCurrencySymbol(config.symbol)?.trim();
+                  return (
                     <button
                       key={code}
+                      type="button"
                       onClick={() => {
                         setCurrency(code);
                         setIsCurrencyListOpen(false);
                       }}
-                      className={`w-full text-start px-2.5 py-2 rounded-xl text-xs flex items-center justify-between transition-colors ${
-                        currency === code 
-                          ? 'bg-purple-100/80 font-black text-[#5A3E7A]' 
-                          : 'hover:bg-white text-slate-700'
+                      className={`w-full text-start px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors min-h-[40px] cursor-pointer ${
+                        currency === code
+                          ? 'bg-[#5A3E7A]/12 font-bold text-[#5A3E7A]'
+                          : 'hover:bg-white text-slate-700 font-medium'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">{config.country}</span>
-                        <span className="font-mono font-bold text-xs">{code}</span>
-                        <span className="text-slate-500 text-[11px] truncate max-w-[120px]">{config.name}</span>
-                      </div>
-                      {currency === code && <Check className="w-3.5 h-3.5 text-[#5A3E7A]" />}
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="text-base leading-none">{config.country}</span>
+                        <span className="font-mono font-bold">{code}</span>
+                        {localizedSymbol &&
+                          localizedSymbol.toUpperCase() !== code.toUpperCase() && (
+                            <span className="text-slate-500 truncate">
+                              ({localizedSymbol})
+                            </span>
+                          )}
+                      </span>
+                      {currency === code && (
+                        <Check className="w-4 h-4 text-[#5A3E7A] shrink-0" />
+                      )}
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Language Switcher Card */}
-            <div className="bg-slate-50/90 border border-slate-200/80 p-3 rounded-2xl flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Globe className="w-4 h-4 text-[#5A3E7A]" />
-                <div>
-                  <span className="text-xs font-bold text-slate-800 block">
-                    {lang === 'ar' ? 'لغة الواجهة' : 'Store Language'}
-                  </span>
-                  <span className="text-[11px] text-slate-500 font-medium">
-                    {lang === 'ar' ? 'العربية (RTL)' : 'English (LTR)'}
-                  </span>
-                </div>
+                  );
+                })}
               </div>
-              <button
-                type="button"
-                onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-                className="px-3.5 py-1.5 rounded-xl bg-[#5A3E7A] text-white text-xs font-black shadow-xs hover:bg-[#483162] transition-colors"
-              >
-                {lang === 'ar' ? 'English (EN)' : 'العربية (AR)'}
-              </button>
-            </div>
+            )}
 
-            {/* PWA In-App Install Action */}
+            {/* PWA Install Action (renders only when installable) */}
             <PWAInstallMenuItem onActionComplete={onClose} />
-
-            {/* Quick Guarantees Badge */}
-            <div className="p-3 bg-purple-50/60 rounded-2xl border border-purple-100/70 flex items-center gap-2.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <p className="text-[11px] text-purple-950 font-medium leading-relaxed">
-                {lang === 'ar'
-                  ? 'مستحضرات أصلية 100% • دفع عند الاستلام • شحن سريع لكافة المدن'
-                  : '100% Authentic • Cash on Delivery • Fast Express Shipping'}
-              </p>
-            </div>
-
           </div>
-        </div>
+        </nav>
 
-        {/* ============================================================ */}
-        {/* BOTTOM FIXED FOOTER: Auth-Synced Account & Sign Out Action   */}
-        {/* ============================================================ */}
-        <div className="p-4 border-t border-purple-100/70 bg-white/95 shrink-0 space-y-2.5">
+        {/* STICKY FOOTER: Clean Account Bar or Single Primary Sign-In CTA */}
+        <div className="p-4 border-t border-slate-100 bg-white shrink-0 space-y-2.5">
           {customerUser ? (
             <>
-              <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-emerald-50/80 border border-emerald-200/80">
-                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold text-sm">
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <div className="w-9 h-9 rounded-full bg-[#5A3E7A]/12 text-[#5A3E7A] flex items-center justify-center shrink-0 font-bold text-sm">
                   <User className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1 text-start">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
-                    <p className="text-xs font-extrabold text-slate-900 truncate">
-                      {customerUser.name}
-                    </p>
-                  </div>
+                  <p className="text-sm font-bold text-slate-900 truncate leading-snug">
+                    {customerUser.name}
+                  </p>
                   {customerUser.email && (
-                    <p className="text-[11px] text-slate-600 truncate font-medium" dir="ltr">
+                    <p
+                      className="text-xs text-slate-500 truncate"
+                      dir="ltr"
+                    >
                       {customerUser.email}
                     </p>
                   )}
@@ -367,7 +456,7 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({ 
                   void logoutCustomer();
                   onClose();
                 }}
-                className="w-full py-3 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 min-h-[48px] transition-all active:scale-[0.98] cursor-pointer"
+                className="w-full py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 min-h-[44px] transition-colors active:scale-[0.98] cursor-pointer"
               >
                 <LogOut className="w-4 h-4 shrink-0" />
                 <span>{lang === 'ar' ? 'تسجيل الخروج' : 'Sign Out'}</span>
@@ -380,14 +469,15 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({ 
                 onClose();
                 navigateTo('login');
               }}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-[#5A3E7A] to-[#483162] hover:opacity-95 text-white rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 min-h-[48px] shadow-md transition-all active:scale-[0.98] cursor-pointer"
+              className="w-full py-3 px-4 bg-[#5A3E7A] hover:bg-[#4A3266] text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2.5 min-h-[48px] shadow-md shadow-[#5A3E7A]/20 transition-all active:scale-[0.98] cursor-pointer"
             >
-              <User className="w-4 h-4 text-purple-200" />
-              <span>{lang === 'ar' ? 'تسجيل الدخول / فتح الحساب' : 'Sign In / Customer Account'}</span>
+              <User className="w-4 h-4 shrink-0" />
+              <span>
+                {lang === 'ar' ? 'تسجيل الدخول / حسابي' : 'Sign In / My Account'}
+              </span>
             </button>
           )}
         </div>
-
       </aside>
     </div>
   );

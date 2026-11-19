@@ -27,7 +27,7 @@ export const OfflineIndicator: React.FC = () => {
     return (
       <aside 
         aria-label={lang === 'ar' ? 'تنبيه حالة الاتصال' : 'Connectivity alert'}
-        className="fixed bottom-4 start-4 sm:start-6 z-50 animate-in slide-in-from-bottom duration-300"
+        className="fixed bottom-20 start-4 sm:bottom-22 sm:start-6 z-50 animate-in slide-in-from-bottom duration-300"
       >
         <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-amber-600/95 text-white shadow-xl backdrop-blur-xs border border-amber-400/30 text-xs font-semibold">
           <span className="relative flex h-2 w-2">
@@ -49,7 +49,7 @@ export const OfflineIndicator: React.FC = () => {
     return (
       <aside 
         aria-label={lang === 'ar' ? 'تمت استعادة الاتصال' : 'Connection restored'}
-        className="fixed bottom-4 start-4 sm:start-6 z-50 animate-in slide-in-from-bottom duration-300"
+        className="fixed bottom-20 start-4 sm:bottom-22 sm:start-6 z-50 animate-in slide-in-from-bottom duration-300"
       >
         <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600/95 text-white shadow-xl backdrop-blur-xs border border-emerald-400/30 text-xs font-bold">
           <Wifi className="w-4 h-4 shrink-0 text-emerald-100" />

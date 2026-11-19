@@ -14,7 +14,7 @@ export const Footer: React.FC = () => {
   return (
     <footer className="relative bg-gradient-to-b from-[#5A3E7A] via-[#483162] to-[#2E1840] text-white pt-12 sm:pt-14 pb-24 sm:pb-14 overflow-hidden select-none border-t border-purple-800/40">
       {/* Subtle ambient lighting */}
-      <div className="absolute top-0 start-1/2 -translate-x-1/2 w-full max-w-7xl h-36 bg-purple-400/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-0 inset-x-0 mx-auto w-full max-w-7xl h-36 bg-purple-400/10 blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 space-y-10 sm:space-y-12">
         

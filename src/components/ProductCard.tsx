@@ -309,7 +309,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* 2. METADATA & CONTENT AREA (Airy Typographic Hierarchy - Unboxed Metadata) */}
         <div className="p-2.5 sm:p-3.5 space-y-1.5 text-start">
-          {/* Category & Rating Row (Quiet inline metadata without tight capsule edges) */}
+          {/* Category & Rating Row */}
           <div className="flex items-center justify-between gap-1.5 text-[10.5px] sm:text-xs text-slate-500">
             <span className="truncate font-semibold text-slate-500">
               {getCompactCategoryLabel(product.category[lang])}
@@ -333,7 +333,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <span className="truncate">{trustBadge.text[lang]}</span>
           </div>
 
-          {/* Dynamic Pricing Row (Stacked neatly on narrow mobile so long currency strings never break onto 2 lines) */}
+          {/* Dynamic Pricing Row */}
           <div className="pt-0.5 space-y-1">
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 min-h-[34px] sm:min-h-[28px] justify-center sm:justify-start">
               <span className="text-[13.5px] sm:text-lg font-black text-slate-900 tracking-tight whitespace-nowrap tabular-nums leading-tight">
@@ -357,12 +357,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </div>
 
-      {/* 3. UNIFIED ACTION ROW (Balanced 3-Button Single Row with 44px Accessible Touch Targets) */}
-      <div className="px-2.5 pb-2.5 sm:px-3.5 sm:pb-3.5 pt-2 border-t border-slate-100 flex items-center gap-1.5">
+      {/* 3. UNIFIED ACTION ROW (Equal 3-Column Grid on Mobile prevents clipping, Flexible Row on sm+) */}
+      <div className="px-2 pb-2 sm:px-3.5 sm:pb-3.5 pt-2 border-t border-slate-100 grid grid-cols-3 sm:flex items-center gap-1 sm:gap-1.5">
         {/* Main CTA: Add to Bag */}
         <button
           onClick={handleAddToCart}
-          className={`flex-1 min-w-[44px] py-2 sm:py-2.5 px-2 rounded-xl sm:rounded-2xl font-bold flex items-center justify-center gap-1.5 transition-all min-h-[44px] shadow-sm cursor-pointer ${
+          className={`w-full sm:flex-1 min-w-0 h-[42px] sm:h-11 py-1.5 sm:py-2 px-1.5 sm:px-2.5 rounded-xl sm:rounded-2xl font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer ${
             justAdded
               ? 'bg-emerald-600 text-white shadow-emerald-600/20'
               : isOutOfStock
@@ -375,12 +375,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {justAdded ? (
             <>
               <Check className="w-4 h-4 shrink-0 animate-in zoom-in" />
-              <span className="hidden sm:inline text-xs sm:text-sm">{lang === 'ar' ? 'تمت الإضافة ✓' : 'Added ✓'}</span>
+              <span className="hidden sm:inline text-xs sm:text-sm truncate">{lang === 'ar' ? 'تمت الإضافة ✓' : 'Added ✓'}</span>
             </>
           ) : isOutOfStock ? (
             <>
               <WhatsAppIcon variant="white" className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline text-xs sm:text-sm truncate">{lang === 'ar' ? 'حجز بالواتساب' : 'WhatsApp'}</span>
+              <span className="hidden sm:inline text-xs sm:text-sm truncate">{lang === 'ar' ? 'حجز واتساب' : 'WhatsApp'}</span>
             </>
           ) : (
             <>
@@ -400,22 +400,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }
             setIsCompareModalOpen(true);
           }}
-          className={`w-11 h-11 shrink-0 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center relative min-h-[44px] min-w-[44px] shadow-2xs hover:scale-105 active:scale-95 cursor-pointer ${
+          className={`w-full sm:w-11 h-[42px] sm:h-11 min-w-0 shrink-0 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center relative shadow-2xs hover:scale-105 active:scale-95 cursor-pointer ${
             isCompared
               ? 'bg-[#5A3E7A] text-white border-[#5A3E7A] shadow-purple-900/20'
-              : 'bg-purple-50/80 hover:bg-purple-100 text-[#5A3E7A] border-purple-200/80'
+              : 'bg-purple-50/70 hover:bg-purple-100 text-[#5A3E7A] border-purple-200/70'
           }`}
           title={lang === 'ar' ? 'مقارنة هذا المنتج' : 'Compare Specs'}
           aria-label={lang === 'ar' ? 'مقارنة هذا المنتج' : 'Compare Specs'}
         >
-          <ArrowLeftRight className="w-4 h-4" />
+          <ArrowLeftRight className="w-4 h-4 shrink-0" />
         </button>
 
         {/* Quick Direct WhatsApp Order Button (Official Brand Icon) */}
         <button
           type="button"
           onClick={handleWhatsAppOrder}
-          className="w-11 h-11 shrink-0 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50/90 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/90 transition-all flex items-center justify-center relative min-h-[44px] min-w-[44px] shadow-2xs hover:shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+          className="w-full sm:w-11 h-[42px] sm:h-11 min-w-0 shrink-0 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50/90 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/90 transition-all flex items-center justify-center relative shadow-2xs hover:shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
           title={lang === 'ar' ? 'طلب مباشر وسريع عبر واتساب' : 'Direct WhatsApp Order'}
           aria-label="Direct WhatsApp Order"
         >

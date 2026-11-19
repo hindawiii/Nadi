@@ -182,7 +182,7 @@ const AppContent: React.FC = () => {
   const isControlPanelRoute = currentRoute === 'admin' || currentRoute === 'developer';
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-purple-600 selection:text-white flex flex-col justify-between overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-purple-600 selection:text-white flex flex-col justify-between overflow-x-clip">
       <div className="flex-1 flex flex-col">
         {!isControlPanelRoute && <Header onOpenMobileMenu={() => setIsMobileDrawerOpen(true)} />}
 
@@ -248,7 +248,7 @@ const AppContent: React.FC = () => {
 
       {/* Floating Comparison Drawer Trigger Bar (Centered cleanly between corner FABs) */}
       {comparisonList.length > 0 && !isControlPanelRoute && (
-        <div className="fixed bottom-4 start-1/2 -translate-x-1/2 z-30 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed bottom-4 inset-x-0 mx-auto w-fit z-30 animate-in slide-in-from-bottom duration-300">
           <button
             type="button"
             onClick={() => setIsCompareModalOpen(true)}

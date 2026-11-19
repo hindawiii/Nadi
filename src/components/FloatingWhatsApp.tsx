@@ -465,8 +465,8 @@ export const FloatingWhatsApp: React.FC = () => {
           touchAction: 'none',
         } : undefined}
         className={!position 
-          ? "fixed bottom-4 end-4 sm:bottom-6 sm:end-6 z-40 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center select-none touch-none" 
-          : "fixed z-40 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center select-none touch-none"}
+          ? "fixed bottom-4 end-4 sm:bottom-6 sm:end-6 z-50 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center select-none touch-none" 
+          : "fixed z-50 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center select-none touch-none"}
       >
         
         {/* ========================================================================= */}

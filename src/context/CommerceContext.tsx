@@ -30,10 +30,19 @@ import { testConnection, auth } from '../lib/firebase';
 import {
   hashSecretSync,
   verifySecretSync,
-  obfuscateKey,
   generateOrderId,
   generateTrackingCode
 } from '../lib/security';
+import {
+  clearCustomerSessionCache,
+  getRememberMePreference,
+  readCustomerSessionCache,
+  saveCustomerSessionCache,
+} from '../lib/authPersistence';
+import {
+  buildSanitizedTemplateExport,
+  stripSensitiveKeysDeep,
+} from '../lib/exportSanitizer';
 import { hairStylingDevices } from '../components/HairDevicesSpotlight';
 
 export interface CartItem {
@@ -157,6 +166,7 @@ interface CommerceContextType {
   loginAdmin: (pin: string, rememberLogin?: boolean, rememberPin?: boolean) => boolean;
   logoutAdmin: () => void;
   updateAdminPin: (newPin: string) => boolean;
+  resetAdminPinWithOwnerAuth: (newPin: string) => boolean;
   
   isDevAuthenticated: boolean;
   loginDeveloper: (pin: string, rememberLogin?: boolean, rememberPin?: boolean) => boolean;
@@ -484,6 +494,10 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           });
         }
 
+        if (!parsed.security || typeof parsed.security !== 'object') {
+          parsed.security = JSON.parse(JSON.stringify(siteConfig.security));
+        }
+
         return parsed;
       } catch (e) {
         console.error('Failed to parse config from storage', e);
@@ -502,12 +516,9 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Universal Storefront Scroll Memory for Zero-Delay Return from ANY page
   const lastStoreScrollYRef = useRef<number>(0);
   const lastViewedProductIdRef = useRef<string | undefined>(undefined);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return safeStorage.getItem('luxe_admin_auth_saved') === 'true';
-  });
-  const [isDevAuthenticated, setIsDevAuthenticated] = useState<boolean>(() => {
-    return safeStorage.getItem('luxe_dev_auth_saved') === 'true';
-  });
+  // Session-only in-memory admin/developer unlock state (never hydrated from spoofable localStorage flags)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  const [isDevAuthenticated, setIsDevAuthenticated] = useState<boolean>(false);
 
   // Persistent Cart in LocalStorage
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -624,14 +635,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isReviewModalOpen, setIsReviewModalOpen] = useState<boolean>(false);
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
   const [customerUser, setCustomerUser] = useState<CustomerSessionUser | null>(() => {
-    try {
-      const saved = safeStorage.getItem('luxe_customer_user');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed.uid === 'string') return parsed;
-      }
-    } catch (_) {}
-    return null;
+    const cached = readCustomerSessionCache();
+    return cached ? (cached as CustomerSessionUser) : null;
   });
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -645,7 +650,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.warn('Firebase sign-out warning:', err);
     }
     setCustomerUser(null);
-    safeStorage.removeItem('luxe_customer_user');
+    clearCustomerSessionCache();
     showToast(lang === 'ar' ? 'تم تسجيل الخروج بنجاح' : 'Signed out successfully');
   };
 
@@ -994,7 +999,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       paletteId: activePaletteId,
       typographyId: activeTypographyId,
       customPalette,
-      presetData: JSON.parse(JSON.stringify(currentPreset))
+      presetData: stripSensitiveKeysDeep(JSON.parse(JSON.stringify(currentPreset)))
     };
 
     setSavedCustomTemplates(prev => {
@@ -1027,7 +1032,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       id: target.id,
       name: target.name,
       nicheLabel: target.name,
-      badge: { ar: 'قالبك المحفوظ 💾', en: 'Saved Template 💾' },
+      badge: { ar: 'قالبك المحفوظ', en: 'Saved Template' },
       description: { ar: 'قالبك المخصص الذي تم حفظه محلياً', en: 'Your locally saved custom template' },
       previewImage: target.presetData.heroImage || '',
       paletteId: target.paletteId,
@@ -1050,23 +1055,24 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     showToast({
       type: 'success',
       message: lang === 'ar' 
-        ? 'تم حفظ نقطة الاستقرار الذهبية للمتجر وتجميدها بنجاح 🛡️' 
-        : 'Golden Stability Snapshot created and locked successfully 🛡️'
+        ? 'تم حفظ نقطة الاستقرار الذهبية للمتجر وتجميدها بنجاح' 
+        : 'Golden Stability Snapshot created and locked successfully'
     });
   };
 
   const rollbackToGoldenState = () => {
-    const res = restoreGoldenState();
+    const res = restoreGoldenState(dynamicConfig.security);
     if (res.success && res.config) {
       setDynamicConfig(res.config);
       try {
-        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(res.config));
+        const { security: _omitSecurity, ...storableConfig } = res.config;
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(storableConfig));
       } catch (e) {}
       showToast({
         type: 'success',
         message: lang === 'ar' 
-          ? 'تم التراجع واستعادة الحالة الذهبية المستقرة بنجاح 🔄' 
-          : 'Successfully restored store to the Golden Stable state 🔄'
+          ? 'تم التراجع واستعادة الحالة الذهبية المستقرة بنجاح' 
+          : 'Successfully restored store to the Golden Stable state'
       });
     } else {
       showToast({
@@ -1077,14 +1083,12 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const exportCurrentTemplate = (): string => {
-    const exportData = {
-      version: '2.0.0',
-      exportedAt: new Date().toISOString(),
+    const exportData = buildSanitizedTemplateExport({
       paletteId: activePaletteId,
       typographyId: activeTypographyId,
       customPalette,
-      presetData: dynamicConfig.presets[activePresetId]
-    };
+      presetData: dynamicConfig.presets[activePresetId],
+    });
     return JSON.stringify(exportData, null, 2);
   };
 
@@ -1262,6 +1266,18 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     let unsubOrders: (() => void) | undefined;
     let unsubReviews: (() => void) | undefined;
 
+    // Purge any legacy client-side auth bypass or cached PIN keys from earlier versions
+    [
+      'luxe_admin_auth_saved',
+      'luxe_dev_auth_saved',
+      'luxe_admin_saved_pin',
+      'luxe_dev_saved_pin',
+      'luxe_admin_auth_saved_pref',
+      'luxe_dev_auth_saved_pref',
+      'luxe_admin_saved_pin_pref',
+      'luxe_dev_saved_pin_pref',
+    ].forEach((legacyKey) => safeStorage.removeItem(legacyKey));
+
     testConnection().catch(() => {});
 
     const unsubAuth = onAuthStateChanged(auth, async (fbUser) => {
@@ -1281,6 +1297,12 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsCloudAdminVerified(verifiedAdmin);
       setFirebaseAdminEmail(fbUser?.email || null);
 
+      // Immediately revoke in-memory Admin/Developer sessions if Firebase owner identity is lost
+      if (!verifiedAdmin) {
+        setIsAdminAuthenticated(false);
+        setIsDevAuthenticated(false);
+      }
+
       if (fbUser) {
         const resolvedName =
           fbUser.displayName ||
@@ -1294,12 +1316,10 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           provider: fbUser.providerData?.[0]?.providerId || 'firebase',
         };
         setCustomerUser(nextUser);
-        try {
-          safeStorage.setItem('luxe_customer_user', JSON.stringify(nextUser));
-        } catch (_) {}
+        saveCustomerSessionCache(nextUser, getRememberMePreference());
       } else {
         setCustomerUser(null);
-        safeStorage.removeItem('luxe_customer_user');
+        clearCustomerSessionCache();
       }
 
       // Attach live reviews subscription (approved-only for public visitors; all statuses for verified Admin)
@@ -1974,8 +1994,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           type: 'wishlist_add',
           productName: prodName,
           message: prodName
-            ? (lang === 'ar' ? `تم حفظ "${prodName}" في المفضلة ❤️` : `Saved "${prodName}" to wishlist ❤️`)
-            : (lang === 'ar' ? 'تمت إضافة المنتج إلى المفضلة ❤️' : 'Added to wishlist ❤️'),
+            ? (lang === 'ar' ? `تم حفظ "${prodName}" في المفضلة` : `Saved "${prodName}" to wishlist`)
+            : (lang === 'ar' ? 'تمت إضافة المنتج إلى المفضلة' : 'Added to wishlist'),
           actionText: lang === 'ar' ? 'عرض المفضلة' : 'View Wishlist',
           onAction: () => navigateTo('wishlist')
         });
@@ -2036,23 +2056,37 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     restoreStoreScroll();
   };
 
-  const loginAdmin = (pin: string, rememberLogin: boolean = false, rememberPin: boolean = false) => {
+  const isVerifiedCloudOwner = (): boolean => {
+    const fbUser = auth.currentUser;
+    return Boolean(fbUser && fbUser.emailVerified && fbUser.email === 'mohsentiben@gmail.com');
+  };
+
+  const purgeLegacyPortalStorageKeys = () => {
+    [
+      'luxe_admin_auth_saved',
+      'luxe_dev_auth_saved',
+      'luxe_admin_saved_pin',
+      'luxe_dev_saved_pin',
+      'luxe_admin_auth_saved_pref',
+      'luxe_dev_auth_saved_pref',
+      'luxe_admin_saved_pin_pref',
+      'luxe_dev_saved_pin_pref',
+    ].forEach((k) => safeStorage.removeItem(k));
+  };
+
+  const loginAdmin = (pin: string) => {
+    // Strictly require verified Firebase Cloud Owner identity before accepting the secondary local PIN
+    if (!isVerifiedCloudOwner()) {
+      setIsAdminAuthenticated(false);
+      return false;
+    }
     const cleanPin = pin.trim();
     const storedPin = dynamicConfig.security.adminPin;
     const isMatched = verifySecretSync(cleanPin, storedPin);
 
     if (isMatched) {
       setIsAdminAuthenticated(true);
-      if (rememberLogin) {
-        safeStorage.setItem('luxe_admin_auth_saved', 'true');
-      } else {
-        safeStorage.removeItem('luxe_admin_auth_saved');
-      }
-      if (rememberPin) {
-        safeStorage.setItem('luxe_admin_saved_pin', obfuscateKey(cleanPin));
-      } else {
-        safeStorage.removeItem('luxe_admin_saved_pin');
-      }
+      purgeLegacyPortalStorageKeys();
       return true;
     }
     return false;
@@ -2076,35 +2110,57 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } catch (e) {}
       return clone;
     });
-    try {
-      localStorage.removeItem('luxe_admin_saved_pin');
-    } catch (_) {}
+    purgeLegacyPortalStorageKeys();
     showToast(lang === 'ar' ? 'تم تحديث وتشفير رمز الأدمن السري الجديد بنجاح!' : 'Admin PIN updated and encrypted successfully!');
+    return true;
+  };
+
+  const resetAdminPinWithOwnerAuth = (newPin: string): boolean => {
+    if (!isVerifiedCloudOwner()) {
+      showToast(lang === 'ar' ? 'يجب توثيق هوية المالك عبر Google أولاً لاستعادة رمز الإدارة.' : 'Verified owner Google login required to reset Admin PIN.');
+      return false;
+    }
+    const cleanPin = newPin.trim();
+    if (!/^\d{4}$/.test(cleanPin)) {
+      showToast(lang === 'ar' ? 'يرجى إدخال رمز جديد مكون من 4 أرقام' : 'Please enter a valid 4-digit numeric PIN');
+      return false;
+    }
+    const hashedPin = hashSecretSync(cleanPin);
+    setDynamicConfig((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      if (!clone.security) {
+        clone.security = { ...siteConfig.security };
+      }
+      clone.security.adminPin = hashedPin;
+      try {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(clone));
+      } catch (e) {}
+      return clone;
+    });
+    purgeLegacyPortalStorageKeys();
+    setIsAdminAuthenticated(true);
+    showToast(lang === 'ar' ? 'تم تعيين رمز الإدارة الجديد بنجاح بعد التحقق السحابي!' : 'Admin PIN securely updated after Google verification!');
     return true;
   };
 
   const logoutAdmin = () => {
     setIsAdminAuthenticated(false);
-    safeStorage.removeItem('luxe_admin_auth_saved');
+    purgeLegacyPortalStorageKeys();
   };
 
-  const loginDeveloper = (pin: string, rememberLogin: boolean = false, rememberPin: boolean = false) => {
+  const loginDeveloper = (pin: string) => {
+    // Strictly require verified Firebase Cloud Owner identity before accepting the secondary local PIN
+    if (!isVerifiedCloudOwner()) {
+      setIsDevAuthenticated(false);
+      return false;
+    }
     const cleanPin = pin.trim();
     const storedPin = dynamicConfig.security.developerPin;
     const isMatched = verifySecretSync(cleanPin, storedPin);
 
     if (isMatched) {
       setIsDevAuthenticated(true);
-      if (rememberLogin) {
-        safeStorage.setItem('luxe_dev_auth_saved', 'true');
-      } else {
-        safeStorage.removeItem('luxe_dev_auth_saved');
-      }
-      if (rememberPin) {
-        safeStorage.setItem('luxe_dev_saved_pin', obfuscateKey(cleanPin));
-      } else {
-        safeStorage.removeItem('luxe_dev_saved_pin');
-      }
+      purgeLegacyPortalStorageKeys();
       return true;
     }
     return false;
@@ -2128,19 +2184,13 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } catch (e) {}
       return clone;
     });
-    try {
-      localStorage.removeItem('luxe_dev_saved_pin');
-    } catch (_) {}
+    purgeLegacyPortalStorageKeys();
     showToast(lang === 'ar' ? 'تم تحديث وتشفير رمز المطور السري الجديد بنجاح!' : 'Developer PIN updated and encrypted successfully!');
     return true;
   };
 
   const resetDeveloperPinWithAdminAuth = (newPin: string): boolean => {
-    const fbUser = auth.currentUser;
-    const isVerifiedOwner = Boolean(
-      fbUser && fbUser.emailVerified && fbUser.email === 'mohsentiben@gmail.com'
-    );
-    if (!isVerifiedOwner) {
+    if (!isVerifiedCloudOwner()) {
       showToast(lang === 'ar' ? 'يجب توثيق هوية المالك عبر Google أولاً لاستعادة الرمز.' : 'Verified owner Google login required to reset PIN.');
       return false;
     }
@@ -2161,9 +2211,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } catch (e) {}
       return clone;
     });
-    try {
-      localStorage.removeItem('luxe_dev_saved_pin');
-    } catch (_) {}
+    purgeLegacyPortalStorageKeys();
     setIsDevAuthenticated(true);
     showToast(lang === 'ar' ? 'تم تعيين رمز المطور الجديد بنجاح بعد التحقق السحابي!' : 'Developer PIN securely updated after Google verification!');
     return true;
@@ -2171,7 +2219,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const logoutDeveloper = () => {
     setIsDevAuthenticated(false);
-    safeStorage.removeItem('luxe_dev_auth_saved');
+    purgeLegacyPortalStorageKeys();
   };
 
   const toggleLockDeveloperMode = () => {
@@ -2407,6 +2455,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         loginAdmin,
         logoutAdmin,
         updateAdminPin,
+        resetAdminPinWithOwnerAuth,
         isDevAuthenticated,
         loginDeveloper,
         logoutDeveloper,

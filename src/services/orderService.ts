@@ -211,6 +211,7 @@ export async function persistOrderToCloud(order: OrderRecord): Promise<boolean> 
 
 /**
  * Atomically update the status of an existing order and its public tracking projection in Firestore (Admin only).
+ * Self-heals legacy orders that were created before `/tracking/{code}` existed so batch updates never fail with NOT_FOUND.
  */
 export async function updateOrderStatusInCloud(
   orderId: string,
@@ -219,17 +220,42 @@ export async function updateOrderStatusInCloud(
 ): Promise<boolean> {
   const orderPath = `${ORDERS_COLLECTION}/${orderId}`;
   try {
-    const batch = writeBatch(db);
     const orderDocRef = doc(db, ORDERS_COLLECTION, orderId);
+    const orderSnap = await getDoc(orderDocRef);
+    if (!orderSnap.exists()) {
+      return false;
+    }
+
+    const batch = writeBatch(db);
     batch.update(orderDocRef, { status });
 
-    if (trackingCode && trackingCode.trim()) {
-      const cleanTracking = trackingCode.trim().slice(0, 64);
-      const trackingDocRef = doc(db, TRACKING_COLLECTION, cleanTracking);
-      batch.update(trackingDocRef, {
-        status,
-        updatedAt: new Date().toISOString().slice(0, 64),
-      });
+    const existingOrderData = orderSnap.data() as Partial<OrderRecord>;
+    const resolvedTracking = (trackingCode || existingOrderData.trackingCode || '').trim().slice(0, 64);
+
+    if (resolvedTracking) {
+      const trackingDocRef = doc(db, TRACKING_COLLECTION, resolvedTracking);
+      const trackingSnap = await getDoc(trackingDocRef);
+      if (trackingSnap.exists()) {
+        batch.update(trackingDocRef, {
+          status,
+          updatedAt: new Date().toISOString().slice(0, 64),
+        });
+      } else {
+        // Backfill missing tracking projection atomically for legacy orders
+        const backfillPayload = buildTrackingPayload({
+          id: orderId,
+          date: existingOrderData.date || new Date().toISOString().slice(0, 16).replace('T', ' '),
+          customerName: existingOrderData.customerName || '',
+          phone: existingOrderData.phone || '',
+          address: existingOrderData.address || '',
+          items: existingOrderData.items || [],
+          totalFormatted: existingOrderData.totalFormatted || '0',
+          currency: existingOrderData.currency || 'USD',
+          status,
+          trackingCode: resolvedTracking,
+        });
+        batch.set(trackingDocRef, backfillPayload);
+      }
     }
 
     await batch.commit();

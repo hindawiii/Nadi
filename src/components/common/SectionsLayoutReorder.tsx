@@ -155,7 +155,7 @@ export const SectionsLayoutReorder: React.FC<{
           </h3>
           <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
             {lang === 'ar' 
-              ? 'يمكنك سحب وإفلات أي قسم لتغيير مكانه، أو استخدام أسهم التقديم والتأخير (⬆️ / ⬇️)، كما يمكنك تفعيل أو إخفاء أي قسم بنقرة واحدة.'
+              ? 'يمكنك سحب وإفلات أي قسم لتغيير مكانه، أو استخدام أزرار التقديم والتأخير (أعلى / أسفل)، كما يمكنك تفعيل أو إخفاء أي قسم بنقرة واحدة.'
               : 'Drag & drop sections or use arrow buttons to arrange storefront order. Toggle visibility instantly.'}
           </p>
         </div>

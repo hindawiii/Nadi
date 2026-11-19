@@ -150,8 +150,8 @@ export const CompareModal: React.FC = () => {
                     </p>
                     <p className="text-[10px] sm:text-xs text-purple-900/80">
                       {lang === 'ar'
-                        ? 'أضيفي منتجاً ثانياً من المقترحات بالأسفل ليظهرا كرتين جنباً إلى جنب ⬇️'
-                        : 'Pick a 2nd product below to compare both side-by-side ⬇️'}
+                        ? 'أضيفي منتجاً ثانياً من المقترحات بالأسفل ليظهرا كرتين جنباً إلى جنب'
+                        : 'Pick a 2nd product below to compare both side-by-side'}
                     </p>
                   </div>
                 </div>
@@ -311,7 +311,7 @@ export const CompareModal: React.FC = () => {
                         : 'Pick from suggested products below to compare side-by-side'}
                     </p>
                     <p className="text-[10px] text-purple-700 font-bold sm:hidden">
-                      {lang === 'ar' ? 'اختاري من المقترحات أدناه ⬇️' : 'Choose below ⬇️'}
+                      {lang === 'ar' ? 'اختاري من المقترحات أدناه' : 'Choose below'}
                     </p>
                   </div>
                 )}

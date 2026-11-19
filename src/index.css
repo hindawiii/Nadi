@@ -24,7 +24,7 @@
   --font-heading-ar-family: 'El Messiri', 'Cairo', serif;
   --font-heading-en-family: 'Playfair Display', 'Cinzel', Georgia, serif;
   --font-body-ar-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body-en-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body-en-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-line-height: 1.625;
 }
 
@@ -75,21 +75,21 @@
 }
 
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
   font-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-tap-highlight-color: transparent;
   line-height: 1.625;
-  overflow-x: hidden;
+  overflow-x: clip;
   background-color: #fafafa;
   color: #0f172a;
 }
 
 [dir="ltr"] body,
 [dir="ltr"] {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 [dir="rtl"] body,

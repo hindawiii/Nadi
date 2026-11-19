@@ -1,28 +1,36 @@
 import React, { useState } from 'react';
-import { 
-  Mail, User, ArrowLeft, ArrowRight, 
-  Droplets, ShieldCheck, CheckCircle2, 
-  ShoppingBag, KeyRound 
+import {
+  Mail,
+  User,
+  ArrowLeft,
+  ArrowRight,
+  ShieldCheck,
+  ShoppingBag,
+  KeyRound,
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
-import { SmartPasswordInput, SmartPhoneInput } from './SmartInputField';
+import { SmartPasswordInput } from './SmartInputField';
 import { auth } from '../lib/firebase';
-import { 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  updateProfile 
+  updateProfile,
 } from 'firebase/auth';
+import {
+  applyFirebaseAuthPersistence,
+  saveCustomerSessionCache,
+} from '../lib/authPersistence';
 
-type AuthTab = 'signin' | 'register' | 'forgot';
+type AuthMode = 'signin' | 'register' | 'forgot';
 
 export const LoginPageView: React.FC = () => {
   const { lang, activeData, navigateTo, showToast, cartCount } = useCommerce();
   const isRtl = lang === 'ar';
 
-  const [activeTab, setActiveTab] = useState<AuthTab>('signin');
+  const [authMode, setAuthMode] = useState<AuthMode>('signin');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
@@ -30,169 +38,211 @@ export const LoginPageView: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
 
-  // Helper to resolve Firebase error codes to friendly bilingual messages
+  // Map Firebase Auth error codes to clear bilingual feedback
   const getFirebaseAuthErrorMessage = (code: string): string => {
     switch (code) {
       case 'auth/user-not-found':
-        return lang === 'ar' ? 'البريد الإلكتروني غير مسجل في المتجر، يمكنكِ إنشاء حساب جديد' : 'No account found with this email. You can register.';
+        return lang === 'ar'
+          ? 'البريد الإلكتروني غير مسجل في المتجر، يمكنكِ إنشاء حساب جديد'
+          : 'No account found with this email. You can create a new account.';
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
-        return lang === 'ar' ? 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى' : 'Incorrect password, please try again.';
+        return lang === 'ar'
+          ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة، يرجى المحاولة مجدداً'
+          : 'Incorrect email or password, please try again.';
       case 'auth/email-already-in-use':
-        return lang === 'ar' ? 'هذا البريد مسجل مسبقاً، يرجى تسجيل الدخول مباشرة' : 'This email is already registered. Please sign in.';
+        return lang === 'ar'
+          ? 'هذا البريد مسجل مسبقاً، يرجى تسجيل الدخول مباشرة'
+          : 'This email is already registered. Please sign in directly.';
       case 'auth/weak-password':
-        return lang === 'ar' ? 'كلمة المرور ضعيفة جداً، يرجى اختيار كلمة مرور من 6 خانات فأكثر' : 'Password is too weak. Please use at least 6 characters.';
+        return lang === 'ar'
+          ? 'كلمة المرور ضعيفة، يرجى اختيار 6 خانات على الأقل'
+          : 'Password is too weak. Please use at least 6 characters.';
       case 'auth/invalid-email':
-        return lang === 'ar' ? 'صيغة البريد الإلكتروني غير صالحة' : 'Invalid email address format.';
+        return lang === 'ar'
+          ? 'صيغة البريد الإلكتروني غير صالحة'
+          : 'Invalid email address format.';
       case 'auth/popup-closed-by-user':
-        return lang === 'ar' ? 'تم إلغاء نافذة تسجيل الدخول' : 'Sign-in window was closed.';
+        return lang === 'ar'
+          ? 'تم إغلاق نافذة تسجيل الدخول قبل إتمام العملية'
+          : 'Sign-in window was closed before completing.';
       case 'auth/popup-blocked':
-        return lang === 'ar' ? 'المتصفح حظر النافذة المنبثقة، يرجى السماح بها' : 'Sign-in popup was blocked by browser.';
+        return lang === 'ar'
+          ? 'المتصفح حظر النافذة المنبثقة، يرجى السماح بالنوافذ المنبثقة ثم المحاولة مجدداً'
+          : 'Sign-in popup was blocked by your browser. Please allow popups and try again.';
+      case 'auth/operation-not-allowed':
+        return lang === 'ar'
+          ? 'تسجيل الدخول بالبريد غير مفعّل حالياً؛ يرجى استخدام الدخول السريع عبر Google أعلاه.'
+          : 'Email sign-in is not enabled yet. Please use Fast Sign-In with Google above.';
       default:
-        return lang === 'ar' ? 'تعذر إتمام العملية حالياً، يرجى التحقق من الاتصال' : 'Operation could not be completed. Please check connection.';
+        return lang === 'ar'
+          ? 'تعذر إتمام العملية حالياً، يرجى التحقق من اتصال الإنترنت والمحاولة مجدداً'
+          : 'Could not complete sign-in right now. Please check your connection.';
     }
   };
 
-  // Google One-Click Auth via Firebase
+  // Primary 1-Tap Verified Google Auth via Firebase
   const handleGoogleAuth = async () => {
     setIsSubmitting(true);
     try {
+      await applyFirebaseAuthPersistence(auth, rememberMe);
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const res = await signInWithPopup(auth, provider);
       const user = res.user;
-      const resolvedName = user.displayName || user.email?.split('@')[0] || (lang === 'ar' ? 'عميلة نَــدِي' : 'NADI Customer');
+      const resolvedName =
+        user.displayName ||
+        user.email?.split('@')[0] ||
+        (lang === 'ar' ? 'عميلة نَـدِي' : 'NADI Customer');
 
-      try {
-        localStorage.setItem('luxe_customer_user', JSON.stringify({
+      saveCustomerSessionCache(
+        {
           uid: user.uid,
           email: user.email,
           name: resolvedName,
           photoURL: user.photoURL,
           provider: 'google',
-          authenticatedAt: new Date().toISOString()
-        }));
-      } catch (_) {}
-
-      showToast(
-        lang === 'ar' 
-          ? `مرحباً بكِ مجدداً ${resolvedName}! تم تسجيل دخولكِ بنجاح عبر حساب Google` 
-          : `Welcome back ${resolvedName}! Signed in successfully with Google`
+          authenticatedAt: new Date().toISOString(),
+        },
+        rememberMe
       );
 
-      if (cartCount > 0) {
-        navigateTo('cart');
-      } else {
-        navigateTo('store');
-      }
-    } catch (err: any) {
+      showToast(
+        lang === 'ar'
+          ? `مرحباً بكِ ${resolvedName}! تم تسجيل دخولكِ بنجاح عبر Google`
+          : `Welcome ${resolvedName}! Signed in successfully with Google`
+      );
+
+      navigateTo(cartCount > 0 ? 'cart' : 'store');
+    } catch (err: unknown) {
+      const authError = err as { code?: string };
       console.warn('Firebase Google Auth error:', err);
-      showToast(getFirebaseAuthErrorMessage(err?.code || ''));
+      showToast(getFirebaseAuthErrorMessage(authError?.code || ''));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Apple One-Click Auth
-  const handleAppleAuth = () => {
-    showToast(
-      lang === 'ar' 
-        ? 'تسجيل الدخول عبر Apple ID قيد الاعتماد، يرجى استخدام حساب Google أو البريد الإلكتروني' 
-        : 'Apple ID sign-in pending configuration. Please use Google or Email.'
-    );
-  };
-
-  // Email / Password / PIN Submit
+  // Email / Password / Recovery Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (activeTab === 'signin') {
-      if (!email || !password) {
-        showToast(lang === 'ar' ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور' : 'Please provide both email and password');
+    if (authMode === 'signin') {
+      if (!email.trim() || !password) {
+        showToast(
+          lang === 'ar'
+            ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور'
+            : 'Please enter both email and password'
+        );
         return;
       }
 
       setIsSubmitting(true);
       try {
+        await applyFirebaseAuthPersistence(auth, rememberMe);
         const res = await signInWithEmailAndPassword(auth, email.trim(), password);
-        const resolvedName = res.user.displayName || email.split('@')[0];
+        const resolvedName = res.user.displayName || email.trim().split('@')[0];
 
-        try {
-          localStorage.setItem('luxe_customer_user', JSON.stringify({
+        saveCustomerSessionCache(
+          {
             uid: res.user.uid,
             email: res.user.email,
             name: resolvedName,
             provider: 'email',
-            authenticatedAt: new Date().toISOString()
-          }));
-        } catch (_) {}
+            authenticatedAt: new Date().toISOString(),
+          },
+          rememberMe
+        );
 
         showToast(
-          lang === 'ar' 
-            ? `أهلاً بكِ مجدداً في ${activeData.storeName.ar}! تم تسجيل الدخول بنجاح` 
+          lang === 'ar'
+            ? `أهلاً بكِ مجدداً في ${activeData.storeName.ar}! تم تسجيل الدخول بنجاح`
             : `Welcome back to ${activeData.storeName.en}! Signed in successfully`
         );
 
-        if (cartCount > 0) {
-          navigateTo('cart');
-        } else {
-          navigateTo('store');
-        }
-      } catch (err: any) {
+        navigateTo(cartCount > 0 ? 'cart' : 'store');
+      } catch (err: unknown) {
+        const authError = err as { code?: string };
         console.warn('Sign-in error:', err);
-        showToast(getFirebaseAuthErrorMessage(err?.code || ''));
+        showToast(getFirebaseAuthErrorMessage(authError?.code || ''));
       } finally {
         setIsSubmitting(false);
       }
-    } else if (activeTab === 'register') {
-      if (!fullName || !email || !password) {
-        showToast(lang === 'ar' ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
+      return;
+    }
+
+    if (authMode === 'register') {
+      if (!fullName.trim() || !email.trim() || !password) {
+        showToast(
+          lang === 'ar'
+            ? 'يرجى ملء جميع الحقول المطلوبة'
+            : 'Please fill in all required fields'
+        );
         return;
       }
       if (password !== confirmPassword) {
-        showToast(lang === 'ar' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match');
+        showToast(
+          lang === 'ar'
+            ? 'كلمات المرور غير متطابقة'
+            : 'Passwords do not match'
+        );
         return;
       }
       if (password.length < 6) {
-        showToast(lang === 'ar' ? 'كلمة المرور يجب ألا تقل عن 6 خانات' : 'Password must be at least 6 characters');
+        showToast(
+          lang === 'ar'
+            ? 'كلمة المرور يجب ألا تقل عن 6 خانات'
+            : 'Password must be at least 6 characters'
+        );
         return;
       }
 
       setIsSubmitting(true);
       try {
+        await applyFirebaseAuthPersistence(auth, rememberMe);
         const res = await createUserWithEmailAndPassword(auth, email.trim(), password);
         try {
           await updateProfile(res.user, { displayName: fullName.trim() });
-        } catch (_) {}
+        } catch {
+          // Non-fatal profile display name sync error
+        }
 
-        try {
-          localStorage.setItem('luxe_customer_user', JSON.stringify({
+        saveCustomerSessionCache(
+          {
             uid: res.user.uid,
             email: res.user.email,
             name: fullName.trim(),
             provider: 'email',
-            authenticatedAt: new Date().toISOString()
-          }));
-        } catch (_) {}
+            authenticatedAt: new Date().toISOString(),
+          },
+          rememberMe
+        );
 
         showToast(
-          lang === 'ar' 
-            ? `مرحباً بكِ ${fullName}! تم إنشاء حسابكِ الفاخر في متجر ${activeData.storeName.ar} بنجاح 🎉` 
-            : `Welcome ${fullName}! Your luxury account has been created 🎉`
+          lang === 'ar'
+            ? `مرحباً بكِ ${fullName.trim()}! تم إنشاء حسابكِ في ${activeData.storeName.ar} بنجاح`
+            : `Welcome ${fullName.trim()}! Your account has been created`
         );
-        navigateTo('store');
-      } catch (err: any) {
+        navigateTo(cartCount > 0 ? 'cart' : 'store');
+      } catch (err: unknown) {
+        const authError = err as { code?: string };
         console.warn('Registration error:', err);
-        showToast(getFirebaseAuthErrorMessage(err?.code || ''));
+        showToast(getFirebaseAuthErrorMessage(authError?.code || ''));
       } finally {
         setIsSubmitting(false);
       }
-    } else if (activeTab === 'forgot') {
-      if (!email) {
-        showToast(lang === 'ar' ? 'يرجى إدخال البريد الإلكتروني المسجل' : 'Please enter your registered email');
+      return;
+    }
+
+    if (authMode === 'forgot') {
+      if (!email.trim()) {
+        showToast(
+          lang === 'ar'
+            ? 'يرجى إدخال البريد الإلكتروني المسجل'
+            : 'Please enter your registered email address'
+        );
         return;
       }
 
@@ -200,14 +250,15 @@ export const LoginPageView: React.FC = () => {
       try {
         await sendPasswordResetEmail(auth, email.trim());
         showToast(
-          lang === 'ar' 
-            ? 'تم إرسال رابط آمن لإعادة تعيين كلمة المرور إلى بريدك الإلكتروني بنجاح 📧' 
-            : 'Password recovery link has been sent to your email 📧'
+          lang === 'ar'
+            ? 'تم إرسال رابط آمن لإعادة تعيين كلمة المرور إلى بريدكِ الإلكتروني'
+            : 'A secure password reset link has been sent to your email'
         );
-        setActiveTab('signin');
-      } catch (err: any) {
+        setAuthMode('signin');
+      } catch (err: unknown) {
+        const authError = err as { code?: string };
         console.warn('Password reset error:', err);
-        showToast(getFirebaseAuthErrorMessage(err?.code || ''));
+        showToast(getFirebaseAuthErrorMessage(authError?.code || ''));
       } finally {
         setIsSubmitting(false);
       }
@@ -215,241 +266,245 @@ export const LoginPageView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[90vh] py-8 sm:py-14 px-4 sm:px-6 flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-b from-purple-50/40 via-slate-50 to-white selection:bg-[#5A3E7A] selection:text-white">
-      
-      {/* Ambient background architectural blurs */}
-      <div className="absolute top-0 start-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-purple-200/25 blur-3xl pointer-events-none rounded-full" />
-      <div className="absolute bottom-10 start-1/4 w-72 h-72 bg-amber-100/30 blur-3xl pointer-events-none rounded-full" />
+    <div className="min-h-[82vh] py-6 sm:py-10 px-4 sm:px-6 flex flex-col items-center justify-start sm:justify-center relative overflow-hidden bg-gradient-to-b from-purple-50/40 via-slate-50/70 to-white selection:bg-[#5A3E7A] selection:text-white">
+      {/* Subtle Ambient Backdrop */}
+      <div
+        className="absolute top-0 inset-x-0 mx-auto w-full max-w-3xl h-72 bg-purple-200/20 blur-3xl pointer-events-none rounded-full"
+        aria-hidden="true"
+      />
 
-      {/* Top Bar: Return to Store Navigation */}
-      <div className="w-full max-w-lg mb-6 flex items-center justify-between z-10">
+      {/* Compact Top Navigation Bar */}
+      <div className="w-full max-w-md mb-4 flex items-center justify-between gap-3 z-10">
         <button
           type="button"
           onClick={() => navigateTo('store')}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-[#5A3E7A] font-bold text-xs sm:text-sm border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all min-h-[44px] cursor-pointer active:scale-95 group"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/95 hover:bg-white text-slate-700 hover:text-[#5A3E7A] font-semibold text-sm border border-slate-200/90 shadow-2xs transition-colors min-h-[44px] cursor-pointer active:scale-[0.98]"
         >
           {isRtl ? (
-            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-[#5A3E7A] group-hover:translate-x-0.5 transition-transform" />
+            <ArrowRight className="w-4 h-4 text-slate-500 shrink-0" />
           ) : (
-            <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-[#5A3E7A] group-hover:-translate-x-0.5 transition-transform" />
+            <ArrowLeft className="w-4 h-4 text-slate-500 shrink-0" />
           )}
-          <span>{lang === 'ar' ? 'العودة للمتجر الرئيسي' : 'Return to Store'}</span>
+          <span className="whitespace-nowrap">
+            {lang === 'ar' ? 'العودة للمتجر' : 'Back to Store'}
+          </span>
         </button>
 
         {cartCount > 0 && (
           <button
+            type="button"
             onClick={() => navigateTo('cart')}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-purple-100/70 hover:bg-purple-100 text-[#5A3E7A] font-bold text-xs border border-purple-200/70 transition-colors min-h-[44px]"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-purple-50 hover:bg-purple-100/80 text-[#5A3E7A] font-semibold text-sm border border-purple-200/70 transition-colors min-h-[44px] cursor-pointer whitespace-nowrap"
           >
-            <ShoppingBag className="w-3.5 h-3.5" />
+            <ShoppingBag className="w-4 h-4 shrink-0" />
             <span>{lang === 'ar' ? `السلة (${cartCount})` : `Bag (${cartCount})`}</span>
           </button>
         )}
       </div>
 
-      {/* Main Luxury Architectural Auth Card */}
-      <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-10 shadow-2xl border border-purple-100/90 relative z-10 backdrop-blur-md">
-        
-        {/* Brand Lockup: English LARGER than Arabic, Geometric Modern Luxury */}
-        <div 
-          onClick={() => navigateTo('store')}
-          className="cursor-pointer text-center space-y-1 mb-8 flex flex-col items-center justify-center group"
-          title={`${activeData.storeName.en} · ${activeData.storeName.ar}`}
-        >
-          {activeData.storeLogo ? (
-            <img 
-              src={activeData.storeLogo} 
-              alt={`${activeData.storeName.en} - ${activeData.storeName.ar}`} 
-              className="h-12 w-auto max-h-12 object-contain mx-auto my-1" 
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-1.5">
-              {/* English Name: Noticeably larger, modern geometric luxury */}
-              <span className="font-brand-geometric font-black text-2xl sm:text-3xl text-slate-900 group-hover:text-[#5A3E7A] transition-colors tracking-[0.28em] uppercase leading-none">
-                {activeData.storeName.en}
-              </span>
-              {/* Arabic Name: Elongated, bold, balanced underneath with safe spacing */}
-              <div className="flex items-center gap-2">
-                <span className="font-brand-ar font-extrabold text-base sm:text-lg text-slate-800 group-hover:text-[#5A3E7A] transition-colors leading-tight tracking-wide">
-                  {activeData.storeName.ar}
-                </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#5A3E7A]" />
-              </div>
-            </div>
-          )}
-          <p className="text-xs text-[#5A3E7A] mt-2 font-bold flex items-center gap-1.5">
-            <Droplets className="w-3 h-3 text-purple-600" />
-            <span>{activeData.storeSlogan ? activeData.storeSlogan[lang] : (lang === 'ar' ? 'إشراقة طبيعية، تليق بك.' : 'Natural radiance, made for you.')}</span>
+      {/* Main Luxury Editorial Auth Card */}
+      <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-purple-950/[0.05] border border-slate-200/80 relative z-10">
+        {/* Focused Heading (Avoids duplicating the full navbar brand lockup) */}
+        <div className="text-center space-y-1.5 mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 leading-relaxed">
+            {authMode === 'forgot'
+              ? lang === 'ar'
+                ? 'استعادة كلمة المرور'
+                : 'Reset Your Password'
+              : authMode === 'register'
+                ? lang === 'ar'
+                  ? `إنشاء حساب في ${activeData.storeName.ar}`
+                  : `Create Your ${activeData.storeName.en} Account`
+                : lang === 'ar'
+                  ? `أهلاً بكِ في ${activeData.storeName.ar}`
+                  : `Welcome to ${activeData.storeName.en}`}
+          </h1>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            {authMode === 'forgot'
+              ? lang === 'ar'
+                ? 'أدخلي بريدكِ المسجل وسنرسل لكِ رابط إعادة التعيين فوراً.'
+                : 'Enter your registered email and we will send a secure reset link.'
+              : lang === 'ar'
+                ? 'احفظي طلباتكِ ومفضلتكِ وتابعي شحناتكِ من أي جهاز.'
+                : 'Sync your orders, saved wishlist, and live shipment tracking.'}
           </p>
         </div>
 
-        {/* Tab Switcher: Sign In / Create Account / Forgot */}
-        <div className="flex items-center bg-slate-100/90 p-1 rounded-2xl mb-6 border border-slate-200/70">
-          <button
-            type="button"
-            onClick={() => setActiveTab('signin')}
-            className={`flex-1 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl transition-all text-center min-h-[40px] ${
-              activeTab === 'signin'
-                ? 'bg-white text-[#5A3E7A] shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            {lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => setActiveTab('register')}
-            className={`flex-1 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl transition-all text-center min-h-[40px] ${
-              activeTab === 'register'
-                ? 'bg-white text-[#5A3E7A] shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            {lang === 'ar' ? 'إنشاء حساب جديد' : 'New Account'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('forgot')}
-            className={`flex-1 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl transition-all text-center min-h-[40px] ${
-              activeTab === 'forgot'
-                ? 'bg-white text-[#5A3E7A] shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            {lang === 'ar' ? 'استعادة كلمة السر' : 'Reset'}
-          </button>
-        </div>
-
-        {/* 1-Click Fast Social Auth (Google & Apple) */}
-        {activeTab !== 'forgot' && (
+        {/* Hero-First 1-Tap Verified Google Sign-In */}
+        {authMode !== 'forgot' && (
           <div className="space-y-3 mb-6">
-            {/* Google Button */}
             <button
               type="button"
               onClick={handleGoogleAuth}
               disabled={isSubmitting}
-              className="w-full py-3 px-4 rounded-2xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-3 transition-all min-h-[48px] shadow-2xs group"
+              className="w-full px-4 py-3 rounded-2xl bg-[#5A3E7A] hover:bg-[#4A3266] disabled:opacity-60 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-3 transition-all min-h-[48px] shadow-md shadow-[#5A3E7A]/20 active:scale-[0.99] cursor-pointer"
             >
-              <svg className="w-5 h-5 shrink-0 group-hover:scale-105 transition-transform" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
-              <span>{lang === 'ar' ? 'المتابعة الفورية عبر حساب Google' : 'Continue with Google Account'}</span>
+              <span className="w-7 h-7 rounded-full bg-white flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+              </span>
+              <span className="whitespace-nowrap">
+                {lang === 'ar'
+                  ? 'المتابعة السريعة عبر Google'
+                  : 'Continue with Google'}
+              </span>
             </button>
 
-            {/* Apple Button */}
-            <button
-              type="button"
-              onClick={handleAppleAuth}
-              disabled={isSubmitting}
-              className="w-full py-3 px-4 rounded-2xl bg-slate-900 hover:bg-black text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all min-h-[48px] shadow-2xs group"
-            >
-              <span className="text-base leading-none"></span>
-              <span>{lang === 'ar' ? 'المتابعة باستخدام Apple' : 'Continue with Apple'}</span>
-            </button>
+            <p className="text-center text-xs text-slate-500 leading-relaxed">
+              {lang === 'ar'
+                ? 'الدخول الأسرع والموثّق بنقرة واحدة بدون كلمة مرور.'
+                : 'Fastest verified one-tap sign-in with no password required.'}
+            </p>
 
             {/* Hairline Divider */}
-            <div className="relative my-6 text-center">
-              <div className="absolute inset-0 flex items-center">
+            <div className="relative py-2 text-center">
+              <div className="absolute inset-0 flex items-center" aria-hidden="true">
                 <div className="w-full border-t border-slate-200" />
               </div>
-              <span className="relative bg-white px-3 text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                {lang === 'ar' ? 'أو عبر البيانات المباشرة' : 'or continue with direct credentials'}
+              <span className="relative bg-white px-3 text-xs text-slate-500 font-medium">
+                {lang === 'ar' ? 'أو بالبريد الإلكتروني' : 'or with email'}
               </span>
+            </div>
+
+            {/* Clean 2-Tab Single-Line Switcher */}
+            <div
+              className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl border border-slate-200/70"
+              role="tablist"
+              aria-label={lang === 'ar' ? 'طريقة الحساب' : 'Account mode'}
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={authMode === 'signin'}
+                onClick={() => setAuthMode('signin')}
+                className={`py-2.5 px-3 text-sm font-bold rounded-xl transition-all text-center min-h-[44px] whitespace-nowrap cursor-pointer ${
+                  authMode === 'signin'
+                    ? 'bg-white text-[#5A3E7A] shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={authMode === 'register'}
+                onClick={() => setAuthMode('register')}
+                className={`py-2.5 px-3 text-sm font-bold rounded-xl transition-all text-center min-h-[44px] whitespace-nowrap cursor-pointer ${
+                  authMode === 'register'
+                    ? 'bg-white text-[#5A3E7A] shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {lang === 'ar' ? 'حساب جديد' : 'Create Account'}
+              </button>
             </div>
           </div>
         )}
 
-        {/* Main Authentication Forms */}
+        {/* Email / Password / Recovery Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          
-          {/* REGISTER: Full Name */}
-          {activeTab === 'register' && (
+          {authMode === 'register' && (
             <div className="space-y-1.5 text-start">
-              <label className="text-xs font-bold text-slate-700 block">
-                {lang === 'ar' ? 'الاسم الكامل' : 'Full Name'} <span className="text-rose-500">*</span>
+              <label
+                htmlFor="register-fullname"
+                className="text-sm font-semibold text-slate-700 block leading-relaxed"
+              >
+                {lang === 'ar' ? 'الاسم الكامل' : 'Full Name'}{' '}
+                <span className="text-rose-500">*</span>
               </label>
               <div className="relative flex items-center">
                 <User className="w-4 h-4 text-slate-400 absolute start-3.5 pointer-events-none" />
                 <input
+                  id="register-fullname"
                   type="text"
+                  autoComplete="name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder={lang === 'ar' ? 'مثال: سارة أحمد' : 'e.g., Sarah Jenkins'}
                   required
-                  className="w-full ps-10 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:bg-white text-slate-900 transition-all min-h-[48px]"
+                  className="w-full ps-10 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:bg-white text-slate-900 transition-all min-h-[48px]"
                 />
               </div>
             </div>
           )}
 
-          {/* Email Address (All Auth Tabs) */}
+          {/* Email Address */}
           <div className="space-y-1.5 text-start">
-            <label className="text-xs font-bold text-slate-700 block">
-              {lang === 'ar' ? 'البريد الإلكتروني' : 'Email Address'} <span className="text-rose-500">*</span>
+            <label
+              htmlFor="auth-email"
+              className="text-sm font-semibold text-slate-700 block leading-relaxed"
+            >
+              {lang === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}{' '}
+              <span className="text-rose-500">*</span>
             </label>
             <div className="relative flex items-center">
               <Mail className="w-4 h-4 text-slate-400 absolute start-3.5 pointer-events-none" />
               <input
+                id="auth-email"
                 type="email"
+                autoComplete="email"
+                dir="ltr"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
                 required
-                className="w-full ps-10 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:bg-white text-slate-900 transition-all min-h-[48px]"
+                className="w-full ps-10 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:bg-white text-slate-900 transition-all min-h-[48px] text-start"
               />
             </div>
           </div>
 
-          {/* REGISTER: Smart Phone Number */}
-          {activeTab === 'register' && (
-            <SmartPhoneInput
-              value={phoneNumber}
-              onChange={setPhoneNumber}
-              lang={lang}
-              required={false}
-              label={lang === 'ar' ? 'رقم الهاتف للتوصيل والإشعارات (اختياري)' : 'Phone Number for Delivery & Updates (Optional)'}
-            />
-          )}
+          {/* Sign In Password */}
+          {authMode === 'signin' && (
+            <div className="space-y-2 text-start">
+              <SmartPasswordInput
+                id="signin-password"
+                label={lang === 'ar' ? 'كلمة المرور' : 'Password'}
+                value={password}
+                onChange={setPassword}
+                placeholder="••••••••"
+                required={true}
+                lang={lang}
+                showStrengthMeter={false}
+              />
 
-          {/* SIGN IN: Smart Password with Transient Masking */}
-          {activeTab === 'signin' && (
-            <div className="space-y-1 text-start">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <SmartPasswordInput
-                    id="signin-password"
-                    label={lang === 'ar' ? 'كلمة المرور' : 'Password'}
-                    value={password}
-                    onChange={setPassword}
-                    placeholder="••••••••"
-                    required={true}
-                    lang={lang}
-                    showStrengthMeter={false}
+              {/* Remember Me (wired to Firebase Auth persistence) + Inline Recovery Link */}
+              <div className="flex items-center justify-between gap-2 pt-0.5">
+                <label
+                  htmlFor="rememberMeCheckbox"
+                  className="inline-flex items-center gap-2.5 min-h-[44px] text-xs sm:text-sm text-slate-600 font-medium cursor-pointer select-none"
+                >
+                  <input
+                    type="checkbox"
+                    id="rememberMeCheckbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded accent-[#5A3E7A] border-slate-300 cursor-pointer"
                   />
-                </div>
-              </div>
-              <div className="flex justify-end pt-1">
+                  <span>{lang === 'ar' ? 'تذكرني' : 'Remember me'}</span>
+                </label>
+
                 <button
                   type="button"
-                  onClick={() => setActiveTab('forgot')}
-                  className="text-[11px] text-[#5A3E7A] hover:underline font-bold"
+                  onClick={() => setAuthMode('forgot')}
+                  className="text-xs sm:text-sm text-[#5A3E7A] hover:underline font-semibold min-h-[44px] px-1 inline-flex items-center cursor-pointer whitespace-nowrap"
                 >
                   {lang === 'ar' ? 'نسيت كلمة السر؟' : 'Forgot password?'}
                 </button>
@@ -457,12 +512,12 @@ export const LoginPageView: React.FC = () => {
             </div>
           )}
 
-          {/* REGISTER: Smart Password with Strength Meter */}
-          {activeTab === 'register' && (
+          {/* Register Passwords */}
+          {authMode === 'register' && (
             <div className="space-y-4">
               <SmartPasswordInput
                 id="register-password"
-                label={lang === 'ar' ? 'كلمة المرور الجديدة' : 'Create Password'}
+                label={lang === 'ar' ? 'كلمة المرور' : 'Create Password'}
                 value={password}
                 onChange={setPassword}
                 placeholder="••••••••"
@@ -481,94 +536,99 @@ export const LoginPageView: React.FC = () => {
                 lang={lang}
                 showStrengthMeter={false}
                 helperText={
-                  confirmPassword && password !== confirmPassword 
-                    ? (lang === 'ar' ? '⚠️ كلمات المرور غير متطابقة حتى الآن' : '⚠️ Passwords do not match yet') 
+                  confirmPassword && password !== confirmPassword
+                    ? lang === 'ar'
+                      ? 'كلمات المرور غير متطابقة حتى الآن'
+                      : 'Passwords do not match yet'
                     : undefined
                 }
               />
             </div>
           )}
 
-          {/* SIGN IN: Remember Me */}
-          {activeTab === 'signin' && (
-            <div className="flex items-center gap-2 pt-1 text-start">
-              <input
-                type="checkbox"
-                id="rememberMeCheckbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded text-[#5A3E7A] focus:ring-[#5A3E7A] border-slate-300 cursor-pointer"
-              />
-              <label htmlFor="rememberMeCheckbox" className="text-xs text-slate-600 font-medium cursor-pointer select-none">
-                {lang === 'ar' ? 'تذكرني على هذا الجهاز' : 'Remember me on this device'}
-              </label>
-            </div>
-          )}
-
-          {/* FORGOT: Information prompt */}
-          {activeTab === 'forgot' && (
-            <div className="p-3.5 bg-purple-50/70 rounded-2xl text-xs text-[#5A3E7A] leading-relaxed border border-purple-100 flex items-start gap-2 text-start">
-              <KeyRound className="w-4 h-4 shrink-0 mt-0.5" />
+          {/* Recovery Guidance Banner */}
+          {authMode === 'forgot' && (
+            <div className="p-3.5 bg-purple-50/70 rounded-2xl text-xs sm:text-sm text-[#5A3E7A] leading-relaxed border border-purple-100 flex items-start gap-2.5 text-start">
+              <KeyRound className="w-4 h-4 shrink-0 mt-1" />
               <span>
                 {lang === 'ar'
-                  ? 'أدخل بريدك الإلكتروني المسجل وسنرسل لك رابطاً مشفراً لإعادة ضبط كلمة المرور في ثوانٍ معدودة.'
-                  : 'Enter your registered email address and we will send you a secure link to reset your password instantly.'}
+                  ? 'إذا كنتِ قد سجلتِ عبر حساب Google، يمكنكِ الدخول مباشرة عبر Google بدون الحاجة لكلمة مرور.'
+                  : 'If you originally signed in with Google, simply use Continue with Google without resetting a password.'}
               </span>
             </div>
           )}
 
-          {/* Primary Submit CTA Button */}
+          {/* Secondary / Form Submit CTA */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3.5 bg-gradient-to-r from-[#5A3E7A] to-[#483162] hover:opacity-95 text-white font-extrabold rounded-2xl text-sm shadow-md transition-all flex items-center justify-center gap-2 min-h-[48px] mt-3"
+            className={`w-full py-3 px-4 font-bold rounded-2xl text-sm sm:text-base transition-all flex items-center justify-center gap-2 min-h-[48px] cursor-pointer active:scale-[0.99] disabled:opacity-60 ${
+              authMode === 'forgot'
+                ? 'bg-[#5A3E7A] hover:bg-[#4A3266] text-white shadow-md shadow-[#5A3E7A]/20'
+                : 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm'
+            }`}
           >
             {isSubmitting ? (
               <span className="inline-flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>{lang === 'ar' ? 'جاري المعالجة الآمنة...' : 'Processing Securely...'}</span>
+                <span>{lang === 'ar' ? 'جاري التحقق...' : 'Processing...'}</span>
               </span>
             ) : (
               <span>
-                {activeTab === 'signin' && (lang === 'ar' ? 'تسجيل الدخول الفوري' : 'Sign In Now')}
-                {activeTab === 'register' && (lang === 'ar' ? 'إنشاء حسابك الفاخر' : 'Create Luxury Account')}
-                {activeTab === 'forgot' && (lang === 'ar' ? 'إرسال رابط استعادة الحساب' : 'Send Recovery Link')}
+                {authMode === 'signin' && (lang === 'ar' ? 'تسجيل الدخول بالبريد' : 'Sign In with Email')}
+                {authMode === 'register' && (lang === 'ar' ? 'إنشاء الحساب' : 'Create Account')}
+                {authMode === 'forgot' && (lang === 'ar' ? 'إرسال رابط الاستعادة' : 'Send Reset Link')}
               </span>
             )}
           </button>
+
+          {/* Return from Forgot Mode */}
+          {authMode === 'forgot' && (
+            <button
+              type="button"
+              onClick={() => setAuthMode('signin')}
+              className="w-full py-2.5 px-4 rounded-2xl text-sm font-semibold text-[#5A3E7A] hover:bg-purple-50 transition-colors min-h-[44px] cursor-pointer"
+            >
+              {lang === 'ar' ? 'العودة إلى تسجيل الدخول' : 'Back to Sign In'}
+            </button>
+          )}
         </form>
 
-        {/* Continue as Guest Button */}
+        {/* Continue as Guest */}
         <div className="mt-5 pt-4 border-t border-slate-100">
           <button
             type="button"
             onClick={() => navigateTo('store')}
-            className="w-full py-3 rounded-2xl border border-dashed border-slate-300 hover:border-[#5A3E7A] hover:bg-purple-50/40 text-slate-600 hover:text-[#5A3E7A] text-xs font-bold transition-all min-h-[44px] flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-4 rounded-2xl border border-slate-200 hover:border-[#5A3E7A]/40 hover:bg-purple-50/40 text-slate-700 hover:text-[#5A3E7A] text-sm font-semibold transition-colors min-h-[44px] flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>{lang === 'ar' ? 'المتابعة والتسوق كزائر (بدون حساب)' : 'Continue Shopping as Guest (No account)'}</span>
-            {isRtl ? <ArrowLeft className="w-3.5 h-3.5" /> : <ArrowRight className="w-3.5 h-3.5" />}
+            <span>
+              {lang === 'ar'
+                ? 'المتابعة والتسوق كزائر بدون حساب'
+                : 'Continue Shopping as Guest'}
+            </span>
+            {isRtl ? (
+              <ArrowLeft className="w-4 h-4 shrink-0" />
+            ) : (
+              <ArrowRight className="w-4 h-4 shrink-0" />
+            )}
           </button>
         </div>
 
-        {/* Security & Purity Guarantees */}
-        <div className="mt-6 pt-4 border-t border-slate-100 grid grid-cols-2 gap-3 text-[11px] text-slate-500 text-center">
-          <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-slate-50">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-            <span>{lang === 'ar' ? 'تشفير آمن 256-bit' : '256-bit SSL Secure'}</span>
-          </div>
-          <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-slate-50">
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#5A3E7A] shrink-0" />
-            <span>{lang === 'ar' ? 'خصوصية البيانات 100%' : '100% Data Privacy'}</span>
-          </div>
+        {/* Clean Unboxed Trust Footnote (Zero Cramped Wrapping Pills) */}
+        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-center gap-2 text-xs text-slate-500 text-center leading-relaxed">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
+          <span>
+            {lang === 'ar'
+              ? 'اتصال مشفّر وآمن عبر Google Firebase · خصوصية تامة لبياناتكِ'
+              : 'Encrypted sign-in via Google Firebase · Complete data privacy'}
+          </span>
         </div>
-
       </div>
 
-      {/* Footer reassurance note */}
-      <p className="text-center text-xs text-slate-400 mt-6 z-10">
-        © 2026 {activeData.storeName.en} · {activeData.storeName.ar}. {lang === 'ar' ? 'جميع المعاملات مشفرة ومحمية وفق أعلى معايير الأمان.' : 'All transactions are encrypted and secure to highest standards.'}
+      {/* Minimal Copyright Footnote */}
+      <p className="text-center text-xs text-slate-400 mt-5 z-10 leading-relaxed">
+        © 2026 {activeData.storeName.en} · {activeData.storeName.ar}
       </p>
-
     </div>
   );
 };

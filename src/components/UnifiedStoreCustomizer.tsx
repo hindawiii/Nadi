@@ -6,7 +6,7 @@ import {
   Droplets, ExternalLink, ArrowRight, ArrowLeft,
   ChevronDown, ChevronUp, ShoppingBag, Plus, Trash2,
   Sliders, Award, Truck, Check, HelpCircle, Undo2, X,
-  Wand2, Eye, SplitSquareVertical, Megaphone, Compass
+  Eye, SplitSquareVertical, Megaphone, Compass
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { siteConfig, Product } from '../data/siteConfig';
@@ -144,7 +144,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
         return {
           name: { ar: 'كتالوج الإطلالات وتنسيق الأزياء', en: 'Lookbook & Outfit Styling' },
           desc: { ar: 'تنسيق أزياء الموسم، تفاصيل الأقمشة، ومجموعات الموديل التحريرية', en: 'Curated seasonal outfits, fabric composition & editorial looks' },
-          icon: Wand2
+          icon: Sliders
         };
       case 'electronics':
         return {
@@ -173,25 +173,25 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
         return {
           name: { ar: 'دور الأزياء وبكجات تسوق الإطلالة', en: 'Fashion Houses & Shop The Look' },
           desc: { ar: 'بنرات دور الأزياء الإيطالية وبكجات تسوق الإطلالة الكاملة المنسقة', en: 'Italian couture banners and complete bundle look packages' },
-          tag: { ar: '📍 قسم أزياء الموسم', en: '📍 Season Outfits' }
+          tag: { ar: 'قسم أزياء الموسم', en: 'Season Outfits' }
         };
       case 'electronics':
         return {
           name: { ar: 'أجهزة المستقبل وبنرات العتاد الذكي', en: 'Flagship Tech & Gadget Trio' },
           desc: { ar: 'بنرات أحدث المعالجات والأجهزة الذكية وملحقات الأداء العالي', en: 'Next-gen silicon hardware and flagship gadget spotlight' },
-          tag: { ar: '📍 قسم الأجهزة التقنية', en: '📍 Tech Spotlight' }
+          tag: { ar: 'قسم الأجهزة التقنية', en: 'Tech Spotlight' }
         };
       case 'eyewear':
         return {
           name: { ar: 'إطارات التيتانيوم وماركات البصريات', en: 'Titanium Frames & Designer Trio' },
           desc: { ar: 'بنرات تشكيلات المصممين الحصرية وإطارات التيتانيوم خفيفة الوزن', en: 'Ultra-lightweight titanium collections and designer optics' },
-          tag: { ar: '📍 قسم النظارات المميزة', en: '📍 Eyewear Spotlight' }
+          tag: { ar: 'قسم النظارات المميزة', en: 'Eyewear Spotlight' }
         };
       default:
         return {
           name: { ar: 'أجهزة الشعر وبنرات الماركات (Trio)', en: 'Hair Devices & Trio Banners' },
           desc: { ar: 'بنرات الماركات الثلاث (سيل تك، أوكيما، كلارا) وسلايدر أجهزة الشعر', en: '3 Brand spotlight banners and smooth horizontal devices carousel' },
-          tag: { ar: '📍 قسم أجهزة الشعر', en: '📍 Hair Devices Section' }
+          tag: { ar: 'قسم أجهزة الشعر', en: 'Hair Devices Section' }
         };
     }
   };
@@ -374,12 +374,12 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
               {isCurrentActive ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-bold">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>{lang === 'ar' ? '🟢 مفعل بالمتجر الحي' : '🟢 Active on Store'}</span>
+                  <span>{lang === 'ar' ? 'مفعل بالمتجر الحي' : 'Active on Store'}</span>
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-slate-300 text-xs font-bold">
                   <span className="w-2 h-2 rounded-full bg-slate-400" />
-                  <span>{lang === 'ar' ? '⚪ كامن – جاهز للتفعيل' : '⚪ Inactive Hub'}</span>
+                  <span>{lang === 'ar' ? 'كامن – جاهز للتفعيل' : 'Inactive Hub'}</span>
                 </span>
               )}
             </div>
@@ -405,14 +405,14 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
                   showToast({
                     type: 'success',
                     message: lang === 'ar' 
-                      ? `تم تمكين قالب (${activePreset.nicheLabel?.[lang] || effectivePresetId}) بالمتجر الحي بنجاح! ⚡` 
-                      : `Activated (${effectivePresetId}) on live storefront! ⚡`
+                      ? `تم تمكين قالب (${activePreset.nicheLabel?.[lang] || effectivePresetId}) بالمتجر الحي بنجاح!` 
+                      : `Activated (${effectivePresetId}) on live storefront!`
                   });
                 }}
                 className="h-11 px-5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
               >
-                <Wand2 className="w-4 h-4 text-purple-900" />
-                <span>{lang === 'ar' ? 'تمكين القالب بالمتجر الحي ⚡' : 'Activate On Storefront ⚡'}</span>
+                <Sliders className="w-4 h-4 text-purple-900" />
+                <span>{lang === 'ar' ? 'تمكين القالب بالمتجر الحي' : 'Activate On Storefront'}</span>
               </button>
             ) : effectivePresetId !== 'cosmetics' ? (
               <button
@@ -542,7 +542,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
                 <MapPin className="w-3.5 h-3.5 text-purple-600" />
-                <span>{lang === 'ar' ? '📍 أعلى قمة المتجر' : '📍 Storefront Topmost'}</span>
+                <span>{lang === 'ar' ? 'أعلى قمة المتجر' : 'Storefront Topmost'}</span>
               </span>
               <FieldResetBtn path="announcementSlides" descAr="شرائح الشريط العلوي" descEn="Announcement Slides" />
             </div>
@@ -583,9 +583,9 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
           {/* Slides List */}
           <div className="space-y-4">
             {(preset.announcementSlides || [
-              { ar: 'شحن فوري سريع ومجاني للطلبات فوق 50$ 🚚', en: 'Free express shipping on orders over $50 🚚' },
-              { ar: 'تركيبات نباتية أصلية ونقية 100% معتمدة 🌿', en: '100% Certified pure botanical formulas 🌿' },
-              { ar: 'ضمان ذهبي شامل لمدة عامين على الأجهزة 🛡️', en: 'Full 2-year warranty on all beauty devices 🛡️' }
+              { ar: 'شحن فوري سريع ومجاني للطلبات فوق 50$', en: 'Free express shipping on orders over $50' },
+              { ar: 'تركيبات نباتية أصلية ونقية 100% معتمدة', en: '100% Certified pure botanical formulas' },
+              { ar: 'ضمان ذهبي شامل لمدة عامين على الأجهزة', en: 'Full 2-year warranty on all beauty devices' }
             ]).map((slide: any, sIdx: number) => {
               const textAr = typeof slide === 'object' ? (slide.ar || slide.text?.ar || '') : String(slide);
               const textEn = typeof slide === 'object' ? (slide.en || slide.text?.en || '') : String(slide);
@@ -607,9 +607,9 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
                         value={textAr}
                         onChange={(e) => {
                           const slides = JSON.parse(JSON.stringify(preset.announcementSlides || [
-                            { ar: 'شحن فوري سريع ومجاني للطلبات فوق 50$ 🚚', en: 'Free express shipping on orders over $50 🚚' },
-                            { ar: 'تركيبات نباتية أصلية ونقية 100% معتمدة 🌿', en: '100% Certified pure botanical formulas 🌿' },
-                            { ar: 'ضمان ذهبي شامل لمدة عامين على الأجهزة 🛡️', en: 'Full 2-year warranty on all beauty devices 🛡️' }
+                            { ar: 'شحن فوري سريع ومجاني للطلبات فوق 50$', en: 'Free express shipping on orders over $50' },
+                            { ar: 'تركيبات نباتية أصلية ونقية 100% معتمدة', en: '100% Certified pure botanical formulas' },
+                            { ar: 'ضمان ذهبي شامل لمدة عامين على الأجهزة', en: 'Full 2-year warranty on all beauty devices' }
                           ]));
                           if (!slides[sIdx]) slides[sIdx] = { ar: '', en: '' };
                           slides[sIdx].ar = e.target.value;
@@ -628,9 +628,9 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
                         value={textEn}
                         onChange={(e) => {
                           const slides = JSON.parse(JSON.stringify(preset.announcementSlides || [
-                            { ar: 'شحن فوري سريع ومجاني للطلبات فوق 50$ 🚚', en: 'Free express shipping on orders over $50 🚚' },
-                            { ar: 'تركيبات نباتية أصلية ونقية 100% معتمدة 🌿', en: '100% Certified pure botanical formulas 🌿' },
-                            { ar: 'ضمان ذهبي شامل لمدة عامين على الأجهزة 🛡️', en: 'Full 2-year warranty on all beauty devices 🛡️' }
+                            { ar: 'شحن فوري سريع ومجاني للطلبات فوق 50$', en: 'Free express shipping on orders over $50' },
+                            { ar: 'تركيبات نباتية أصلية ونقية 100% معتمدة', en: '100% Certified pure botanical formulas' },
+                            { ar: 'ضمان ذهبي شامل لمدة عامين على الأجهزة', en: 'Full 2-year warranty on all beauty devices' }
                           ]));
                           if (!slides[sIdx]) slides[sIdx] = { ar: '', en: '' };
                           slides[sIdx].en = e.target.value;
@@ -668,7 +668,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
 
             <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
               <MapPin className="w-3.5 h-3.5 text-purple-600" />
-              <span>{lang === 'ar' ? '📍 شريط الهيدر والتنقل' : '📍 Header Navigation Bar'}</span>
+              <span>{lang === 'ar' ? 'شريط الهيدر والتنقل' : 'Header Navigation Bar'}</span>
             </span>
           </div>
 
@@ -807,7 +807,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
 
             <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
               <MapPin className="w-3.5 h-3.5 text-purple-600" />
-              <span>{lang === 'ar' ? '📍 أعلى الصفحة الرئيسية' : '📍 Storefront Top Hero'}</span>
+              <span>{lang === 'ar' ? 'أعلى الصفحة الرئيسية' : 'Storefront Top Hero'}</span>
             </span>
           </div>
 
@@ -961,7 +961,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
 
             <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
               <MapPin className="w-3.5 h-3.5 text-amber-600" />
-              <span>{lang === 'ar' ? '📍 أسفل الهيرو مباشرة' : '📍 Below Hero Section'}</span>
+              <span>{lang === 'ar' ? 'أسفل الهيرو مباشرة' : 'Below Hero Section'}</span>
             </span>
           </div>
 
@@ -1050,7 +1050,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
 
             <span className="text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
               <MapPin className="w-3.5 h-3.5 text-slate-600" />
-              <span>{lang === 'ar' ? '📍 أعلى كتالوج المنتجات' : '📍 Above Products Catalog'}</span>
+              <span>{lang === 'ar' ? 'أعلى كتالوج المنتجات' : 'Above Products Catalog'}</span>
             </span>
           </div>
 
@@ -1065,13 +1065,13 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
                 {lang === 'ar' ? 'كافة المنتجات' : 'All Products'}
               </span>
               <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-800 shadow-2xs">
-                {lang === 'ar' ? '🌿 العناية بالبشرة' : '🌿 Skincare Formulations'}
+                {lang === 'ar' ? 'العناية بالبشرة' : 'Skincare Formulations'}
               </span>
               <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-800 shadow-2xs">
-                {lang === 'ar' ? '⚡ أجهزة الشعر' : '⚡ Hair Styling Devices'}
+                {lang === 'ar' ? 'أجهزة الشعر' : 'Hair Styling Devices'}
               </span>
               <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-800 shadow-2xs">
-                {lang === 'ar' ? '🎁 بكجات التوفير' : '🎁 Value Bundles'}
+                {lang === 'ar' ? 'بكجات التوفير' : 'Value Bundles'}
               </span>
             </div>
           </div>
@@ -1099,7 +1099,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
 
             <span className="text-[11px] font-bold text-blue-800 bg-blue-50 border border-blue-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
               <MapPin className="w-3.5 h-3.5 text-blue-600" />
-              <span>{lang === 'ar' ? '📍 منتصف المتجر' : '📍 Mid-Storefront'}</span>
+              <span>{lang === 'ar' ? 'منتصف المتجر' : 'Mid-Storefront'}</span>
             </span>
           </div>
 
@@ -1186,7 +1186,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
 
             <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
               <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{lang === 'ar' ? '📍 قلب المتجر الحي' : '📍 Storefront Center Grid'}</span>
+              <span>{lang === 'ar' ? 'قلب المتجر الحي' : 'Storefront Center Grid'}</span>
             </span>
           </div>
 
@@ -1235,7 +1235,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
 
             <span className="text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
               <MapPin className="w-3.5 h-3.5 text-slate-600" />
-              <span>{lang === 'ar' ? '📍 أسفل شبكة المنتجات' : '📍 Below Products Grid'}</span>
+              <span>{lang === 'ar' ? 'أسفل شبكة المنتجات' : 'Below Products Grid'}</span>
             </span>
           </div>
 
@@ -1440,7 +1440,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
 
             <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
               <MapPin className="w-3.5 h-3.5 text-amber-600" />
-              <span>{lang === 'ar' ? '📍 سلايدر النتائج الحقيقية' : '📍 Real Results Section'}</span>
+              <span>{lang === 'ar' ? 'سلايدر النتائج الحقيقية' : 'Real Results Section'}</span>
             </span>
           </div>
 
@@ -1524,7 +1524,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
                 <MapPin className="w-3.5 h-3.5 text-amber-600" />
-                <span>{lang === 'ar' ? '📍 سلايدر آراء العملاء' : '📍 Reviews Section'}</span>
+                <span>{lang === 'ar' ? 'سلايدر آراء العملاء' : 'Reviews Section'}</span>
               </span>
               <FieldResetBtn path="testimonials" descAr="آراء العملاء" descEn="Testimonials" />
             </div>
@@ -1606,7 +1606,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
 
             <span className="text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
               <MapPin className="w-3.5 h-3.5 text-slate-600" />
-              <span>{lang === 'ar' ? '📍 أعلى تذييل المتجر' : '📍 Above Store Footer'}</span>
+              <span>{lang === 'ar' ? 'أعلى تذييل المتجر' : 'Above Store Footer'}</span>
             </span>
           </div>
 
@@ -1614,7 +1614,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
             <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100 space-y-2">
               <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>{lang === 'ar' ? 'ضمان سنتين شامل معتمد 🛡️' : 'Certified 2-Year Warranty 🛡️'}</span>
+                <span>{lang === 'ar' ? 'ضمان سنتين شامل معتمد' : 'Certified 2-Year Warranty'}</span>
               </div>
               <p className="text-[11px] text-emerald-700 leading-relaxed">
                 {lang === 'ar' ? 'يظهر تلقائياً على كافة كروت أجهزة الشعر والجمال لتعزيز قرار الشراء.' : 'Displays on hair styling hardware devices.'}
@@ -1624,7 +1624,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
             <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-2">
               <div className="flex items-center gap-2 text-purple-800 font-bold text-xs">
                 <Award className="w-4 h-4 text-purple-600" />
-                <span>{lang === 'ar' ? 'نقاء نباتي أصلي 100% 🌿' : '100% Pure Botanical 🌿'}</span>
+                <span>{lang === 'ar' ? 'نقاء نباتي أصلي 100%' : '100% Pure Botanical'}</span>
               </div>
               <p className="text-[11px] text-purple-700 leading-relaxed">
                 {lang === 'ar' ? 'يظهر تلقائياً على كافة كروت سيرومات ومنتجات العناية بالبشرة.' : 'Displays on botanical skincare products.'}
@@ -1634,7 +1634,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
             <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100 space-y-2">
               <div className="flex items-center gap-2 text-amber-800 font-bold text-xs">
                 <Truck className="w-4 h-4 text-amber-600" />
-                <span>{lang === 'ar' ? 'شحن فوري ومتابعة واتساب 🚚' : 'Instant Delivery Hotline 🚚'}</span>
+                <span>{lang === 'ar' ? 'شحن فوري ومتابعة واتساب' : 'Instant Delivery Hotline'}</span>
               </div>
               <p className="text-[11px] text-amber-700 leading-relaxed">
                 {lang === 'ar' ? 'ربط فوري بأرقام التوصيل والشحن مع رسائل تأكيد آلية.' : 'Instant delivery updates and WhatsApp alerts.'}
@@ -1665,7 +1665,7 @@ export const UnifiedStoreCustomizer: React.FC<UnifiedStoreCustomizerProps> = ({
 
             <span className="text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
               <MapPin className="w-3.5 h-3.5 text-slate-600" />
-              <span>{lang === 'ar' ? '📍 قاع المتجر (التذييل)' : '📍 Bottom Footer'}</span>
+              <span>{lang === 'ar' ? 'قاع المتجر (التذييل)' : 'Bottom Footer'}</span>
             </span>
           </div>
 

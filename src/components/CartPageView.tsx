@@ -11,9 +11,11 @@ import { SmartPhoneInput } from './SmartInputField';
 import {
   CITY_SHIPPING_OPTIONS,
   FREE_SHIPPING_THRESHOLD_USD,
+  computeAuthoritativeOrderSummary,
   resolvePromoDiscountRate,
   resolveShippingOption,
 } from '../lib/checkoutIntegrity';
+import { hairStylingDevices } from './HairDevicesSpotlight';
 
 const getDefaultCityForCurrency = (cur: string): string => {
   switch (cur) {
@@ -31,7 +33,7 @@ const getDefaultCityForCurrency = (cur: string): string => {
 export const CartPageView: React.FC = () => {
   const { 
     lang, currency, cart, removeFromCart, updateCartQty, 
-    clearCart, cartTotalUSD, convertPrice, placeOrder, 
+    clearCart, convertPrice, placeOrder, 
     navigateTo, activeData, showToast 
   } = useCommerce();
 
@@ -83,23 +85,41 @@ export const CartPageView: React.FC = () => {
     }
   };
 
+  // Compute authoritative live catalog summary so Cart display always matches Checkout 100%
+  const liveCatalogPool = [...(activeData.products || []), ...hairStylingDevices];
+  const authoritativeSummary = computeAuthoritativeOrderSummary({
+    cart,
+    catalogPool: liveCatalogPool,
+    selectedCity,
+    promoCode: appliedDiscountRate > 0 ? promoCode : undefined,
+  });
+
+  const livePriceById = new Map(
+    authoritativeSummary.verifiedItems.map((vi) => [vi.product.id, vi.unitPriceUSD])
+  );
+  const priceChangedItems = cart.filter((item) => {
+    const livePrice = livePriceById.get(item.product.id);
+    return typeof livePrice === 'number' && Math.abs(livePrice - item.product.basePriceUSD) > 0.001;
+  });
+
   // Free shipping threshold ($15 USD from canonical checkoutIntegrity rules)
   const freeShippingThresholdUSD = FREE_SHIPPING_THRESHOLD_USD;
-  const isFreeShipping = cartTotalUSD >= freeShippingThresholdUSD;
-  const remainingForFreeShippingUSD = Math.max(0, freeShippingThresholdUSD - cartTotalUSD);
+  const authoritativeSubtotalUSD = authoritativeSummary.subtotalUSD;
+  const isFreeShipping = authoritativeSummary.isFreeShipping;
+  const remainingForFreeShippingUSD = Math.max(0, freeShippingThresholdUSD - authoritativeSubtotalUSD);
   const remainingText = convertPrice(remainingForFreeShippingUSD).text;
-  const progressPercent = Math.min(100, Math.round((cartTotalUSD / freeShippingThresholdUSD) * 100));
+  const progressPercent = Math.min(100, Math.round((authoritativeSubtotalUSD / freeShippingThresholdUSD) * 100));
 
   const cityOptions = CITY_SHIPPING_OPTIONS;
 
   const currentCityObj = resolveShippingOption(selectedCity);
-  const shippingFeeUSD = isFreeShipping ? 0 : currentCityObj.feeUSD;
+  const shippingFeeUSD = authoritativeSummary.shippingFeeUSD;
 
-  // Price calculations
-  const subtotalObj = convertPrice(cartTotalUSD);
-  const discountAmountUSD = cartTotalUSD * appliedDiscountRate;
+  // Price calculations (strictly synchronized with live catalog prices)
+  const subtotalObj = convertPrice(authoritativeSubtotalUSD);
+  const discountAmountUSD = authoritativeSummary.discountAmountUSD;
   const discountObj = convertPrice(discountAmountUSD);
-  const finalTotalUSD = Math.max(0, cartTotalUSD - discountAmountUSD + shippingFeeUSD);
+  const finalTotalUSD = authoritativeSummary.finalTotalUSD;
   const finalTotalObj = convertPrice(finalTotalUSD);
   const shippingFeeObj = convertPrice(shippingFeeUSD);
 
@@ -108,12 +128,12 @@ export const CartPageView: React.FC = () => {
     const rate = resolvePromoDiscountRate(promoCode);
     if (rate === 0.10) {
       setAppliedDiscountRate(rate);
-      setPromoMessage({ text: lang === 'ar' ? 'تم تطبيق كود الخصم بنجاح (-10%) 🎉' : 'Coupon applied successfully (-10%) 🎉', isError: false });
-      showToast(lang === 'ar' ? 'تم تفعيل خصم 10%!' : '10% discount applied!');
+      setPromoMessage({ text: lang === 'ar' ? 'تم تطبيق كود الخصم (-10%)' : 'Coupon applied (-10%)', isError: false });
+      showToast(lang === 'ar' ? 'تم تفعيل خصم 10%' : '10% discount applied');
     } else if (rate === 0.15) {
       setAppliedDiscountRate(rate);
-      setPromoMessage({ text: lang === 'ar' ? 'تم تطبيق كود كبار العميلات (-15%) 🎉' : 'VIP Coupon applied (-15%) 🎉', isError: false });
-      showToast(lang === 'ar' ? 'تم تفعيل خصم كبار العميلات 15%!' : 'VIP 15% discount applied!');
+      setPromoMessage({ text: lang === 'ar' ? 'تم تطبيق كود كبار العميلات (-15%)' : 'VIP coupon applied (-15%)', isError: false });
+      showToast(lang === 'ar' ? 'تم تفعيل خصم 15%' : 'VIP 15% discount applied');
     } else {
       setAppliedDiscountRate(0);
       setPromoMessage({ text: lang === 'ar' ? 'عذراً، هذا الكود غير صالح أو منتهي الصلاحية' : 'Invalid or expired promo code', isError: true });
@@ -203,19 +223,20 @@ export const CartPageView: React.FC = () => {
           </div>
 
           {cart.length > 0 && (
-            <div className="flex items-center gap-3 self-start sm:self-center">
+            <div className="flex items-center gap-2.5 self-start sm:self-center">
               <button
                 type="button"
                 onClick={() => navigateTo('store')}
-                className="text-xs font-bold text-[#5A3E7A] hover:text-[#483162] bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl border border-purple-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                className="min-h-[44px] text-xs font-bold text-[#5A3E7A] hover:text-[#483162] bg-purple-50 hover:bg-purple-100 px-3.5 py-2 rounded-xl border border-purple-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 {isRtl ? <ArrowRight className="w-3.5 h-3.5" /> : <ArrowLeft className="w-3.5 h-3.5" />}
                 <span>{lang === 'ar' ? 'متابعة التسوق' : 'Continue Shopping'}</span>
               </button>
 
               <button
+                type="button"
                 onClick={clearCart}
-                className="text-xs font-bold text-slate-500 hover:text-rose-500 transition-colors flex items-center gap-1.5 px-2 py-1.5"
+                className="min-h-[44px] text-xs font-bold text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
                 <span>{lang === 'ar' ? 'إفراغ السلة' : 'Clear Bag'}</span>
@@ -256,8 +277,8 @@ export const CartPageView: React.FC = () => {
                   <Truck className={`w-4 h-4 shrink-0 ${isFreeShipping ? 'text-emerald-600 animate-bounce' : 'text-[#5A3E7A]'}`} />
                   <span className="truncate">
                     {isFreeShipping 
-                      ? (lang === 'ar' ? '🎉 مبروك! لقد حصلتِ على الشحن المجاني الملكي لطلبكِ بالكامل!' : '🎉 Congratulations! You unlocked Royal Free Delivery!')
-                      : (lang === 'ar' ? `أنتِ على بعد ${remainingText} فقط من الشحن المجاني الملكي!` : `You are only ${remainingText} away from Royal Free Delivery!`)}
+                      ? (lang === 'ar' ? 'طلبكِ مؤهل للشحن المجاني.' : 'Free shipping unlocked.')
+                      : (lang === 'ar' ? `متبقّي ${remainingText} للحصول على شحن مجاني.` : `${remainingText} away from free shipping.`)}
                   </span>
                 </div>
                 <span className="font-mono font-black text-xs text-[#5A3E7A] bg-purple-100 px-2.5 py-0.5 rounded-full shrink-0 ms-2">{progressPercent}%</span>
@@ -278,8 +299,8 @@ export const CartPageView: React.FC = () => {
                 <div className="pt-1 flex items-center justify-between text-xs text-slate-600 border-t border-purple-100/60">
                   <span className="text-[11px] sm:text-xs text-slate-600">
                     {lang === 'ar' 
-                      ? '💡 نصيحة ذكية: أضيفي منتجاً إضافياً لتوفير رسوم الشحن والاستفادة من التوصيل الملكي المجاني!' 
-                      : '💡 Smart Tip: Add one more skincare item to unlock 100% Free Delivery!'}
+                      ? 'أضيفي منتجاً آخر للحصول على شحن مجاني.' 
+                      : 'Add one more item for free shipping.'}
                   </span>
                   <button
                     type="button"
@@ -302,10 +323,31 @@ export const CartPageView: React.FC = () => {
                     {lang === 'ar' ? `المنتجات المختارة (${cart.length})` : `Selected Items (${cart.length})`}
                   </h2>
 
+                  {priceChangedItems.length > 0 && (
+                    <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 flex items-start gap-2.5 text-xs leading-relaxed">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-extrabold">
+                          {lang === 'ar'
+                            ? 'تم تحديث أسعار بعض المنتجات تلقائياً وفق الكتالوج الحي'
+                            : 'Some item prices were refreshed to match the live catalog'}
+                        </p>
+                        <p className="text-amber-800 mt-0.5">
+                          {lang === 'ar'
+                            ? 'الإجمالي المعروض أدناه يطابق السعر النهائي المعتمد عند تأكيد الطلب.'
+                            : 'The totals shown below reflect the exact verified catalog prices at checkout.'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="divide-y divide-slate-100">
                     {cart.map((item) => {
-                      const itemTotal = convertPrice(item.product.basePriceUSD * item.quantity);
-                      const unitPrice = convertPrice(item.product.basePriceUSD);
+                      const liveUnitUSD = livePriceById.get(item.product.id) ?? item.product.basePriceUSD;
+                      const priceWasUpdated = Math.abs(liveUnitUSD - item.product.basePriceUSD) > 0.001;
+                      const itemTotal = convertPrice(liveUnitUSD * item.quantity);
+                      const unitPrice = convertPrice(liveUnitUSD);
+                      const oldUnitPrice = priceWasUpdated ? convertPrice(item.product.basePriceUSD) : null;
 
                       return (
                         <div 
@@ -318,52 +360,62 @@ export const CartPageView: React.FC = () => {
                               alt={item.product.name[lang]} 
                               className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shrink-0 bg-slate-50 border border-slate-100"
                             />
-                            <div className="space-y-1">
-                              <span className="text-[10px] font-bold text-[#5A3E7A] bg-purple-50 px-2 py-0.5 rounded-full">
+                            <div className="space-y-1.5">
+                              <span className="inline-block text-xs font-bold text-[#5A3E7A] bg-purple-50 px-2.5 py-0.5 rounded-full">
                                 {item.product.category[lang]}
                               </span>
-                              <h3 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2">
+                              <h3 className="text-sm font-bold text-slate-900 leading-relaxed line-clamp-2">
                                 {item.product.name[lang]}
                               </h3>
-                              <p className="text-xs text-slate-500">
-                                {lang === 'ar' ? `سعر القطعة: ${unitPrice.text}` : `Unit: ${unitPrice.text}`}
-                              </p>
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                                <span>
+                                  {lang === 'ar' ? `سعر القطعة: ${unitPrice.text}` : `Unit: ${unitPrice.text}`}
+                                </span>
+                                {oldUnitPrice && (
+                                  <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-bold">
+                                    {lang === 'ar' ? `كان ${oldUnitPrice.text}` : `Was ${oldUnitPrice.text}`}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between sm:justify-end gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-50">
-                            {/* Quantity Stepper */}
+                          <div className="flex items-center justify-between sm:justify-end gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-50">
+                            {/* Quantity Stepper (Accessible 44px touch buttons) */}
                             <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50 shadow-inner">
                               <button
+                                type="button"
                                 onClick={() => updateCartQty(item.product.id, -1)}
-                                className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 text-slate-600 font-bold transition-colors"
+                                className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-slate-200 text-slate-700 font-bold transition-colors cursor-pointer"
                                 aria-label="Decrease quantity"
                               >
-                                <Minus className="w-3.5 h-3.5" />
+                                <Minus className="w-4 h-4" />
                               </button>
-                              <span className="w-9 text-center text-xs font-bold text-slate-900">
+                              <span className="w-9 text-center text-sm font-bold text-slate-900 tabular-nums">
                                 {item.quantity}
                               </span>
                               <button
+                                type="button"
                                 onClick={() => updateCartQty(item.product.id, 1)}
-                                className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 text-slate-600 font-bold transition-colors"
+                                className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-slate-200 text-slate-700 font-bold transition-colors cursor-pointer"
                                 aria-label="Increase quantity"
                               >
-                                <Plus className="w-3.5 h-3.5" />
+                                <Plus className="w-4 h-4" />
                               </button>
                             </div>
 
                             {/* Item Total Price */}
                             <div className="text-end min-w-[90px]">
-                              <p className="text-sm font-black text-slate-900">
+                              <p className="text-sm font-black text-slate-900 tabular-nums">
                                 {itemTotal.text}
                               </p>
                             </div>
 
                             {/* Delete Button */}
                             <button
+                              type="button"
                               onClick={() => removeFromCart(item.product.id)}
-                              className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                              className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
                               aria-label="Remove item"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -484,7 +536,7 @@ export const CartPageView: React.FC = () => {
                     <div className="flex justify-between text-slate-600">
                       <span>{lang === 'ar' ? 'رسوم التوصيل:' : 'Shipping Fee:'}</span>
                       <span className={`font-bold ${isFreeShipping ? 'text-emerald-600' : 'text-slate-900'}`}>
-                        {isFreeShipping ? (lang === 'ar' ? 'مجاني 🚚' : 'FREE') : shippingFeeObj.text}
+                        {isFreeShipping ? (lang === 'ar' ? 'مجاني' : 'FREE') : shippingFeeObj.text}
                       </span>
                     </div>
 

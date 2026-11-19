@@ -11,8 +11,8 @@ export const hairStylingDevices: Product[] = [
   {
     id: "hd-01",
     name: { 
-      ar: "جهاز تجعيد الشعر من سل تيك - SLTK-12", 
-      en: "Siltek Triple Barrel Hair Waver - SLTK-12" 
+      ar: "جهاز تجعيد سل تيك SLTK-12", 
+      en: "Siltek Hair Waver SLTK-12" 
     },
     category: { ar: "أجهزة الشعر", en: "Hair Devices" },
     basePriceUSD: 29.44, // Equivalent to ~110.4 SAR / SDG
@@ -48,8 +48,8 @@ export const hairStylingDevices: Product[] = [
   {
     id: "hd-02",
     name: { 
-      ar: "جهاز تمويج الشعر بيتش بيب من شيقلام - 25مم", 
-      en: "Sheglam Beach Babe Hair Waver - 25mm" 
+      ar: "مموج شيقلام بيتش بيب 25مم", 
+      en: "Sheglam Beach Waver 25mm" 
     },
     category: { ar: "أجهزة الشعر", en: "Hair Devices" },
     basePriceUSD: 22.55, // Equivalent to ~84.58 SAR
@@ -85,8 +85,8 @@ export const hairStylingDevices: Product[] = [
   {
     id: "hd-03",
     name: { 
-      ar: "مكواة تجعيد الشعر الفورية كيوبيدز تشارم من شيقلام - 32 مم", 
-      en: "Cupid's Charm Instant Auto Hair Curler - 32mm" 
+      ar: "كيرلي شيقلام الفوري 32مم", 
+      en: "Sheglam Auto Curler 32mm" 
     },
     category: { ar: "أجهزة الشعر", en: "Hair Devices" },
     basePriceUSD: 25.97, // Equivalent to ~97.42 SAR
@@ -122,8 +122,8 @@ export const hairStylingDevices: Product[] = [
   {
     id: "hd-04",
     name: { 
-      ar: "فرشاة تصفيف الشعر 6 في 1 من سل تيك - SLTK-10", 
-      en: "Siltek 6-in-1 Multi Hair Styler Air Brush - SLTK-10" 
+      ar: "مصفف سل تيك 6 في 1 SLTK-10", 
+      en: "Siltek 6-in-1 Air Brush" 
     },
     category: { ar: "أجهزة الشعر", en: "Hair Devices" },
     basePriceUSD: 63.78, // Equivalent to ~239.2 SAR
@@ -159,8 +159,8 @@ export const hairStylingDevices: Product[] = [
   {
     id: "hd-05",
     name: { 
-      ar: "مكواة تمليس الشعر الاحترافية كلارا بالأيونات", 
-      en: "Clara Pro Ionic Tourmaline Flat Iron" 
+      ar: "مكواة فرد كلارا بالأيونات", 
+      en: "Clara Pro Ionic Flat Iron" 
     },
     category: { ar: "أجهزة الشعر", en: "Hair Devices" },
     basePriceUSD: 51.00,
@@ -196,8 +196,8 @@ export const hairStylingDevices: Product[] = [
   {
     id: "hd-06",
     name: { 
-      ar: "مجفف الشعر الذكي السريع فائق الهدوء أوكيما", 
-      en: "Okema Ultra-Quiet Smart Ionic Blow Dryer" 
+      ar: "مجفف أوكيما الذكي الهادئ", 
+      en: "Okema Quiet Smart Dryer" 
     },
     category: { ar: "أجهزة الشعر", en: "Hair Devices" },
     basePriceUSD: 61.20,
@@ -437,16 +437,6 @@ export const HairDevicesSpotlight: React.FC = () => {
                 >
                   {banner.brand}
                 </span>
-
-                <span 
-                  className={`text-[11px] font-bold px-3 py-1 rounded-full border backdrop-blur-md transition-all ${
-                    isLightBg 
-                      ? 'bg-black/5 text-slate-800 border-black/10 group-hover:bg-black/10' 
-                      : 'bg-white/15 text-white border-white/25 group-hover:bg-white/25 shadow-xs'
-                  }`}
-                >
-                  {lang === 'ar' ? 'عرض التشكيلة' : 'Explore'}
-                </span>
               </div>
 
               {/* Central / Background Visual Device Photo: Clean, Natural, 100% Bright */}
@@ -545,7 +535,7 @@ export const HairDevicesSpotlight: React.FC = () => {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
-            className="flex gap-2.5 sm:gap-3.5 overflow-x-auto pb-2 sm:pb-3 pt-2 px-1 scroll-smooth snap-x snap-mandatory scrollbar-none cursor-grab active:cursor-grabbing touch-manipulation"
+            className="flex gap-2 lg:gap-3 overflow-x-auto pb-2 sm:pb-3 pt-2 px-1 scroll-smooth snap-x snap-mandatory scrollbar-none cursor-grab active:cursor-grabbing touch-manipulation"
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none',
@@ -576,7 +566,7 @@ export const HairDevicesSpotlight: React.FC = () => {
           {/* Unified Bottom Footer: Swipe Hint + Switch to Grid Button */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 pt-3">
             <span className="text-[11px] sm:text-xs text-slate-400 font-medium">
-              {lang === 'ar' ? '← اسحبي يميناً ويساراً لتصفح باقي الأجهزة →' : '← Drag or swipe to explore all devices →'}
+              {lang === 'ar' ? 'اسحبي لتصفح المزيد' : 'Swipe to explore'}
             </span>
             <span className="hidden sm:inline text-slate-300">•</span>
             <button
@@ -598,8 +588,8 @@ export const HairDevicesSpotlight: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-4 pt-2">
-          {/* Autonomous Adaptive Grid: Strictly 2 columns on mobile (gap-2), 3 columns on larger devices */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-2 sm:gap-3.5 animate-in fade-in duration-300">
+          {/* Autonomous Adaptive Grid: Balanced gap-2 on mobile/tablet, lg:gap-3 on large desktop */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-2 lg:gap-3 animate-in fade-in duration-300">
             {filteredProducts.map((product) => (
               <ProductCard 
                 key={product.id} 

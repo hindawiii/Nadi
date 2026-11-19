@@ -33,7 +33,7 @@ export const PWAInstallBanner: React.FC = () => {
       {/* Floating Bottom Promotional Install Banner (cleared above mobile bottom dock & centered on desktop) */}
       <aside 
         aria-label={lang === 'ar' ? 'تثبيت التطبيق' : 'Install Application'}
-        className="fixed bottom-20 inset-x-3 sm:bottom-6 sm:inset-x-auto sm:start-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-sm z-45 animate-in slide-in-from-bottom-5 duration-300"
+        className="fixed bottom-20 inset-x-3 sm:bottom-20 sm:inset-x-0 sm:mx-auto sm:w-full sm:max-w-sm z-[45] animate-in slide-in-from-bottom-5 duration-300"
       >
         <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-purple-200/80 shadow-2xl p-4 sm:p-4.5 flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
@@ -73,7 +73,7 @@ export const PWAInstallBanner: React.FC = () => {
             <button
               type="button"
               onClick={dismiss}
-              className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
+              className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0 cursor-pointer"
               aria-label={lang === 'ar' ? 'إغلاق الإشعار' : 'Dismiss notice'}
             >
               <X className="w-4 h-4" />

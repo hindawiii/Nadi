@@ -4,7 +4,7 @@ import {
   Eye, EyeOff, Lock, AlertTriangle, Check, RefreshCw, 
   Smartphone, Watch, Shirt, Glasses, RotateCcw, Layers, Droplets, BadgeCheck, ShoppingBag, Image,
   Copy, Trash2, CheckCircle2, ChevronRight, Plus, ExternalLink, Phone, Mail, MapPin, MessageCircle, ArrowUpRight,
-  Download, Upload, Code2, Type, FileJson, CheckCircle, HelpCircle, Wand2, ArrowUp,
+  Download, Upload, Code2, Type, FileJson, CheckCircle, HelpCircle, ArrowUp,
   Database, Cpu, HardDrive, Terminal, Activity, Undo2, Rocket, Flower2, Compass
 } from 'lucide-react';
 import { useCommerce, SectionVisibilityMap } from '../context/CommerceContext';
@@ -15,10 +15,11 @@ import {
 import { SmartAuthPortal } from './common/SmartAuthPortal';
 import { UnifiedStoreCustomizer } from './UnifiedStoreCustomizer';
 import { ConfirmDialogModal } from './common/ConfirmDialogModal';
+import { sanitizeSavedTemplateForExport } from '../lib/exportSanitizer';
 
 export const DeveloperPanel: React.FC = () => {
   const { 
-    lang, isDevAuthenticated, loginDeveloper, logoutDeveloper, 
+    lang, isDevAuthenticated, isCloudAdminVerified, loginDeveloper, logoutDeveloper, 
     activePresetId, setActivePresetId, dynamicConfig, setDynamicConfig, 
     clearAllOrders, restoreDefaultOrders,
     updateDeveloperPin, updateAdminPin,
@@ -108,8 +109,8 @@ export const DeveloperPanel: React.FC = () => {
   const [customAccent, setCustomAccent] = useState(customPalette?.accent || currentActivePalette.accent);
   const [customSurface, setCustomSurface] = useState(customPalette?.surface || currentActivePalette.surface);
 
-  // Security Gate
-  if (!isDevAuthenticated) {
+  // Security Gate: Require both Verified Cloud Owner & active Developer session unlock
+  if (!isDevAuthenticated || !isCloudAdminVerified) {
     return (
       <SmartAuthPortal
         portalType="developer"
@@ -128,7 +129,7 @@ export const DeveloperPanel: React.FC = () => {
           en: 'Master Developer Access'
         }}
         accent="amber"
-        onAuthenticate={(pin, rememberLogin, rememberPin) => loginDeveloper(pin, rememberLogin, rememberPin)}
+        onAuthenticate={(pin) => loginDeveloper(pin)}
         onReturnToStore={() => navigateTo('store')}
         savedAuthKey="luxe_dev_auth_saved"
         savedPinKey="luxe_dev_saved_pin"
@@ -186,7 +187,7 @@ export const DeveloperPanel: React.FC = () => {
       desc: { ar: 'العنوان البارز، الشعار الترويجي، وأزرار توجيه العميل المباشرة.', en: 'Primary headline, slogan badge, and main call-to-action buttons.' },
       icon: Crown,
       tag: { ar: 'رئيسي', en: 'Core' },
-      locationHint: { ar: '📍 أعلى الصفحة الرئيسية (قمة المتجر)', en: '📍 Top of Storefront (Above the Fold)' },
+      locationHint: { ar: 'أعلى الصفحة الرئيسية (قمة المتجر)', en: 'Top of Storefront (Above the Fold)' },
       previewImage: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=600&q=80'
     },
     {
@@ -195,7 +196,7 @@ export const DeveloperPanel: React.FC = () => {
       desc: { ar: 'شريط لامتناهي متحرك يعرض هوية المتجر والماركات المعتمدة.', en: 'Smooth infinite loop showcasing brand credentials & marquee slogans.' },
       icon: RefreshCw,
       tag: { ar: 'هوية', en: 'Branding' },
-      locationHint: { ar: '📍 أسفل بنر الهيرو مباشرة (شريط متحرك)', en: '📍 Directly below hero (Marquee strip)' },
+      locationHint: { ar: 'أسفل بنر الهيرو مباشرة (شريط متحرك)', en: 'Directly below hero (Marquee strip)' },
       previewImage: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80'
     },
     {
@@ -204,7 +205,7 @@ export const DeveloperPanel: React.FC = () => {
       desc: { ar: 'شريط الضمانات الأربعة: نتائج فعالة، شحن سريع، أصلية 100%، دفع آمن.', en: '4-pillar trust badges: Proven Results, Fast Shipping, 100% Original, Secure COD.' },
       icon: Shield,
       tag: { ar: 'ثقة', en: 'Trust' },
-      locationHint: { ar: '📍 شريط الضمانات والمزايا الأربعة للمصداقية', en: '📍 Trust & 4-Pillars Guarantee Strip' },
+      locationHint: { ar: 'شريط الضمانات والمزايا الأربعة للمصداقية', en: 'Trust & 4-Pillars Guarantee Strip' },
       previewImage: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80'
     },
     {
@@ -213,7 +214,7 @@ export const DeveloperPanel: React.FC = () => {
       desc: { ar: 'بطاقات التصفية التفاعلية الأربعة لاختيار الروتين الملائم للبشرة.', en: '4 interactive solution cards filtering products by tailored skin needs.' },
       icon: Droplets,
       tag: { ar: 'تفاعلي', en: 'Interactive' },
-      locationHint: { ar: '📍 قسم اختيار وتشخيص روتين البشرة التفاعلي', en: '📍 Interactive Skin Routine Diagnosis' },
+      locationHint: { ar: 'قسم اختيار وتشخيص روتين البشرة التفاعلي', en: 'Interactive Skin Routine Diagnosis' },
       previewImage: 'https://images.unsplash.com/photo-1512290900672-1f41b2f6ef8d?auto=format&fit=crop&w=600&q=80'
     },
     {
@@ -222,7 +223,7 @@ export const DeveloperPanel: React.FC = () => {
       desc: { ar: 'شبكة المنتجات الرئيسية مع فلاتر التصنيف وشارات الخصم وأزرار الشراء.', en: 'Dynamic products catalog with live sorting, filter pills & discount badges.' },
       icon: ShoppingBag,
       tag: { ar: 'تجارة', en: 'Commerce' },
-      locationHint: { ar: '📍 شبكة المنتجات الرئيسية وفلاتر التصنيف', en: '📍 Main Products Catalog & Filter Grid' },
+      locationHint: { ar: 'شبكة المنتجات الرئيسية وفلاتر التصنيف', en: 'Main Products Catalog & Filter Grid' },
       previewImage: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=600&q=80'
     },
     {
@@ -231,7 +232,7 @@ export const DeveloperPanel: React.FC = () => {
       desc: { ar: 'بنرات الماركات (سيل تك، أوكيما، كلارا) مع تبويبات الأجهزة وتصفحها.', en: 'Styling devices carousel with brand spotlight banners & tabbed categories.' },
       icon: Layers,
       tag: { ar: 'تسويق', en: 'Spotlight' },
-      locationHint: { ar: '📍 أجهزة الشعر وبنرات الماركات المميزة', en: '📍 Hair Styling Devices & Brand Spotlight' },
+      locationHint: { ar: 'أجهزة الشعر وبنرات الماركات المميزة', en: 'Hair Styling Devices & Brand Spotlight' },
       previewImage: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80'
     },
     {
@@ -240,7 +241,7 @@ export const DeveloperPanel: React.FC = () => {
       desc: { ar: 'بنر حملة المكونات الطبيعية والبوكسات مع نسبة الخصم والصور المميزة.', en: 'High-impact editorial campaign banner with gift boxes and special discounts.' },
       icon: Image,
       tag: { ar: 'حملات', en: 'Campaign' },
-      locationHint: { ar: '📍 البنر الترويجي للحملات والخصومات الكبرى', en: '📍 Mid-Page Promotional Campaign Banner' },
+      locationHint: { ar: 'البنر الترويجي للحملات والخصومات الكبرى', en: 'Mid-Page Promotional Campaign Banner' },
       previewImage: 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?auto=format&fit=crop&w=600&q=80'
     },
     {
@@ -249,16 +250,16 @@ export const DeveloperPanel: React.FC = () => {
       desc: { ar: 'سلايدر السحب التفاعلي لمقارنة نضارة البشرة قبل وبعد 14 يوماً.', en: 'Interactive touch slider comparing real photographic results over 14 days.' },
       icon: Eye,
       tag: { ar: 'مصداقية', en: 'Social Proof' },
-      locationHint: { ar: '📍 سلايدر مقارنة قبل وبعد 14 يوماً باللمس', en: '📍 Interactive Before & After Touch Slider' },
+      locationHint: { ar: 'سلايدر مقارنة قبل وبعد 14 يوماً باللمس', en: 'Interactive Before & After Touch Slider' },
       previewImage: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80'
     },
     {
       key: 'testimonials',
       title: { ar: 'شهادات وتقييمات العميلات', en: 'Customer Reviews Carousel' },
-      desc: { ar: 'شهادات موثقة مع تقييم 5 نجوم وتفاصيل المنتجات المقتناة وزر المشاركة.', en: 'Verified buyer testimonials with product tags, helpful voting & modal submit.' },
+      desc: { ar: 'آراء موثقة مع تفاصيل المنتجات المقتناة وزر المشاركة.', en: 'Verified buyer testimonials with product tags, helpful voting & modal submit.' },
       icon: BadgeCheck,
       tag: { ar: 'تقييمات', en: 'Reviews' },
-      locationHint: { ar: '📍 شهادات وتقييمات العميلات الموثقة 5 نجوم', en: '📍 Customer Testimonials & Reviews Carousel' },
+      locationHint: { ar: 'شهادات وتقييمات العميلات الموثقة', en: 'Customer Testimonials & Reviews Carousel' },
       previewImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80'
     },
     {
@@ -267,7 +268,7 @@ export const DeveloperPanel: React.FC = () => {
       desc: { ar: 'زر عائم ذكي بحلقة دائرية تمتلئ تدريجياً بنسبة نزول الزائر في الصفحة وتصعد به بنعومة.', en: 'Floating smart button with circular progress ring filling proportionally to scroll depth.' },
       icon: ArrowUp,
       tag: { ar: 'ملاحة ذكية', en: 'Navigation' },
-      locationHint: { ar: '📍 زر الصعود للأعلى الدائري الذكي العائم', en: '📍 Floating Circular Scroll-To-Top Button' },
+      locationHint: { ar: 'زر الصعود للأعلى الدائري الذكي العائم', en: 'Floating Circular Scroll-To-Top Button' },
       previewImage: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=600&q=80'
     },
     {
@@ -276,7 +277,7 @@ export const DeveloperPanel: React.FC = () => {
       desc: { ar: 'زر الاتصال والمحادثة السريعة الفوري مع دعم السحب والنافذة الذكية لمطابقة الهاتف.', en: 'Speed-dial floating actions for instant WhatsApp consultation and direct verified phone calls.' },
       icon: MessageCircle,
       tag: { ar: 'دعم العملاء', en: 'Support' },
-      locationHint: { ar: '📍 زر التواصل والواتساب وسرعة الاتصال العائم', en: '📍 Floating WhatsApp & Speed-Dial Hub' },
+      locationHint: { ar: 'زر التواصل والواتساب وسرعة الاتصال العائم', en: 'Floating WhatsApp & Speed-Dial Hub' },
       previewImage: 'https://images.unsplash.com/photo-1616469829941-c7200edec809?auto=format&fit=crop&w=600&q=80'
     },
   ];
@@ -483,7 +484,6 @@ export const DeveloperPanel: React.FC = () => {
           }
           try {
             localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
           } catch (_) {}
           return clone;
         });
@@ -514,7 +514,6 @@ export const DeveloperPanel: React.FC = () => {
           }
           try {
             localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
           } catch (_) {}
           return clone;
         });
@@ -545,12 +544,11 @@ export const DeveloperPanel: React.FC = () => {
           }
           try {
             localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
           } catch (_) {}
           return clone;
         });
         clearAllOrders();
-        showToast(lang === 'ar' ? '🎉 تم التصفير الشامل بنجاح! المتجر جاهز للتسليم الفوري للعميل.' : '🎉 Store reset to zero-state successfully! Ready for client.');
+        showToast(lang === 'ar' ? 'تم التصفير الشامل بنجاح! المتجر جاهز للتسليم الفوري للعميل.' : 'Store reset to zero-state successfully! Ready for client.');
       },
     });
   };
@@ -797,7 +795,7 @@ export const DeveloperPanel: React.FC = () => {
               <Shield className={`w-4 h-4 ${goldenSnapshot ? 'text-emerald-400' : 'text-slate-500'}`} />
             </div>
             <p className="text-sm font-black text-white">
-              {goldenSnapshot ? (lang === 'ar' ? 'محمي ومحفوظ ✅' : 'Protected ✅') : (lang === 'ar' ? 'غير مسجل ⚠️' : 'Unsaved ⚠️')}
+              {goldenSnapshot ? (lang === 'ar' ? 'محمي ومحفوظ' : 'Protected') : (lang === 'ar' ? 'غير مسجل' : 'Unsaved')}
             </p>
             <span className="text-[10px] text-slate-400 font-mono block truncate">
               {goldenSnapshot ? new Date(goldenSnapshot.savedAt).toLocaleTimeString() : (lang === 'ar' ? 'ينصح بأخذ لقطة' : 'Snapshot advised')}
@@ -821,7 +819,7 @@ export const DeveloperPanel: React.FC = () => {
         {/* Tab Selector - Luxe Pro Navigation */}
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
-            <span>{lang === 'ar' ? '🏢 أركان أنظمة المتاجر الأربعة المستقلة والمتزامنة:' : '🏢 The 4 Autonomous Store System Hubs:'}</span>
+            <span>{lang === 'ar' ? 'أركان أنظمة المتاجر الأربعة المستقلة والمتزامنة:' : 'The 4 Autonomous Store System Hubs:'}</span>
             <span className="text-[10px] text-amber-400 font-mono">Real-Time Reactive State</span>
           </div>
 
@@ -855,7 +853,7 @@ export const DeveloperPanel: React.FC = () => {
 
                     {isCurrentlyActiveStore && (
                       <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                        🟢 {lang === 'ar' ? 'مُمكّن' : 'Active'}
+ {lang === 'ar' ? 'مُمكّن' : 'Active'}
                       </span>
                     )}
                   </div>
@@ -884,7 +882,7 @@ export const DeveloperPanel: React.FC = () => {
               }`}
             >
               <Shield className="w-3.5 h-3.5" />
-              <span>{lang === 'ar' ? '🛡️ درع الثبات الذهبي' : '🛡️ Golden Shield'}</span>
+              <span>{lang === 'ar' ? 'درع الثبات الذهبي' : 'Golden Shield'}</span>
             </button>
 
             <button
@@ -897,7 +895,7 @@ export const DeveloperPanel: React.FC = () => {
               }`}
             >
               <Code2 className="w-3.5 h-3.5" />
-              <span>{lang === 'ar' ? '🧩 مستورد ومطوع القوالب' : '🧩 Template Adapter'}</span>
+              <span>{lang === 'ar' ? 'مستورد ومطوع القوالب' : 'Template Adapter'}</span>
             </button>
 
             <button
@@ -910,7 +908,7 @@ export const DeveloperPanel: React.FC = () => {
               }`}
             >
               <AlertTriangle className="w-3.5 h-3.5" />
-              <span>{lang === 'ar' ? '🔒 الحماية والتأمين' : '🔒 Security Guard'}</span>
+              <span>{lang === 'ar' ? 'الحماية والتأمين' : 'Security Guard'}</span>
             </button>
           </div>
         </div>
@@ -940,12 +938,12 @@ export const DeveloperPanel: React.FC = () => {
                       {isCurrentActive ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black">
                           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>{lang === 'ar' ? '🟢 القالب المفعّل حالياً بالمتجر الحي ولوحة الإدارة' : '🟢 Active On Live Storefront'}</span>
+                          <span>{lang === 'ar' ? 'القالب المفعّل حالياً بالمتجر الحي ولوحة الإدارة' : 'Active On Live Storefront'}</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-slate-300 text-xs font-bold">
                           <span className="w-2 h-2 rounded-full bg-slate-400" />
-                          <span>{lang === 'ar' ? '⚪ ركن كامن – جاهز للتخصيص والتجربة والتمكين' : '⚪ Inactive Hub – Ready to Enable'}</span>
+                          <span>{lang === 'ar' ? 'ركن كامن – جاهز للتخصيص والتجربة والتمكين' : 'Inactive Hub – Ready to Enable'}</span>
                         </span>
                       )}
 
@@ -988,20 +986,20 @@ export const DeveloperPanel: React.FC = () => {
                           showToast({
                             type: 'success',
                             message: lang === 'ar' 
-                              ? `تم تمكين قالب (${currentHubMeta.name.ar}) وتطبيقه على المتجر الحي ولوحة الإدارة بنجاح! ⚡` 
-                              : `Enabled (${currentHubMeta.name.en}) preset on live store and admin! ⚡`
+                              ? `تم تمكين قالب (${currentHubMeta.name.ar}) وتطبيقه على المتجر الحي ولوحة الإدارة بنجاح!` 
+                              : `Enabled (${currentHubMeta.name.en}) preset on live store and admin!`
                           });
                         }}
                         className="h-11 px-5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-2 cursor-pointer shadow-lg active:scale-95 transition-all"
                       >
-                        <Wand2 className="w-4 h-4 text-purple-950" />
-                        <span>{lang === 'ar' ? 'تمكين قالب هذا المتجر بالمتجر الحي ⚡' : 'Activate On Storefront ⚡'}</span>
+                        <Layers className="w-4 h-4 text-purple-950" />
+                        <span>{lang === 'ar' ? 'تمكين قالب هذا المتجر بالمتجر الحي' : 'Activate On Storefront'}</span>
                       </button>
                     ) : (
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="h-11 px-4 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                          <span>{lang === 'ar' ? 'قيد التشغيل بالمتجر الحي ✅' : 'Running on Live Store ✅'}</span>
+                          <span>{lang === 'ar' ? 'قيد التشغيل بالمتجر الحي' : 'Running on Live Store'}</span>
                         </div>
 
                         {activeTab !== 'cosmetics' && (
@@ -1034,7 +1032,7 @@ export const DeveloperPanel: React.FC = () => {
                       title={lang === 'ar' ? 'تفريغ منتجات هذا الكتالوج لتسليم المتجر لعميل جديد' : 'Wipe demo products for this preset to prepare store for client'}
                     >
                       <Trash2 className="w-4 h-4 text-amber-400" />
-                      <span>{lang === 'ar' ? 'تفريغ الكتالوج للعميل 🗑️' : 'Wipe Catalog for Client 🗑️'}</span>
+                      <span>{lang === 'ar' ? 'تفريغ الكتالوج للعميل' : 'Wipe Catalog for Client'}</span>
                     </button>
 
                     {/* Factory Reset Preset Button */}
@@ -1409,7 +1407,7 @@ export const DeveloperPanel: React.FC = () => {
                   className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 min-h-[44px] cursor-pointer shrink-0"
                 >
                   <Download className="w-4 h-4" />
-                  <span>{lang === 'ar' ? '💾 حفظ القالب في الخزينة' : 'Save Template to Vault'}</span>
+                  <span>{lang === 'ar' ? 'حفظ القالب في الخزينة' : 'Save Template to Vault'}</span>
                 </button>
               </form>
 
@@ -1446,14 +1444,17 @@ export const DeveloperPanel: React.FC = () => {
                             onClick={() => loadSavedTemplate(savedTpl.id)}
                             className="flex-1 py-2 px-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer min-h-[38px]"
                           >
-                            <Wand2 className="w-3.5 h-3.5" />
+                            <Layers className="w-3.5 h-3.5" />
                             <span>{lang === 'ar' ? 'تفعيل الآن' : 'Load'}</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => {
-                              const json = JSON.stringify(savedTpl, null, 2);
+                              const sanitizedTpl = sanitizeSavedTemplateForExport(
+                                savedTpl as unknown as Record<string, unknown>
+                              );
+                              const json = JSON.stringify(sanitizedTpl, null, 2);
                               const blob = new Blob([json], { type: 'application/json' });
                               const url = URL.createObjectURL(blob);
                               const a = document.createElement('a');
@@ -2193,7 +2194,7 @@ export const DeveloperPanel: React.FC = () => {
             {/* Section 1: Brand & Logo */}
             <div className="space-y-4">
               <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider border-b border-slate-800 pb-2">
-                🏷️ {lang === 'ar' ? '١. هوية المتجر والشعار (Store Branding & Identity)' : '1. Store Branding & Identity'}
+ {lang === 'ar' ? '١. هوية المتجر والشعار (Store Branding & Identity)' : '1. Store Branding & Identity'}
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -2468,7 +2469,7 @@ export const DeveloperPanel: React.FC = () => {
             {/* Section 3: Contact & Support Channels */}
             <div className="space-y-4 pt-4 border-t border-slate-800">
               <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider border-b border-slate-800 pb-2">
-                📞 {lang === 'ar' ? '٣. بيانات التواصل والدعم الفني (Contact Channels & Support)' : '3. Contact Channels & Support'}
+ {lang === 'ar' ? '٣. بيانات التواصل والدعم الفني (Contact Channels & Support)' : '3. Contact Channels & Support'}
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -2563,7 +2564,7 @@ export const DeveloperPanel: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
-                    💧 {lang === 'ar' ? '٤. كروت تشخيص روتين البشرة الذكي (Skin Diagnosis Cards)' : '4. Smart Skin Diagnosis Cards'}
+ {lang === 'ar' ? '٤. كروت تشخيص روتين البشرة الذكي (Skin Diagnosis Cards)' : '4. Smart Skin Diagnosis Cards'}
                   </h3>
                   <p className="text-[11px] text-slate-400 mt-0.5">
                     {lang === 'ar'
@@ -2714,7 +2715,7 @@ export const DeveloperPanel: React.FC = () => {
             {/* Section 6: Promo Campaign & Before-After Slider Images */}
             <div className="space-y-4 pt-4 border-t border-slate-800">
               <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
-                🖼️ {lang === 'ar' ? '٦. صور العروض التسويقية وسلايدر قبل وبعد (Visual Promos & Sliders)' : '6. Visual Promos & Sliders'}
+ {lang === 'ar' ? '٦. صور العروض التسويقية وسلايدر قبل وبعد (Visual Promos & Sliders)' : '6. Visual Promos & Sliders'}
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -2810,7 +2811,7 @@ export const DeveloperPanel: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold">
-                    <span>🛡️ نظام الحصانة والتجميد البرمجي (Code Immutability Guard)</span>
+                    <span> نظام الحصانة والتجميد البرمجي (Code Immutability Guard)</span>
                   </div>
                   <h2 className="text-xl sm:text-2xl font-black text-white pt-1">
                     {lang === 'ar' ? 'درع استقرار المتجر ومنع التغييرات العشوائية' : 'Store Stability Shield & Anti-Regression Guard'}
@@ -2872,7 +2873,7 @@ export const DeveloperPanel: React.FC = () => {
                     className="flex-1 sm:flex-none px-5 py-3 rounded-2xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                   >
                     <Download className="w-4 h-4" />
-                    <span>{lang === 'ar' ? 'حفظ نقطة استقرار ذهبية 🛡️' : 'Save Golden Snapshot 🛡️'}</span>
+                    <span>{lang === 'ar' ? 'حفظ نقطة استقرار ذهبية' : 'Save Golden Snapshot'}</span>
                   </button>
 
                   {/* Restore Button with in-UI confirmation */}
@@ -2906,7 +2907,7 @@ export const DeveloperPanel: React.FC = () => {
                       className="flex-1 sm:flex-none px-5 py-3 rounded-2xl text-xs font-black bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/40 shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                     >
                       <RotateCcw className="w-4 h-4" />
-                      <span>{lang === 'ar' ? 'استعادة الحالة الذهبية 🔄' : 'Restore Golden State 🔄'}</span>
+                      <span>{lang === 'ar' ? 'استعادة الحالة الذهبية' : 'Restore Golden State'}</span>
                     </button>
                   )}
                 </div>
@@ -2915,7 +2916,7 @@ export const DeveloperPanel: React.FC = () => {
               {/* Principles of Code Lock */}
               <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-900/50 space-y-2 text-xs text-emerald-200/90 leading-relaxed">
                 <span className="font-extrabold text-emerald-300 block text-sm">
-                  📌 {lang === 'ar' ? 'كيف يحمي هذا النظام متجرك في المستقبل؟' : 'How does this protect your store?'}
+ {lang === 'ar' ? 'كيف يحمي هذا النظام متجرك في المستقبل؟' : 'How does this protect your store?'}
                 </span>
                 <ul className="list-disc list-inside space-y-1 text-slate-300 text-[11px] sm:text-xs">
                   <li><strong>تجميد الكائنات (Object.freeze):</strong> يمنع أي كود جديد من تعديل المسميات الأساسية للمتجر بالخطأ.</li>
@@ -2952,7 +2953,7 @@ export const DeveloperPanel: React.FC = () => {
                   {lang === 'ar' ? 'حالة القفل الحالية:' : 'Current Lock Status:'}
                 </span>
                 <span className={`text-xs font-semibold ${isDeveloperModeLocked ? 'text-rose-400' : 'text-emerald-400'}`}>
-                  {isDeveloperModeLocked ? (lang === 'ar' ? '🔒 اللوحة مقفلة ومحجوبة' : '🔒 Locked & Concealed') : (lang === 'ar' ? '🔓 اللوحة نشطة ومتاحة لك' : '🔓 Active / Unlocked')}
+                  {isDeveloperModeLocked ? (lang === 'ar' ? 'اللوحة مقفلة ومحجوبة' : 'Locked & Concealed') : (lang === 'ar' ? 'اللوحة نشطة ومتاحة لك' : 'Active / Unlocked')}
                 </span>
               </div>
 
@@ -3024,7 +3025,7 @@ export const DeveloperPanel: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
                       <Rocket className="w-4 h-4 text-indigo-400" />
-                      <span>{lang === 'ar' ? 'تصفير شامل للتسليم 🚀' : 'Master Zero-State 🚀'}</span>
+                      <span>{lang === 'ar' ? 'تصفير شامل للتسليم' : 'Master Zero-State'}</span>
                     </span>
                     <span className="text-[10px] font-black text-indigo-400">Zero-State</span>
                   </div>

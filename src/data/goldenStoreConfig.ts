@@ -9,6 +9,7 @@
  */
 
 import { SiteConfig, siteConfig, Product } from './siteConfig';
+import { sanitizeConfigForGoldenSnapshot } from '../lib/exportSanitizer';
 
 export const GOLDEN_STORAGE_KEY_SNAPSHOT = 'luxe_golden_snapshot_v1';
 export const GOLDEN_STORAGE_KEY_LOCKED = 'luxe_golden_locked_state_v1';
@@ -46,22 +47,24 @@ export interface GoldenSnapshotMeta {
   version: string;
   storeName: { ar: string; en: string };
   productsCount: number;
-  config: SiteConfig;
+  config: Omit<SiteConfig, 'security'>;
 }
 
 /**
- * Creates and persists a Golden Snapshot of the current state.
+ * Creates and persists a sanitized Golden Snapshot of the current storefront state
+ * (strictly excluding `security`, PINs, and recovery secrets from browser storage).
  */
 export function createGoldenSnapshot(config: SiteConfig): GoldenSnapshotMeta {
+  const sanitizedConfig = sanitizeConfigForGoldenSnapshot(config);
   const meta: GoldenSnapshotMeta = {
     savedAt: new Date().toISOString(),
-    version: '1.0.0-GOLDEN',
+    version: '1.1.0-GOLDEN-SANITIZED',
     storeName: {
-      ar: config.presets.cosmetics?.storeName?.ar || 'نَـــــدِي',
-      en: config.presets.cosmetics?.storeName?.en || 'NADI'
+      ar: sanitizedConfig.presets.cosmetics?.storeName?.ar || 'نَـــــدِي',
+      en: sanitizedConfig.presets.cosmetics?.storeName?.en || 'NADI'
     },
-    productsCount: config.presets.cosmetics?.products?.length || 0,
-    config: JSON.parse(JSON.stringify(config))
+    productsCount: sanitizedConfig.presets.cosmetics?.products?.length || 0,
+    config: sanitizedConfig
   };
 
   try {
@@ -74,7 +77,7 @@ export function createGoldenSnapshot(config: SiteConfig): GoldenSnapshotMeta {
 }
 
 /**
- * Retrieves the currently saved Golden Snapshot, or returns the frozen baseline.
+ * Retrieves the currently saved Golden Snapshot (re-sanitized defensively on read).
  */
 export function getGoldenSnapshot(): GoldenSnapshotMeta | null {
   try {
@@ -82,7 +85,10 @@ export function getGoldenSnapshot(): GoldenSnapshotMeta | null {
     if (raw) {
       const parsed = JSON.parse(raw) as GoldenSnapshotMeta;
       if (parsed && parsed.config && parsed.config.presets) {
-        return parsed;
+        return {
+          ...parsed,
+          config: sanitizeConfigForGoldenSnapshot(parsed.config as SiteConfig),
+        };
       }
     }
   } catch (err) {
@@ -92,13 +98,23 @@ export function getGoldenSnapshot(): GoldenSnapshotMeta | null {
 }
 
 /**
- * Restores the store configuration to the Golden Snapshot or the Frozen Baseline.
+ * Restores the store configuration to the sanitized Golden Snapshot or the Frozen Baseline,
+ * keeping security credentials strictly in memory rather than loading them from localStorage.
  */
-export function restoreGoldenState(): { success: boolean; config: SiteConfig; message: string } {
+export function restoreGoldenState(
+  currentSecurity?: SiteConfig['security']
+): { success: boolean; config: SiteConfig; message: string } {
+  const safeRuntimeSecurity: SiteConfig['security'] = JSON.parse(
+    JSON.stringify(currentSecurity || FROZEN_GOLDEN_BASELINE.security)
+  );
+
   try {
     const snapshot = getGoldenSnapshot();
     if (snapshot && snapshot.config) {
-      const restored = JSON.parse(JSON.stringify(snapshot.config));
+      const restored: SiteConfig = {
+        ...JSON.parse(JSON.stringify(snapshot.config)),
+        security: safeRuntimeSecurity,
+      };
       return {
         success: true,
         config: restored,
@@ -107,7 +123,10 @@ export function restoreGoldenState(): { success: boolean; config: SiteConfig; me
     }
 
     // Fall back to the pristine frozen baseline
-    const fallback = JSON.parse(JSON.stringify(FROZEN_GOLDEN_BASELINE));
+    const fallback: SiteConfig = {
+      ...JSON.parse(JSON.stringify(FROZEN_GOLDEN_BASELINE)),
+      security: safeRuntimeSecurity,
+    };
     return {
       success: true,
       config: fallback,
@@ -116,7 +135,10 @@ export function restoreGoldenState(): { success: boolean; config: SiteConfig; me
   } catch (err: any) {
     return {
       success: false,
-      config: JSON.parse(JSON.stringify(FROZEN_GOLDEN_BASELINE)),
+      config: {
+        ...JSON.parse(JSON.stringify(FROZEN_GOLDEN_BASELINE)),
+        security: safeRuntimeSecurity,
+      },
       message: `فشل استرجاع الحالة: ${err?.message || 'خطأ غير معروف'}`
     };
   }

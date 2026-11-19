@@ -5,7 +5,7 @@ import {
   LogOut, Edit, RefreshCw, Image as ImageIcon, Layout, Check,
   Sliders, FileText, ShoppingBag, Plus, Trash2, Layers,
   Phone, Mail, MapPin, ExternalLink, MessageCircle,
-  Upload, Wand2, X, Search, Filter, CheckCircle2, Clock, Truck,
+  Upload, X, Search, Filter, CheckCircle2, Clock, Truck,
   Tag, ArrowUpRight, ShieldCheck, CheckCheck, Droplets, BadgeCheck,
   Undo2, RotateCcw, MessageSquare, UserCheck, Rocket, ShieldAlert, Crown
 } from 'lucide-react';
@@ -97,7 +97,7 @@ export const AdminPanel: React.FC = () => {
   const [newProdOriginalPrice, setNewProdOriginalPrice] = useState<number | ''>('');
   const [newProdStock, setNewProdStock] = useState(15);
   const [newProdImage, setNewProdImage] = useState('');
-  const [newProdBadge, setNewProdBadge] = useState('جديد 🌿');
+  const [newProdBadge, setNewProdBadge] = useState('جديد');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Hidden file inputs for direct device upload
@@ -115,8 +115,8 @@ export const AdminPanel: React.FC = () => {
   const [urlModalProductId, setUrlModalProductId] = useState<string | null>(null);
   const [urlModalInput, setUrlModalInput] = useState('');
 
-  // If not authenticated, display Smart Full-Screen Auth Portal (Default PIN: 2026)
-  if (!isAdminAuthenticated) {
+  // Enforce both Firebase Verified Cloud Owner identity and active Admin session unlock
+  if (!isAdminAuthenticated || !isCloudAdminVerified) {
     return (
       <SmartAuthPortal
         portalType="admin"
@@ -135,7 +135,7 @@ export const AdminPanel: React.FC = () => {
           en: 'Store Administrator Access'
         }}
         accent="purple"
-        onAuthenticate={(pin, rememberLogin, rememberPin) => loginAdmin(pin, rememberLogin, rememberPin)}
+        onAuthenticate={(pin) => loginAdmin(pin)}
         onReturnToStore={() => navigateTo('store')}
         savedAuthKey="luxe_admin_auth_saved"
         savedPinKey="luxe_admin_saved_pin"
@@ -488,7 +488,6 @@ export const AdminPanel: React.FC = () => {
       }
       try {
         localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
       } catch (err) {}
       return clone;
     });
@@ -508,7 +507,6 @@ export const AdminPanel: React.FC = () => {
       }
       try {
         localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
       } catch (_) {}
       return clone;
     });
@@ -531,14 +529,13 @@ export const AdminPanel: React.FC = () => {
       }
       try {
         localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
       } catch (_) {}
       return clone;
     });
     if (typeof reviewId === 'string' && reviewId.startsWith('REV-')) {
       updateReviewStatusInCloud(reviewId, 'rejected').catch(() => {});
     }
-    showToast(lang === 'ar' ? 'تم إخفاء التقييم من واجهة المتجر ⏸️' : 'Review hidden from storefront ⏸️');
+    showToast(lang === 'ar' ? 'تم إخفاء التقييم من واجهة المتجر' : 'Review hidden from storefront');
   };
 
   const handleDeleteReview = (reviewId: string | number) => {
@@ -558,14 +555,13 @@ export const AdminPanel: React.FC = () => {
           targetPreset.testimonials = targetPreset.testimonials.filter((t: any) => String(t.id) !== String(reviewId));
           try {
             localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
           } catch (_) {}
           return clone;
         });
         if (typeof reviewId === 'string' && reviewId.startsWith('REV-')) {
           deleteReviewFromCloud(reviewId).catch(() => {});
         }
-        showToast(lang === 'ar' ? 'تم حذف التقييم نهائياً 🗑️' : 'Review permanently deleted');
+        showToast(lang === 'ar' ? 'تم حذف التقييم نهائياً' : 'Review permanently deleted');
       },
     });
   };
@@ -603,7 +599,6 @@ export const AdminPanel: React.FC = () => {
       targetPreset.testimonials.unshift(newReview);
       try {
         localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-        localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
       } catch (_) {}
       return clone;
     });
@@ -632,7 +627,6 @@ export const AdminPanel: React.FC = () => {
           clone.presets[activePresetId].products = [];
           try {
             localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
           } catch (_) {}
           return clone;
         });
@@ -667,7 +661,6 @@ export const AdminPanel: React.FC = () => {
           clone.presets[activePresetId].testimonials = [];
           try {
             localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
           } catch (_) {}
           return clone;
         });
@@ -690,12 +683,11 @@ export const AdminPanel: React.FC = () => {
           clone.presets[activePresetId].testimonials = [];
           try {
             localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
           } catch (_) {}
           return clone;
         });
         clearAllOrders();
-        showToast(lang === 'ar' ? '🎉 تم التصفير الشامل بنجاح! المتجر مهيأ بالكامل لتسليمه للعميل.' : '🎉 Store successfully reset to zero-state for client!');
+        showToast(lang === 'ar' ? 'تم التصفير الشامل بنجاح! المتجر مهيأ بالكامل لتسليمه للعميل.' : 'Store successfully reset to zero-state for client!');
       },
     });
   };
@@ -714,7 +706,6 @@ export const AdminPanel: React.FC = () => {
           clone.presets[activePresetId].testimonials = JSON.parse(JSON.stringify(siteConfig.presets[activePresetId]?.testimonials || siteConfig.presets.cosmetics.testimonials));
           try {
             localStorage.setItem('luxe_commerce_config_v2', JSON.stringify(clone));
-            localStorage.setItem('luxe_commerce_config_v1', JSON.stringify(clone));
           } catch (_) {}
           return clone;
         });
@@ -739,7 +730,7 @@ export const AdminPanel: React.FC = () => {
     let suggestedNameEn = 'Botanical Luxury Formulation';
     let suggestedPrice = 24.5;
     let suggestedOriginalPrice = 34.0;
-    let suggestedBadge = 'الأكثر طلباً 🔥';
+    let suggestedBadge = 'الأكثر طلباً';
     let sampleImage = 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80';
 
     if (lower.includes('سيروم') || lower.includes('serum') || lower.includes('فيتامين') || lower.includes('نضارة')) {
@@ -748,7 +739,7 @@ export const AdminPanel: React.FC = () => {
       suggestedNameEn = 'Intensive Glow Vitamin Serum';
       suggestedPrice = 28.0;
       suggestedOriginalPrice = 38.0;
-      suggestedBadge = 'طبيعي 100% 🌿';
+      suggestedBadge = 'طبيعي 100%';
       sampleImage = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80';
     } else if (lower.includes('كريم') || lower.includes('cream') || lower.includes('ترطيب') || lower.includes('مرطب')) {
       suggestedCatAr = 'كريمات الترطيب الفاخرة';
@@ -756,7 +747,7 @@ export const AdminPanel: React.FC = () => {
       suggestedNameEn = '24H Deep Velvet Moisture Cream';
       suggestedPrice = 22.0;
       suggestedOriginalPrice = 30.0;
-      suggestedBadge = 'ترطيب عميق 💧';
+      suggestedBadge = 'ترطيب عميق';
       sampleImage = 'https://images.unsplash.com/photo-1608248597359-25b82877fb18?auto=format&fit=crop&w=800&q=80';
     } else if (lower.includes('شعر') || lower.includes('hair') || lower.includes('زيت') || lower.includes('استشوار') || lower.includes('كلارا') || lower.includes('أوكيما')) {
       suggestedCatAr = 'أجهزة وعناية الشعر';
@@ -764,7 +755,7 @@ export const AdminPanel: React.FC = () => {
       suggestedNameEn = 'Salon Pro Thermal Styler';
       suggestedPrice = 45.0;
       suggestedOriginalPrice = 65.0;
-      suggestedBadge = 'ضمان سنتين ⚡';
+      suggestedBadge = 'ضمان سنتين';
       sampleImage = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80';
     } else if (lower.includes('غسول') || lower.includes('منظف') || lower.includes('cleanser')) {
       suggestedCatAr = 'غسول ومنظفات البشرة';
@@ -772,7 +763,7 @@ export const AdminPanel: React.FC = () => {
       suggestedNameEn = 'Purifying Botanical Gel Cleanser';
       suggestedPrice = 16.5;
       suggestedOriginalPrice = 22.0;
-      suggestedBadge = 'رغوة ناعمة 🌿';
+      suggestedBadge = 'رغوة ناعمة';
       sampleImage = 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80';
     } else if (lower.includes('عطر') || lower.includes('perfume') || lower.includes('مسك') || lower.includes('عود')) {
       suggestedCatAr = 'العطور والروائح الملكية';
@@ -780,7 +771,7 @@ export const AdminPanel: React.FC = () => {
       suggestedNameEn = 'Royal Amber & Floral Mist';
       suggestedPrice = 39.0;
       suggestedOriginalPrice = 52.0;
-      suggestedBadge = 'ثبات عالي 🌸';
+      suggestedBadge = 'ثبات عالي';
       sampleImage = 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=800&q=80';
     }
 
@@ -789,7 +780,7 @@ export const AdminPanel: React.FC = () => {
     if (!newProdNameEn) setNewProdNameEn(suggestedNameEn);
     if (newProdPrice === 10) setNewProdPrice(suggestedPrice);
     if (newProdOriginalPrice === '' || newProdOriginalPrice === 0) setNewProdOriginalPrice(suggestedOriginalPrice);
-    if (newProdBadge === 'جديد 🌿' || newProdBadge === 'عرض مميز') setNewProdBadge(suggestedBadge);
+    if (newProdBadge === 'جديد' || newProdBadge === 'عرض مميز') setNewProdBadge(suggestedBadge);
     if (!newProdImage) setNewProdImage(sampleImage);
 
     showToast(lang === 'ar' ? 'تم ملء بيانات المنتج وتنسيقها واقتراح الصورة والأسعار بذكاء!' : 'Smart AI auto-completed product details & imagery!');
@@ -821,7 +812,7 @@ export const AdminPanel: React.FC = () => {
       originalPriceUSD: parsedOrig,
       stock: Number(newProdStock) || 10,
       badge: {
-        ar: newProdBadge || 'جديد 🌿',
+        ar: newProdBadge || 'جديد',
         en: 'New'
       },
       rating: 5.0,
@@ -867,7 +858,7 @@ export const AdminPanel: React.FC = () => {
     setNewProdOriginalPrice('');
     setNewProdStock(15);
     setNewProdImage('');
-    setNewProdBadge('جديد 🌿');
+    setNewProdBadge('جديد');
     showToast(lang === 'ar' ? 'تمت إضافة المنتج الجديد بنجاح!' : 'New product added successfully!');
   };
 
@@ -1156,7 +1147,7 @@ export const AdminPanel: React.FC = () => {
             }`}
           >
             <Layout className="w-4 h-4 text-amber-300" />
-            <span>{lang === 'ar' ? '🎨 ركن التعديل الموحد (كامل المتجر)' : '🎨 Store Customizer (All-in-One)'}</span>
+            <span>{lang === 'ar' ? 'ركن التعديل الموحد (كامل المتجر)' : 'Store Customizer (All-in-One)'}</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${activeTab === 'customizer' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'}`}>
               13 {lang === 'ar' ? 'ركناً' : 'corners'}
             </span>
@@ -1224,7 +1215,7 @@ export const AdminPanel: React.FC = () => {
             </span>
             {pendingReviewsCount > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold animate-pulse">
-                {pendingReviewsCount} {lang === 'ar' ? 'جديد ⏳' : 'new'}
+                {pendingReviewsCount} {lang === 'ar' ? 'جديد' : 'new'}
               </span>
             )}
           </button>
@@ -1241,7 +1232,7 @@ export const AdminPanel: React.FC = () => {
             <Rocket className="w-4 h-4 text-indigo-600" />
             <span>{lang === 'ar' ? 'تهيئة المتجر للعميل' : 'Client Handover'}</span>
             <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-mono">
-              {lang === 'ar' ? 'تجهيز 🚀' : 'Setup'}
+              {lang === 'ar' ? 'تجهيز' : 'Setup'}
             </span>
           </button>
         </div>
@@ -1372,7 +1363,7 @@ export const AdminPanel: React.FC = () => {
                   <button
                     key={tab.id}
                     onClick={() => setOrderStatusFilter(tab.id as any)}
-                    className={`h-9 px-3.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`min-h-[44px] px-3.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
                       orderStatusFilter === tab.id
                         ? 'bg-slate-900 text-white shadow-xs'
                         : 'bg-slate-100 hover:bg-slate-200/80 text-slate-700'
@@ -1474,7 +1465,7 @@ export const AdminPanel: React.FC = () => {
                           <option value="received">{lang === 'ar' ? 'جديد (مستلم)' : 'Received'}</option>
                           <option value="processing">{lang === 'ar' ? 'جاري التجهيز' : 'Processing'}</option>
                           <option value="dispatched">{lang === 'ar' ? 'مع المندوب' : 'Dispatched'}</option>
-                          <option value="delivered">{lang === 'ar' ? 'تم التوصيل ✅' : 'Delivered ✅'}</option>
+                          <option value="delivered">{lang === 'ar' ? 'تم التوصيل' : 'Delivered'}</option>
                         </select>
                       </div>
                     </div>
@@ -1513,13 +1504,13 @@ export const AdminPanel: React.FC = () => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[11px] font-bold text-purple-900 bg-purple-100/90 border border-purple-200/80 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-2xs">
                     <MapPin className="w-3.5 h-3.5 text-purple-600" />
-                    <span>{lang === 'ar' ? '📍 أعلى شريط في المتجر (شريط الإعلانات البنفسجي)' : '📍 Top Header Bar (Purple Ticker)'}</span>
+                    <span>{lang === 'ar' ? 'أعلى شريط في المتجر (شريط الإعلانات البنفسجي)' : 'Top Header Bar (Purple Ticker)'}</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => {
                       const currentSlides = activePreset.announcementSlides || [];
-                      const newSlides = [...currentSlides, { ar: 'نص إعلاني جديد هنا 🌿', en: 'New announcement text here 🌿' }];
+                      const newSlides = [...currentSlides, { ar: 'نص إعلاني جديد هنا', en: 'New announcement text here' }];
                       updateField('announcementSlides', newSlides);
                       showToast(lang === 'ar' ? 'تمت إضافة شريحة إعلانية جديدة' : 'Slide added');
                     }}
@@ -1533,7 +1524,7 @@ export const AdminPanel: React.FC = () => {
 
               <div className="space-y-3">
                 {(activePreset.announcementSlides || [
-                  { ar: "تسوقي بذكاء: احفظي في المفضلة ❤️ • قارني المواصفات ⚖️ • اطلبي فـوراً عبر السلة أو واتساب 💬", en: "Smart Shopping: Save to Wishlist ❤️ • Compare Specs ⚖️ • Order via Cart or WhatsApp 💬" }
+                  { ar: "تسوقي بذكاء: احفظي في المفضلة • قارني المواصفات • اطلبي فـوراً عبر السلة أو واتساب", en: "Smart Shopping: Save to Wishlist • Compare Specs • Order via Cart or WhatsApp" }
                 ]).map((slide, idx) => (
                   <div key={idx} className="p-4 bg-white rounded-xl border border-purple-200/80 space-y-3">
                     <div className="flex items-center justify-between">
@@ -1605,7 +1596,7 @@ export const AdminPanel: React.FC = () => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-200/80 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-2xs">
                     <MapPin className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{lang === 'ar' ? '📍 أسفل واجهة الهيرو مباشرة (شريط الماركات المتحرك)' : '📍 Below Hero Section (Marquee Strip)'}</span>
+                    <span>{lang === 'ar' ? 'أسفل واجهة الهيرو مباشرة (شريط الماركات المتحرك)' : 'Below Hero Section (Marquee Strip)'}</span>
                   </span>
                   <button
                     type="button"
@@ -1725,7 +1716,7 @@ export const AdminPanel: React.FC = () => {
                 </h3>
                 <span className="text-[11px] font-bold text-slate-800 bg-slate-200/90 border border-slate-300 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-2xs w-fit">
                   <MapPin className="w-3.5 h-3.5 text-slate-600" />
-                  <span>{lang === 'ar' ? '📍 واجهة الهيرو الكبرى بأعلى الصفحة - أول ما يراه الزائر' : '📍 Main Hero - First View Above the Fold'}</span>
+                  <span>{lang === 'ar' ? 'واجهة الهيرو الكبرى بأعلى الصفحة - أول ما يراه الزائر' : 'Main Hero - First View Above the Fold'}</span>
                 </span>
               </div>
               
@@ -1929,8 +1920,8 @@ export const AdminPanel: React.FC = () => {
                         className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-all active:scale-95"
                         title={lang === 'ar' ? 'توليد تلقائي للوصف، التصنيف، السعر، واقتراح صورة احترافية' : 'Auto-generate category, price, description and photo'}
                       >
-                        <Wand2 className="w-3.5 h-3.5" />
-                        <span>{lang === 'ar' ? 'توليد البيانات بذكاء (AI Auto-Fill)' : 'Smart Auto-Fill'}</span>
+                        <Sliders className="w-3.5 h-3.5" />
+                        <span>{lang === 'ar' ? 'تعبئة البيانات تلقائياً' : 'Auto-Fill Details'}</span>
                       </button>
 
                       <button
@@ -2028,7 +2019,7 @@ export const AdminPanel: React.FC = () => {
                       />
                       {typeof newProdOriginalPrice === 'number' && newProdOriginalPrice > newProdPrice && (
                         <div className="mt-1 text-[10px] font-black text-emerald-700 flex items-center gap-1">
-                          <span>🎉 {lang === 'ar' ? `سيظهر للعميل بخصم ${Math.round(((newProdOriginalPrice - newProdPrice) / newProdOriginalPrice) * 100)}% وتوفير $${(newProdOriginalPrice - newProdPrice).toFixed(1)}` : `Calculated: ${Math.round(((newProdOriginalPrice - newProdPrice) / newProdOriginalPrice) * 100)}% OFF (Save $${(newProdOriginalPrice - newProdPrice).toFixed(1)})`}</span>
+                          <span> {lang === 'ar' ? `سيظهر للعميل بخصم ${Math.round(((newProdOriginalPrice - newProdPrice) / newProdOriginalPrice) * 100)}% وتوفير $${(newProdOriginalPrice - newProdPrice).toFixed(1)}` : `Calculated: ${Math.round(((newProdOriginalPrice - newProdPrice) / newProdOriginalPrice) * 100)}% OFF (Save $${(newProdOriginalPrice - newProdPrice).toFixed(1)})`}</span>
                         </div>
                       )}
                     </div>
@@ -2054,7 +2045,7 @@ export const AdminPanel: React.FC = () => {
                         type="text"
                         value={newProdBadge}
                         onChange={(e) => setNewProdBadge(e.target.value)}
-                        placeholder="جديد 🌿 / الأكثر طلباً 🔥"
+                        placeholder="جديد / الأكثر طلباً"
                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
@@ -2196,7 +2187,7 @@ export const AdminPanel: React.FC = () => {
                                   </span>
                                 ) : isLowStock ? (
                                   <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">
-                                    {lang === 'ar' ? 'متبقي قليل ⚠️' : 'Low Stock ⚠️'}
+                                    {lang === 'ar' ? 'متبقي قليل' : 'Low Stock'}
                                   </span>
                                 ) : (
                                   <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
@@ -2322,7 +2313,7 @@ export const AdminPanel: React.FC = () => {
                                 {p.originalPriceUSD && p.originalPriceUSD > p.basePriceUSD && (
                                   <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-600 text-white font-mono">
                                     {lang === 'ar' 
-                                      ? `خصم ${Math.round(((p.originalPriceUSD - p.basePriceUSD) / p.originalPriceUSD) * 100)}% 🔥` 
+                                      ? `خصم ${Math.round(((p.originalPriceUSD - p.basePriceUSD) / p.originalPriceUSD) * 100)}%` 
                                       : `-${Math.round(((p.originalPriceUSD - p.basePriceUSD) / p.originalPriceUSD) * 100)}% OFF`}
                                   </span>
                                 )}
@@ -2740,7 +2731,7 @@ export const AdminPanel: React.FC = () => {
                                 className="flex-1 h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
                                 title={lang === 'ar' ? 'إخفاء من المتجر' : 'Hide from Store'}
                               >
-                                <span>{lang === 'ar' ? 'إخفاء مؤقت ⏸️' : 'Hide'}</span>
+                                <span>{lang === 'ar' ? 'إخفاء مؤقت' : 'Hide'}</span>
                               </button>
                             )}
                           </div>
@@ -2912,7 +2903,7 @@ export const AdminPanel: React.FC = () => {
                       className="h-11 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all active:scale-95"
                     >
                       <Rocket className="w-4 h-4" />
-                      <span>{lang === 'ar' ? 'تنفيذ التصفير الشامل وتسليم المتجر 🚀' : 'Execute Master Clean Handover 🚀'}</span>
+                      <span>{lang === 'ar' ? 'تنفيذ التصفير الشامل وتسليم المتجر' : 'Execute Master Clean Handover'}</span>
                     </button>
                   </div>
                 </div>
@@ -2939,7 +2930,7 @@ export const AdminPanel: React.FC = () => {
                       className="w-full h-10 rounded-xl bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-2xs"
                     >
                       <RotateCcw className="w-4 h-4 text-amber-700" />
-                      <span>{lang === 'ar' ? 'استعادة البيانات النموذجية 🔄' : 'Restore Sample Data 🔄'}</span>
+                      <span>{lang === 'ar' ? 'استعادة البيانات النموذجية' : 'Restore Sample Data'}</span>
                     </button>
                   </div>
                 </div>
@@ -3138,7 +3129,7 @@ export const AdminPanel: React.FC = () => {
                   </h3>
                   <span className="text-[11px] font-bold text-purple-700 bg-purple-100/90 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
                     <MapPin className="w-3.5 h-3.5 text-purple-600" />
-                    <span>{lang === 'ar' ? '📍 مكان الظهور: أعلى الصفحة الرئيسية (أول ما يراه الزائر)' : '📍 Location: Storefront Top Hero (Above fold)'}</span>
+                    <span>{lang === 'ar' ? 'مكان الظهور: أعلى الصفحة الرئيسية (أول ما يراه الزائر)' : 'Location: Storefront Top Hero (Above fold)'}</span>
                   </span>
                 </div>
 
@@ -3175,7 +3166,7 @@ export const AdminPanel: React.FC = () => {
                   </h3>
                   <span className="text-[11px] font-bold text-slate-700 bg-slate-200/80 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
                     <MapPin className="w-3.5 h-3.5 text-slate-600" />
-                    <span>{lang === 'ar' ? '📍 مكان الظهور: منتصف المتجر أسفل كتالوج المنتجات' : '📍 Location: Mid-Storefront below Products Catalog'}</span>
+                    <span>{lang === 'ar' ? 'مكان الظهور: منتصف المتجر أسفل كتالوج المنتجات' : 'Location: Mid-Storefront below Products Catalog'}</span>
                   </span>
                 </div>
 
@@ -3238,7 +3229,7 @@ export const AdminPanel: React.FC = () => {
                   </h3>
                   <span className="text-[11px] font-bold text-amber-800 bg-amber-100/90 px-3 py-1 rounded-xl flex items-center gap-1.5 w-fit">
                     <MapPin className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{lang === 'ar' ? '📍 مكان الظهور: سلايدر المقارنة التفاعلي باللمس أسفل الحملات' : '📍 Location: Interactive touch slider section'}</span>
+                    <span>{lang === 'ar' ? 'مكان الظهور: سلايدر المقارنة التفاعلي باللمس أسفل الحملات' : 'Location: Interactive touch slider section'}</span>
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3867,7 +3858,7 @@ export const AdminPanel: React.FC = () => {
                 autoFocus
               />
               <p className="text-[10px] text-slate-400">
-                {lang === 'ar' ? '💡 يدعم روابط Unsplash أو Cloudinary أو أي رابط صورة عام ومباشر.' : '💡 Supports Unsplash, Cloudinary, or any public image URL.'}
+                {lang === 'ar' ? 'يدعم روابط Unsplash أو Cloudinary أو أي رابط صورة عام ومباشر.' : 'Supports Unsplash, Cloudinary, or any public image URL.'}
               </p>
             </div>
 
