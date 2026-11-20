@@ -67,11 +67,14 @@ describe('Pricing, Currency & Exchange Rate Engine', () => {
     expect(resultBtcEn.symbol).toBe('BTC');
   });
 
-  it('should calculate discount percentage accurately', () => {
+  it('should calculate discount percentage accurately and format clear localized labels', async () => {
+    const { formatDiscountBadgeText } = await import('../components/common/SmartDiscountBadge');
     const originalPrice = 100;
-    const basePrice = 80;
+    const basePrice = 64;
     const discount = Math.round(((originalPrice - basePrice) / originalPrice) * 100);
 
-    expect(discount).toBe(20);
+    expect(discount).toBe(36);
+    expect(formatDiscountBadgeText(discount, 'ar')).toBe('خصم 36%');
+    expect(formatDiscountBadgeText(discount, 'en')).toBe('-36%');
   });
 });

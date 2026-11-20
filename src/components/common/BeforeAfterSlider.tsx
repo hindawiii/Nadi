@@ -1,5 +1,10 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { CheckCircle2 } from 'lucide-react';
+import { NADI_LOCAL_IMAGE_FALLBACK, handleImageLoadError } from '../../lib/imageResilience';
+import {
+  resolveSliderGestureIntent,
+  SliderGestureMode,
+} from '../../lib/sliderGestureIntent';
 
 interface BeforeAfterSliderProps {
   beforeImage?: string;
@@ -8,14 +13,20 @@ interface BeforeAfterSliderProps {
   isRtl: boolean;
 }
 
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80';
+const FALLBACK_IMAGE = NADI_LOCAL_IMAGE_FALLBACK;
+
+interface ActiveGestureState {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  mode: SliderGestureMode;
+}
 
 /**
- * Isolated 60fps Before/After Comparison Slider.
- * Updates clipPath and divider position directly via refs + requestAnimationFrame
- * so dragging never triggers full-page React re-renders, while `touch-none` and
- * `setPointerCapture` eliminate mobile scroll hijacking.
+ * Isolated 60fps Before/After Comparison Slider with scroll-safe directional intent lock.
+ * Uses `touch-pan-y` on the photo canvas so vertical page scrolling never stalls when passing
+ * over the component on mobile, while direct grabs on the center handle (`touch-none`) or
+ * intentional horizontal swipes glide smoothly at 60fps via refs + requestAnimationFrame.
  */
 export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   beforeImage,
@@ -27,7 +38,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const clipLayerRef = useRef<HTMLDivElement>(null);
   const dividerRef = useRef<HTMLDivElement>(null);
   const posRef = useRef<number>(50);
-  const isDraggingRef = useRef<boolean>(false);
+  const gestureRef = useRef<ActiveGestureState | null>(null);
   const rafRef = useRef<number | null>(null);
 
   const resolvedAfter = afterImage || FALLBACK_IMAGE;
@@ -92,24 +103,63 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     [applyVisualPosition, isRtl]
   );
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    isDraggingRef.current = true;
+  const capturePointerSafely = (el: HTMLDivElement, pointerId: number) => {
     try {
-      e.currentTarget.setPointerCapture(e.pointerId);
+      if (!el.hasPointerCapture(pointerId)) {
+        el.setPointerCapture(pointerId);
+      }
     } catch {
       // Ignore pointer capture errors on synthetic events
     }
-    scheduleFromClientX(e.clientX);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement | null;
+    const isDirectHandleGrab = Boolean(target?.closest('[data-slider-handle="true"]'));
+    const isImmediateHorizontal = e.pointerType === 'mouse' || isDirectHandleGrab;
+
+    gestureRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      mode: isImmediateHorizontal ? 'horizontal' : 'pending',
+    };
+
+    if (isImmediateHorizontal) {
+      capturePointerSafely(e.currentTarget, e.pointerId);
+      scheduleFromClientX(e.clientX);
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current) return;
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== e.pointerId) return;
+
+    if (gesture.mode === 'vertical') return;
+
+    if (gesture.mode === 'pending') {
+      const resolved = resolveSliderGestureIntent(
+        e.clientX - gesture.startX,
+        e.clientY - gesture.startY
+      );
+      if (resolved === 'pending') return;
+      gesture.mode = resolved;
+
+      if (resolved === 'vertical') {
+        return;
+      }
+
+      capturePointerSafely(e.currentTarget, e.pointerId);
+    }
+
     scheduleFromClientX(e.clientX);
   };
 
   const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current) return;
-    isDraggingRef.current = false;
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== e.pointerId) return;
+    gestureRef.current = null;
+
     try {
       if (e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -145,18 +195,17 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
         onKeyDown={handleKeyDown}
-        className="relative aspect-[4/3] sm:aspect-[16/10] w-full rounded-2xl overflow-hidden select-none touch-none bg-slate-100 shadow-inner border border-slate-200 cursor-ew-resize focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:ring-offset-2"
+        className="relative aspect-[4/3] sm:aspect-[16/10] w-full rounded-2xl overflow-hidden select-none touch-pan-y bg-slate-100 shadow-inner border border-slate-200 cursor-ew-resize focus:outline-none focus:ring-2 focus:ring-[#5A3E7A] focus:ring-offset-2"
       >
         {/* "After" Image (Background) */}
         <img
           src={resolvedAfter}
           alt={lang === 'ar' ? 'بعد الاستخدام' : 'After Skincare'}
           referrerPolicy="no-referrer"
+          decoding="async"
           draggable={false}
           className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none brightness-105 saturate-110"
-          onError={(e) => {
-            e.currentTarget.src = FALLBACK_IMAGE;
-          }}
+          onError={(e) => handleImageLoadError(e.currentTarget)}
         />
         <span className="absolute top-3.5 end-3.5 bg-emerald-600/95 backdrop-blur-md text-white text-xs font-black px-3 py-1 rounded-full shadow-lg z-10 flex items-center gap-1.5 pointer-events-none border border-emerald-400/40">
           <CheckCircle2 className="w-3.5 h-3.5" />
@@ -175,15 +224,14 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             src={resolvedBefore}
             alt={lang === 'ar' ? 'قبل الاستخدام' : 'Before Skincare'}
             referrerPolicy="no-referrer"
+            decoding="async"
             draggable={false}
             className={`absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none ${
               applySyntheticBeforeFilter
                 ? 'saturate-60 brightness-90 contrast-120 sepia-[0.16]'
                 : ''
             }`}
-            onError={(e) => {
-              e.currentTarget.src = FALLBACK_IMAGE;
-            }}
+            onError={(e) => handleImageLoadError(e.currentTarget)}
           />
         </div>
 
@@ -192,13 +240,16 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           <span>{lang === 'ar' ? 'قبل' : 'Before'}</span>
         </span>
 
-        {/* Precision Drag Handle */}
+        {/* Precision Drag Handle (Dedicated touch-none grab zone for immediate horizontal drag) */}
         <div
           ref={dividerRef}
           className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_15px_rgba(0,0,0,0.45)] z-20 pointer-events-none flex items-center justify-center will-change-[inset-inline-start]"
           style={{ insetInlineStart: '50%' }}
         >
-          <div className="w-10 h-10 rounded-full bg-white text-[#5A3E7A] shadow-xl flex items-center justify-center font-black text-base border-2 border-[#5A3E7A] shrink-0">
+          <div
+            data-slider-handle="true"
+            className="w-11 h-11 rounded-full bg-white text-[#5A3E7A] shadow-xl flex items-center justify-center font-black text-base border-2 border-[#5A3E7A] shrink-0 pointer-events-auto touch-none cursor-ew-resize"
+          >
             ↔
           </div>
         </div>

@@ -11,6 +11,7 @@ import { WhatsAppIcon } from './icons/WhatsAppIcon';
 import { openExternalUrl } from '../lib/navigation';
 import { canAcceptCartAddTap, isAtStockLimit } from '../lib/cartButtonGuard';
 import { getCleanCategoryLabel } from '../lib/productCollections';
+import { NADI_LOCAL_IMAGE_FALLBACK, handleImageLoadError } from '../lib/imageResilience';
 
 export interface ProductCardProps {
   product: Product;
@@ -52,11 +53,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const isOutOfStock = typeof product.stock === 'number' ? product.stock === 0 : false;
   const isScarcity = typeof product.stock === 'number' && product.stock > 0 && product.stock <= 3;
 
-  // Safe Multi-image state
-  const defaultFallbackImage = "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80";
+  // Safe Multi-image state with guaranteed local SVG fallback
   const images = Array.isArray(product.images) && product.images.length > 0 && product.images.some(img => typeof img === 'string' && img.trim().length > 0)
     ? product.images.filter(img => typeof img === 'string' && img.trim().length > 0)
-    : [defaultFallbackImage];
+    : [NADI_LOCAL_IMAGE_FALLBACK];
   const hasMultipleImages = images.length > 1;
   const [activeImgIndex, setActiveImgIndex] = useState(0);
 
@@ -256,11 +256,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             src={images[activeImgIndex]}
             alt={`${product.name[lang]} - ${activeImgIndex + 1}`}
             referrerPolicy="no-referrer"
+            decoding="async"
             className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
             loading="lazy"
-            onError={(e) => {
-              e.currentTarget.src = defaultFallbackImage;
-            }}
+            onError={(e) => handleImageLoadError(e.currentTarget)}
           />
 
           {/* Top-Start: Corner-Flush Luxury Discount Ribbon Badge in Rose-Red */}
@@ -382,15 +381,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           isOutOfStock ? 'flex' : 'grid grid-cols-3 sm:flex'
         }`}
       >
-        {/* Main CTA: Add to Bag (with crisp inline quantity counter) OR Single Out-of-Stock WhatsApp Notify CTA */}
+        {/* Main CTA: Clean Add to Bag button (header badge tracks bag count) OR Single Out-of-Stock WhatsApp Notify CTA */}
         <button
           type="button"
           onClick={handleAddToCart}
-          className={`relative overflow-hidden min-w-0 h-[42px] sm:h-11 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl font-bold flex items-center justify-center transition-all shadow-sm cursor-pointer active:scale-[0.98] ${
-            !isOutOfStock && inCartQty > 0 && !justAdded
-              ? 'px-1 sm:px-2.5 gap-1 sm:gap-1.5'
-              : 'px-1.5 sm:px-2.5 gap-1.5'
-          } ${
+          className={`relative overflow-hidden min-w-0 h-10 px-2 sm:px-2.5 gap-1.5 rounded-xl font-bold flex items-center justify-center transition-all shadow-sm cursor-pointer active:scale-[0.98] ${
             isOutOfStock ? 'flex-1' : 'w-full sm:flex-1'
           } ${
             justAdded
@@ -413,13 +408,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               ? lang === 'ar'
                 ? 'تنبيه عند التوفر عبر واتساب'
                 : 'Notify on WhatsApp'
-              : inCartQty > 0
-                ? lang === 'ar'
-                  ? `في السلة (${inCartQty}) - إضافة قطعة أخرى`
-                  : `In bag (${inCartQty}) - add one more`
-                : lang === 'ar'
-                  ? 'إضافة للسلة'
-                  : 'Add to Bag'
+              : lang === 'ar'
+                ? 'إضافة للسلة'
+                : 'Add to Bag'
           }
         >
           {justAdded ? (
@@ -438,28 +429,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </>
           ) : (
             <>
-              <StoreCartIcon
-                className={`${
-                  inCartQty > 0 ? 'w-3.5 h-3.5 sm:w-4 sm:h-4' : 'w-4 h-4 sm:w-4.5 sm:h-4.5'
-                } shrink-0 text-white`}
-              />
+              <StoreCartIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0 text-white" />
               <span className="hidden sm:inline text-xs sm:text-sm truncate">
-                {inCartQty > 0
-                  ? lang === 'ar'
-                    ? 'في السلة'
-                    : 'In Bag'
-                  : lang === 'ar'
-                    ? 'إضافة للسلة'
-                    : 'Add to Bag'}
+                {lang === 'ar' ? 'إضافة للسلة' : 'Add to Bag'}
               </span>
-              {inCartQty > 0 && (
-                <span
-                  className="min-w-[18px] h-[18px] sm:min-w-[20px] sm:h-5 px-1 sm:px-1.5 rounded-md sm:rounded-full bg-white/25 text-white text-[10.5px] sm:text-[11px] font-black leading-none inline-flex items-center justify-center tabular-nums shrink-0"
-                  aria-hidden="true"
-                >
-                  {inCartQty > 99 ? '99+' : inCartQty}
-                </span>
-              )}
             </>
           )}
         </button>
@@ -475,8 +448,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             setIsCompareModalOpen(true);
           }}
           className={`${
-            isOutOfStock ? 'w-[42px] sm:w-11' : 'w-full sm:w-11'
-          } h-[42px] sm:h-11 min-w-0 shrink-0 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center relative shadow-2xs hover:scale-105 active:scale-95 cursor-pointer ${
+            isOutOfStock ? 'w-10' : 'w-full sm:w-10'
+          } h-10 min-w-0 shrink-0 rounded-xl border transition-all flex items-center justify-center relative shadow-2xs hover:scale-105 active:scale-95 cursor-pointer ${
             isCompared
               ? 'bg-[#5A3E7A] text-white border-[#5A3E7A] shadow-purple-900/20'
               : 'bg-purple-50/70 hover:bg-purple-100 text-[#5A3E7A] border-purple-200/70'
@@ -492,7 +465,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <button
             type="button"
             onClick={(e) => handleWhatsAppOrder(e, false)}
-            className="w-full sm:w-11 h-[42px] sm:h-11 min-w-0 shrink-0 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50/90 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/90 transition-all flex items-center justify-center relative shadow-2xs hover:shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+            className="w-full sm:w-10 h-10 min-w-0 shrink-0 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50/90 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/90 transition-all flex items-center justify-center relative shadow-2xs hover:shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
             title={lang === 'ar' ? 'طلب مباشر وسريع عبر واتساب' : 'Direct WhatsApp Order'}
             aria-label="Direct WhatsApp Order"
           >

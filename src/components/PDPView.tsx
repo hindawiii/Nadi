@@ -1,24 +1,33 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ArrowLeft, ArrowRight, BadgeCheck, Heart, MessageCircle, 
-  TrendingUp, ShieldCheck, Truck, RotateCcw, 
-  Clock, Plus, Check, Share2, Layers, Maximize2, ZoomIn, ZoomOut, X, 
-  ChevronLeft, ChevronRight, ArrowLeftRight, ChevronDown, 
+import {
+  ArrowLeft, ArrowRight, BadgeCheck, Heart, MessageCircle,
+  ShieldCheck, Truck, RotateCcw,
+  Plus, Check, Share2, Layers, Maximize2, ZoomIn, ZoomOut, X,
+  ChevronLeft, ChevronRight, ArrowLeftRight, ChevronDown,
   FileText, CheckCircle2, Award, HelpCircle, SlidersHorizontal,
-  FlaskConical, PenLine, Droplets, 
-  Eye, Flame, Zap, PackageCheck, Gift, X as CloseIcon
+  FlaskConical, PenLine, Droplets, Ruler, Package,
+  Gift, X as CloseIcon
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
 import { StoreCartIcon } from './common/StoreCartIcon';
 import { SmartDiscountBadge } from './common/SmartDiscountBadge';
 import { openExternalUrl } from '../lib/navigation';
+import { NADI_LOCAL_IMAGE_FALLBACK, handleImageLoadError } from '../lib/imageResilience';
+import { getCleanCategoryLabel } from '../lib/productCollections';
+import {
+  extractProductQuickSpecs,
+  formatArabicQuantityLabel,
+  getPdpContextCopy,
+  parsePipeSpecs,
+  resolvePdpProductKind,
+} from '../lib/pdpProfile';
 
 export const PDPView: React.FC = () => {
-  const { 
-    lang, convertPrice, addToCart, wishlist, toggleWishlist, 
-    activeProduct, setCurrentRoute, activeData, showToast, navigateTo,
-    comparisonList, toggleCompare, setIsCompareModalOpen,
+  const {
+    lang, convertPrice, addToCart, wishlist, toggleWishlist,
+    activeProduct, activeData, showToast,
+    comparisonList, toggleCompare,
     returnFromPDPToStore, setIsReviewModalOpen
   } = useCommerce();
 
@@ -28,28 +37,13 @@ export const PDPView: React.FC = () => {
   const [selectedImgIndex, setSelectedImgIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
-  // CRO Bundle & Save Tier State (tier 1 = 1 pack 0% off, tier 2 = 2 packs 10% off, tier 3 = 3 packs 20% off + gift)
+  // Skincare Volume Savings Tier State (tier 1 = 1 bottle 0% off, tier 2 = 2 bottles 10% off, tier 3 = 3 bottles 20% off + gift)
   const [selectedTier, setSelectedTier] = useState<1 | 2 | 3>(1);
 
-  // Dynamic Live Social Proof Viewers (Realistic micro-oscillation)
-  const [liveViewers, setLiveViewers] = useState<number>(() => {
-    return Math.floor(12 + Math.random() * 7); // 12-18 active viewers
-  });
-
-  useEffect(() => {
-    const viewerInterval = setInterval(() => {
-      setLiveViewers(prev => {
-        const delta = Math.random() > 0.5 ? 1 : -1;
-        return Math.max(9, Math.min(24, prev + delta));
-      });
-    }, 4500);
-    return () => clearInterval(viewerInterval);
-  }, []);
-
-  // 5-Pillar Accordion State (Description open by default for immediate clarity)
+  // 5-Pillar Accordion State (ONLY Description open by default for fast scanning)
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
     desc: true,
-    usage: true,
+    usage: false,
     specs: false,
     shipping: false,
     reviews: false
@@ -61,90 +55,12 @@ export const PDPView: React.FC = () => {
       [key]: !prev[key]
     }));
   };
+
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
 
   // Touch swipe gesture tracker
   const touchSwipeRef = useRef<{ startX: number; startY: number; time: number }>({ startX: 0, startY: 0, time: 0 });
-
-  // Countdown timer for deals
-  const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 18, seconds: 45 });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        return { hours: 4, minutes: 0, seconds: 0 };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  if (!product) {
-    return (
-      <div className="py-20 text-center max-w-lg mx-auto px-4">
-        <p className="text-slate-500 mb-4">{lang === 'ar' ? 'لم يتم العثور على المنتج المطلوب' : 'Product not found'}</p>
-        <button
-          onClick={() => returnFromPDPToStore()}
-          className="bg-[#5A3E7A] text-white px-6 py-2.5 rounded-full font-bold cursor-pointer"
-        >
-          {lang === 'ar' ? 'العودة للمتجر' : 'Return to store'}
-        </button>
-      </div>
-    );
-  }
-
-  const isWishlisted = wishlist.includes(product.id);
-  const isOutOfStock = product.stock === 0;
-
-  // Bundle & Save Tier Calculations:
-  // Tier 1: 1 unit, 0% extra discount
-  // Tier 2: 2 units, 10% extra discount
-  // Tier 3: 3 units, 20% extra discount + Free Luxury Gift
-  const tierDiscountPercent = selectedTier === 3 ? 20 : (selectedTier === 2 ? 10 : 0);
-  const tierItemsCount = selectedTier;
-  const effectiveQuantity = quantity * tierItemsCount;
-  
-  const baseSingleUSD = product.basePriceUSD;
-  const discountedSingleUSD = baseSingleUSD * (1 - tierDiscountPercent / 100);
-  const tierTotalUSD = discountedSingleUSD * effectiveQuantity;
-  const originalTierTotalUSD = (product.originalPriceUSD || baseSingleUSD) * effectiveQuantity;
-
-  const currentPrice = convertPrice(tierTotalUSD);
-  const unitPrice = convertPrice(discountedSingleUSD);
-  const origPrice = convertPrice(originalTierTotalUSD);
-
-  // Dynamic Delivery Estimated Dates (Tomorrow to +2 business days)
-  const today = new Date();
-  const deliveryStart = new Date(today);
-  deliveryStart.setDate(today.getDate() + 1);
-  const deliveryEnd = new Date(today);
-  deliveryEnd.setDate(today.getDate() + 3);
-
-  const deliveryDaysAr = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-  const deliveryDaysEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const deliveryMonthsAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-  const deliveryMonthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  const estDeliveryText = lang === 'ar'
-    ? `${deliveryDaysAr[deliveryStart.getDay()]} ${deliveryStart.getDate()} ${deliveryMonthsAr[deliveryStart.getMonth()]} - ${deliveryDaysAr[deliveryEnd.getDay()]} ${deliveryEnd.getDate()} ${deliveryMonthsAr[deliveryEnd.getMonth()]}`
-    : `${deliveryDaysEn[deliveryStart.getDay()]}, ${deliveryMonthsEn[deliveryStart.getMonth()]} ${deliveryStart.getDate()} - ${deliveryDaysEn[deliveryEnd.getDay()]}, ${deliveryMonthsEn[deliveryEnd.getMonth()]} ${deliveryEnd.getDate()}`;
-
-  // Defensive image normalization & fallbacks
-  const fallbackImage = "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80";
-  const rawImages: string[] = (product && Array.isArray(product.images) && product.images.length > 0)
-    ? product.images.filter((img): img is string => typeof img === 'string' && img.trim().length > 0)
-    : [fallbackImage];
-  const finalImages = rawImages.length > 0 ? rawImages : [fallbackImage];
-  const activeImage = finalImages[selectedImgIndex] || finalImages[0] || fallbackImage;
-
-  useEffect(() => {
-    if (selectedImgIndex >= finalImages.length) {
-      setSelectedImgIndex(0);
-    }
-  }, [product?.id, finalImages.length, selectedImgIndex]);
 
   // Touch gesture & pinch-to-zoom state
   const [touchScale, setTouchScale] = useState(1);
@@ -157,6 +73,33 @@ export const PDPView: React.FC = () => {
   const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const lightboxTouchDistRef = useRef<number | null>(null);
   const initialLightboxScaleRef = useRef<number>(1);
+
+  // Defensive image normalization & guaranteed local fallback
+  const fallbackImage = NADI_LOCAL_IMAGE_FALLBACK;
+  const rawImages: string[] = (product && Array.isArray(product.images) && product.images.length > 0)
+    ? product.images.filter((img): img is string => typeof img === 'string' && img.trim().length > 0)
+    : [fallbackImage];
+  const finalImages = rawImages.length > 0 ? rawImages : [fallbackImage];
+
+  // Reset per-product selection state whenever the user opens a different product
+  useEffect(() => {
+    setSelectedImgIndex(0);
+    setSelectedTier(1);
+    setQuantity(1);
+    setOpenAccordions({
+      desc: true,
+      usage: false,
+      specs: false,
+      shipping: false,
+      reviews: false,
+    });
+  }, [product?.id]);
+
+  useEffect(() => {
+    if (selectedImgIndex >= finalImages.length) {
+      setSelectedImgIndex(0);
+    }
+  }, [product?.id, finalImages.length, selectedImgIndex]);
 
   // Keyboard navigation for fullscreen lightbox
   useEffect(() => {
@@ -179,6 +122,64 @@ export const PDPView: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isLightboxOpen, finalImages.length]);
+
+  if (!product) {
+    return (
+      <div className="py-20 text-center max-w-lg mx-auto px-4">
+        <p className="text-slate-500 mb-4">{lang === 'ar' ? 'لم يتم العثور على المنتج المطلوب' : 'Product not found'}</p>
+        <button
+          onClick={() => returnFromPDPToStore()}
+          className="bg-[#5A3E7A] hover:bg-[#483162] text-white px-5 h-10 sm:h-11 rounded-xl font-bold text-xs sm:text-sm cursor-pointer transition-colors"
+        >
+          {lang === 'ar' ? 'العودة للمتجر' : 'Return to store'}
+        </button>
+      </div>
+    );
+  }
+
+  const productKind = resolvePdpProductKind(product);
+  const isSkinTierMode = productKind === 'skin';
+  const quantityUnit = productKind === 'box' ? 'box' : (productKind === 'skin' ? 'bottle' : 'piece');
+  const quickSpecs = extractProductQuickSpecs(product, productKind, lang);
+  const contextCopy = getPdpContextCopy(productKind, activeData.storeName[lang], lang);
+  const pipeSpecs = parsePipeSpecs(product.tabs.ingredientsOrSpecs?.[lang]);
+
+  const isWishlisted = wishlist.includes(product.id);
+  const isOutOfStock = product.stock === 0;
+
+  // Context-aware pricing: skincare uses 3-tier volume savings (no double multiplier);
+  // hair devices & gift boxes use one clean quantity selector.
+  const tierDiscountPercent = isSkinTierMode
+    ? (selectedTier === 3 ? 20 : (selectedTier === 2 ? 10 : 0))
+    : 0;
+  const effectiveQuantity = isSkinTierMode ? selectedTier : quantity;
+
+  const baseSingleUSD = product.basePriceUSD;
+  const discountedSingleUSD = baseSingleUSD * (1 - tierDiscountPercent / 100);
+  const tierTotalUSD = discountedSingleUSD * effectiveQuantity;
+
+  const singlePrice = convertPrice(baseSingleUSD);
+  const singleOrigPrice = product.originalPriceUSD ? convertPrice(product.originalPriceUSD) : null;
+  const currentPrice = convertPrice(tierTotalUSD);
+  const qualifiesFreeShipping = (isSkinTierMode && selectedTier >= 2) || productKind === 'box' || tierTotalUSD >= 25;
+
+  // Dynamic Delivery Estimated Dates (Tomorrow to +3 days)
+  const today = new Date();
+  const deliveryStart = new Date(today);
+  deliveryStart.setDate(today.getDate() + 1);
+  const deliveryEnd = new Date(today);
+  deliveryEnd.setDate(today.getDate() + 3);
+
+  const deliveryDaysAr = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const deliveryDaysEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const deliveryMonthsAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+  const deliveryMonthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const estDeliveryText = lang === 'ar'
+    ? `${deliveryDaysAr[deliveryStart.getDay()]} ${deliveryStart.getDate()} ${deliveryMonthsAr[deliveryStart.getMonth()]} - ${deliveryDaysAr[deliveryEnd.getDay()]} ${deliveryEnd.getDate()} ${deliveryMonthsAr[deliveryEnd.getMonth()]}`
+    : `${deliveryDaysEn[deliveryStart.getDay()]}, ${deliveryMonthsEn[deliveryStart.getMonth()]} ${deliveryStart.getDate()} - ${deliveryDaysEn[deliveryEnd.getDay()]}, ${deliveryMonthsEn[deliveryEnd.getMonth()]} ${deliveryEnd.getDate()}`;
+
+  const activeImage = finalImages[selectedImgIndex] || finalImages[0] || fallbackImage;
 
   // Smooth mouse wheel zoom for fullscreen lightbox
   const handleWheelZoom = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -311,25 +312,39 @@ export const PDPView: React.FC = () => {
     }
   };
 
-  // WhatsApp formal text order message with tier details (zero emojis)
+  // WhatsApp formal text order message adapted per product kind (zero emojis)
   const handleWhatsAppOrder = () => {
     const phone = activeData.contactInfo.whatsapp;
     const storeUrl = window.location.href;
-    const tierLabelAr = selectedTier === 3 
-      ? `باقة التوفير القصوى (3 عبوات + هدية مجانية — خصم 20%)` 
-      : (selectedTier === 2 ? `باقة التوفير (عبوتان — خصم 10%)` : `عبوة واحدة`);
-    const tierLabelEn = selectedTier === 3 
-      ? `Value Pack (3 units + Free Gift — 20% OFF)` 
-      : (selectedTier === 2 ? `Duo Pack (2 units — 10% OFF)` : `Single Unit`);
+    const qtyFormatted = formatArabicQuantityLabel(effectiveQuantity, quantityUnit, lang);
+
+    const tierLineAr = isSkinTierMode
+      ? `*الباقة:* ${
+          selectedTier === 3
+            ? 'باقة التوفير القصوى (3 عبوات + هدية مجانية — خصم 20%)'
+            : selectedTier === 2
+              ? 'باقة التوفير (عبوتان — خصم 10%)'
+              : 'عبوة واحدة'
+        }\n`
+      : '';
+    const tierLineEn = isSkinTierMode
+      ? `*Pack:* ${
+          selectedTier === 3
+            ? 'Value Pack (3 bottles + Free Gift — 20% OFF)'
+            : selectedTier === 2
+              ? 'Duo Pack (2 bottles — 10% OFF)'
+              : 'Single Bottle'
+        }\n`
+      : '';
 
     const message = lang === 'ar'
       ? `*طلب مباشر — متجر ${activeData.storeName.ar}*\n` +
         `────────────────\n` +
         `*المنتج:* ${product.name.ar}\n` +
-        `*الباقة:* ${tierLabelAr}\n` +
-        `*الكمية:* ${effectiveQuantity} قطعة\n` +
+        tierLineAr +
+        `*الكمية:* ${qtyFormatted}\n` +
         `*الإجمالي:* ${currentPrice.text}\n` +
-        (selectedTier === 3 ? `*ملاحظة:* مؤهل لهدية مجانية.\n` : '') +
+        (isSkinTierMode && selectedTier === 3 ? `*ملاحظة:* مؤهل لهدية مجانية.\n` : '') +
         `*التوصيل المتوقع:* ${estDeliveryText}\n` +
         `*الرابط:* ${storeUrl}\n` +
         `────────────────\n` +
@@ -337,10 +352,10 @@ export const PDPView: React.FC = () => {
       : `*Direct Order — ${activeData.storeName.en}*\n` +
         `────────────────\n` +
         `*Product:* ${product.name.en}\n` +
-        `*Pack:* ${tierLabelEn}\n` +
-        `*Quantity:* ${effectiveQuantity}\n` +
+        tierLineEn +
+        `*Quantity:* ${qtyFormatted}\n` +
         `*Total:* ${currentPrice.text}\n` +
-        (selectedTier === 3 ? `*Note:* Qualified for complimentary gift.\n` : '') +
+        (isSkinTierMode && selectedTier === 3 ? `*Note:* Qualified for complimentary gift.\n` : '') +
         `*Est. Delivery:* ${estDeliveryText}\n` +
         `*Link:* ${storeUrl}\n` +
         `────────────────\n` +
@@ -397,7 +412,7 @@ export const PDPView: React.FC = () => {
               e.stopPropagation();
               returnFromPDPToStore();
             }}
-            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#5A3E7A] active:scale-95 transition-all py-2.5 px-4 rounded-2xl bg-white border border-slate-200 shadow-xs min-h-[44px] hover:border-purple-200 cursor-pointer"
+            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#5A3E7A] active:scale-95 transition-all h-10 sm:h-11 px-4 rounded-xl bg-white border border-slate-200 shadow-xs hover:border-purple-200 cursor-pointer"
           >
             {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
             <span>{lang === 'ar' ? 'العودة لجميع المنتجات' : 'Back to Store'}</span>
@@ -475,14 +490,14 @@ export const PDPView: React.FC = () => {
               <img
                 src={activeImage}
                 alt={product.name[lang]}
+                referrerPolicy="no-referrer"
+                decoding="async"
                 className="w-full h-full object-cover object-center transition-transform duration-150 ease-out"
                 style={{
                   transform: `scale(${isZoomed ? 1.4 : touchScale})`,
                   transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
                 }}
-                onError={(e) => {
-                  e.currentTarget.src = fallbackImage;
-                }}
+                onError={(e) => handleImageLoadError(e.currentTarget)}
               />
             </div>
 
@@ -504,10 +519,10 @@ export const PDPView: React.FC = () => {
                       <img 
                         src={img} 
                         alt="thumb" 
+                        referrerPolicy="no-referrer"
+                        decoding="async"
                         className="w-full h-full object-cover" 
-                        onError={(e) => {
-                          e.currentTarget.src = fallbackImage;
-                        }}
+                        onError={(e) => handleImageLoadError(e.currentTarget)}
                       />
                     </button>
                   ))}
@@ -535,10 +550,10 @@ export const PDPView: React.FC = () => {
               
               {/* Category and Rating */}
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <span className="text-xs font-bold tracking-wider uppercase text-purple-700 bg-purple-50 px-3 py-1 rounded-full">
-                  {product.category[lang]}
+                <span className="text-xs font-bold tracking-wider uppercase text-[#5A3E7A] bg-purple-50 px-3 py-1 rounded-lg border border-purple-100">
+                  {getCleanCategoryLabel(product, lang)}
                 </span>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 text-[#5A3E7A] border border-purple-200/70">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 text-[#5A3E7A] border border-purple-200/70">
                   <BadgeCheck className="w-4 h-4 shrink-0" />
                   <span className="font-bold text-slate-800 text-xs">{product.rating} / 5</span>
                   <span className="text-xs text-slate-500">({product.reviewsCount} {lang === 'ar' ? 'تقييم موثق' : 'reviews'})</span>
@@ -546,18 +561,18 @@ export const PDPView: React.FC = () => {
               </div>
 
               {/* Title */}
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">
+              <h1 className="text-fluid-h2 font-extrabold text-slate-900 leading-relaxed">
                 {product.name[lang]}
               </h1>
 
               {/* Price Row */}
-              <div className="flex items-baseline gap-3 pt-2">
+              <div className="flex items-baseline flex-wrap gap-3 pt-1">
                 <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-                  {unitPrice.text}
+                  {singlePrice.text}
                 </span>
-                {origPrice && (
+                {singleOrigPrice && (
                   <span className="text-base text-slate-400 line-through">
-                    {origPrice.text}
+                    {singleOrigPrice.text}
                   </span>
                 )}
                 <SmartDiscountBadge
@@ -569,228 +584,275 @@ export const PDPView: React.FC = () => {
                 />
               </div>
 
-              {/* 1. CLINICAL & BOTANICAL TRUST BADGES (Micro-Grid below price) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 pb-1">
-                <div className="flex items-center gap-1.5 p-2 rounded-xl bg-purple-50/70 border border-purple-100 text-[11px] font-bold text-[#5A3E7A]">
-                  <Droplets className="w-3.5 h-3.5 shrink-0 text-[#5A3E7A]" />
-                  <span className="truncate">{lang === 'ar' ? 'نقاء نباتي 100%' : '100% Botanical'}</span>
+              {/* 1. CONTEXT-AWARE TRUST CHIPS (3 concise non-repetitive pillars) */}
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                {contextCopy.trustChips.map((chip) => {
+                  const toneClasses =
+                    chip.tone === 'purple'
+                      ? 'bg-purple-50/75 border-purple-100 text-[#5A3E7A]'
+                      : chip.tone === 'emerald'
+                        ? 'bg-emerald-50/75 border-emerald-100 text-emerald-800'
+                        : 'bg-amber-50/75 border-amber-100 text-amber-800';
+                  return (
+                    <div
+                      key={chip.id}
+                      className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl border text-[11px] font-bold text-center ${toneClasses}`}
+                    >
+                      {chip.tone === 'purple' ? (
+                        productKind === 'skin' ? (
+                          <Droplets className="w-3.5 h-3.5 shrink-0" />
+                        ) : (
+                          <Award className="w-3.5 h-3.5 shrink-0" />
+                        )
+                      ) : chip.tone === 'emerald' ? (
+                        <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                      )}
+                      <span className="truncate">{chip.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 2. SIZE / MEASUREMENT & QUICK SPECS CARD */}
+              <div className="p-3.5 rounded-2xl bg-slate-50/90 border border-slate-200/80 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-800">
+                  <Ruler className="w-3.5 h-3.5 text-[#5A3E7A] shrink-0" />
+                  <span>{quickSpecs.heading}</span>
                 </div>
-                <div className="flex items-center gap-1.5 p-2 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] font-bold text-emerald-800">
-                  <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
-                  <span className="truncate">{lang === 'ar' ? 'موصى به طبياً' : 'Doctor Approved'}</span>
-                </div>
-                <div className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-50/70 border border-amber-100 text-[11px] font-bold text-amber-800">
-                  <Award className="w-3.5 h-3.5 shrink-0 text-amber-600" />
-                  <span className="truncate">{lang === 'ar' ? 'ضمان ذهبي معتمد' : 'Certified Quality'}</span>
-                </div>
-                <div className="flex items-center gap-1.5 p-2 rounded-xl bg-sky-50/70 border border-sky-100 text-[11px] font-bold text-sky-800">
-                  <TrendingUp className="w-3.5 h-3.5 shrink-0 text-sky-600" />
-                  <span className="truncate">{lang === 'ar' ? 'نتائج فورية ملموسة' : 'Visible Results'}</span>
+                <div className={`grid gap-2 ${quickSpecs.items.length >= 4 ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-3'}`}>
+                  {quickSpecs.items.map((spec, idx) => (
+                    <div
+                      key={idx}
+                      className="px-3 py-2 rounded-xl bg-white border border-slate-200/70 space-y-0.5"
+                    >
+                      <span className="block text-[10px] font-bold text-slate-400">
+                        {spec.label}
+                      </span>
+                      <span className="block text-xs font-extrabold text-slate-800 leading-relaxed">
+                        {spec.value}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* 2. LIVE SOCIAL PROOF & URGENCY STRIP (Real-time Viewers + Recent Orders + Stock Scarcity) */}
-              <div className="p-3 bg-gradient-to-r from-purple-50/90 via-amber-50/70 to-pink-50/80 rounded-2xl border border-purple-100/90 space-y-2 text-xs">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-1.5 text-slate-800 font-extrabold">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>
-                      {lang === 'ar' ? `${liveViewers} عميلة تتصفح هذا المنتج الآن` : `${liveViewers} shoppers viewing right now`}
-                    </span>
+              {/* 3. HONEST AVAILABILITY & ESTIMATED DELIVERY CARD */}
+              <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200/75 flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5">
+                    <Truck className="w-4 h-4" />
                   </div>
-
-                  <div className="flex items-center gap-1.5 text-amber-800 font-bold bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200/60">
-                    <Flame className="w-3 h-3 text-amber-600 fill-amber-500" />
-                    <span>{lang === 'ar' ? 'تم طلب 38 قطعة هذا الأسبوع' : '38 ordered this week'}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1 border-t border-purple-100/60 text-[11px]">
-                  <div className="flex items-center gap-1 font-bold text-rose-700">
-                    <Zap className="w-3 h-3 fill-rose-500 text-rose-600 animate-pulse" />
-                    <span>
-                      {product.stock > 0
-                        ? (lang === 'ar' ? `سارع! متبقي ${product.stock} قطع فقط في المستودع` : `Hurry! Only ${product.stock} units left in stock`)
-                        : (lang === 'ar' ? 'الكمية نفدت مؤقتاً – حجز مسبق متاح' : 'Out of stock – Pre-order available')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 text-slate-500">
-                    <Clock className="w-3 h-3 text-slate-400" />
-                    <span>{String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-900">
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                          isOutOfStock
+                            ? 'bg-amber-500'
+                            : product.stock <= 5
+                              ? 'bg-amber-500'
+                              : 'bg-emerald-500'
+                        }`}
+                      />
+                      <span className="truncate">
+                        {isOutOfStock
+                          ? (lang === 'ar' ? 'نفدت الكمية مؤقتاً — الحجز المسبق متاح' : 'Temporarily out of stock — Pre-order available')
+                          : product.stock <= 5
+                            ? (lang === 'ar'
+                                ? `متوفر الآن (${formatArabicQuantityLabel(product.stock, quantityUnit, 'ar')} متبقية)`
+                                : `In stock (${product.stock} left)`)
+                            : (lang === 'ar' ? 'متوفر في المخزون للشحن الفوري' : 'In stock & ready to ship')}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-900/90 font-medium leading-relaxed">
+                      {lang === 'ar' ? `التوصيل المتوقع: ${estDeliveryText}` : `Est. delivery: ${estDeliveryText}`}
+                    </p>
                   </div>
                 </div>
+                <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-emerald-700 text-white shrink-0">
+                  {qualifiesFreeShipping
+                    ? (lang === 'ar' ? 'شحن مجاني' : 'Free Shipping')
+                    : (lang === 'ar' ? 'شحن سريع' : 'Express')}
+                </span>
               </div>
 
-              {/* 3. TIERED BUNDLE & SAVE CARDS (Buy More, Save More CRO Architecture) */}
-              <div className="space-y-2.5 pt-1">
-                <div className="flex items-center justify-between text-xs font-black text-slate-900">
-                  <span className="flex items-center gap-1.5">
-                    <PackageCheck className="w-4 h-4 text-[#5A3E7A]" />
-                    <span>{lang === 'ar' ? 'وفّري أكثر مع باقات الكميات التوفيرية:' : 'Bundle & Save: Special Volume Deals:'}</span>
-                  </span>
-                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
-                    {lang === 'ar' ? 'خصومات تصاعدية فورية' : 'Tiered Instant Savings'}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {/* Tier 1: Normal Single Pack */}
-                  <div
-                    onClick={() => setSelectedTier(1)}
-                    className={`p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-start ${
-                      selectedTier === 1
-                        ? 'border-[#5A3E7A] bg-purple-50/50 shadow-sm ring-1 ring-[#5A3E7A]/20'
-                        : 'border-slate-200 bg-white hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] uppercase font-bold text-slate-400">
-                          {lang === 'ar' ? 'الأساسية' : 'Standard'}
-                        </span>
-                        {selectedTier === 1 && (
-                          <span className="w-4 h-4 rounded-full bg-[#5A3E7A] text-white flex items-center justify-center text-[10px] font-bold">
-                            ✓
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="font-extrabold text-xs text-slate-900">
-                        {lang === 'ar' ? 'عبوة واحدة' : '1 Bottle'}
-                      </h4>
-                      <p className="text-[10px] text-slate-500">
-                        {lang === 'ar' ? 'شحن قياسي سريع' : 'Standard dispatch'}
-                      </p>
-                    </div>
-                    <div className="pt-2 mt-2 border-t border-slate-100 font-mono font-black text-sm text-slate-900">
-                      {convertPrice(product.basePriceUSD).text}
-                    </div>
-                  </div>
-
-                  {/* Tier 2: Popular Pack of 2 (10% OFF) */}
-                  <div
-                    onClick={() => setSelectedTier(2)}
-                    className={`p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-start ${
-                      selectedTier === 2
-                        ? 'border-emerald-600 bg-emerald-50/50 shadow-md ring-1 ring-emerald-600/30'
-                        : 'border-slate-200 bg-white hover:border-emerald-300'
-                    }`}
-                  >
-                    {/* Popular Ribbon Tag */}
-                    <span className="absolute -top-2.5 end-3 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white shadow-xs">
-                      {lang === 'ar' ? 'الأكثر طلباً' : 'Most Popular'}
-                    </span>
-
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] uppercase font-bold text-emerald-700">
-                          {lang === 'ar' ? 'وفّري 10%' : 'Save 10%'}
-                        </span>
-                        {selectedTier === 2 && (
-                          <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
-                            ✓
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="font-extrabold text-xs text-slate-900">
-                        {lang === 'ar' ? 'عبوتان (Pack of 2)' : '2 Bottles'}
-                      </h4>
-                      <p className="text-[10px] text-emerald-800 font-semibold">
-                        {lang === 'ar' ? 'توصيل مجاني بالكامل' : '100% Free Shipping'}
-                      </p>
-                    </div>
-                    <div className="pt-2 mt-2 border-t border-slate-100">
-                      <div className="font-mono font-black text-sm text-slate-900">
-                        {convertPrice(product.basePriceUSD * 2 * 0.9).text}
-                      </div>
-                      <div className="text-[9px] text-slate-400 line-through">
-                        {convertPrice(product.basePriceUSD * 2).text}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tier 3: High Value Pack of 3 (20% OFF + Free Luxury Gift) */}
-                  <div
-                    onClick={() => setSelectedTier(3)}
-                    className={`p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-start ${
-                      selectedTier === 3
-                        ? 'border-amber-500 bg-amber-50/60 shadow-md ring-1 ring-amber-500/30'
-                        : 'border-slate-200 bg-white hover:border-amber-300'
-                    }`}
-                  >
-                    {/* Best Value Ribbon Tag */}
-                    <span className="absolute -top-2.5 end-3 px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-500 text-white shadow-xs flex items-center gap-1">
-                      <Gift className="w-2.5 h-2.5" />
-                      <span>{lang === 'ar' ? 'أعلى قيمة' : 'Best Value'}</span>
-                    </span>
-
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] uppercase font-bold text-amber-800">
-                          {lang === 'ar' ? 'وفّري 20% + هدية' : 'Save 20% + Gift'}
-                        </span>
-                        {selectedTier === 3 && (
-                          <span className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold">
-                            ✓
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="font-extrabold text-xs text-slate-900">
-                        {lang === 'ar' ? '3 عبوات (Pack of 3)' : '3 Bottles'}
-                      </h4>
-                      <p className="text-[10px] text-amber-900 font-semibold">
-                        {lang === 'ar' ? 'شحن مجاني + هدية مخملية' : 'Free Ship + Free Gift'}
-                      </p>
-                    </div>
-                    <div className="pt-2 mt-2 border-t border-slate-100">
-                      <div className="font-mono font-black text-sm text-slate-900">
-                        {convertPrice(product.basePriceUSD * 3 * 0.8).text}
-                      </div>
-                      <div className="text-[9px] text-slate-400 line-through">
-                        {convertPrice(product.basePriceUSD * 3).text}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. QUANTITY SELECTOR (For Multipliers of selected pack) */}
+              {/* 4. CONTEXT-AWARE QUANTITY / VOLUME SAVINGS SELECTOR */}
               {!isOutOfStock && (
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs font-bold text-slate-700">
-                    {lang === 'ar' ? `مضاعفة الباقة (${effectiveQuantity} قطع إجمالاً):` : `Pack Multiplier (${effectiveQuantity} items total):`}
-                  </span>
-                  <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-3 py-1.5 hover:bg-slate-200 transition-colors font-bold text-slate-700 min-w-[36px]"
-                    >
-                      -
-                    </button>
-                    <span className="px-4 py-1.5 font-bold text-sm text-slate-900 bg-white">
-                      {quantity}
-                    </span>
-                    <button
-                      onClick={() => setQuantity(Math.min(Math.floor((product.stock || 10) / tierItemsCount) || 1, quantity + 1))}
-                      className="px-3 py-1.5 hover:bg-slate-200 transition-colors font-bold text-slate-700 min-w-[36px]"
-                    >
-                      +
-                    </button>
+                isSkinTierMode ? (
+                  <div className="space-y-2.5 pt-1">
+                    <div className="flex items-center justify-between text-xs font-extrabold text-slate-900">
+                      <span className="flex items-center gap-1.5">
+                        <Package className="w-4 h-4 text-[#5A3E7A]" />
+                        <span>{lang === 'ar' ? 'اختاري الباقة المناسبة لكِ:' : 'Choose Your Volume Pack:'}</span>
+                      </span>
+                      <span className="text-[11px] font-bold text-[#5A3E7A] bg-purple-50 px-2.5 py-0.5 rounded-lg border border-purple-100">
+                        {lang === 'ar' ? 'توفير فوري' : 'Instant Savings'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      {/* Tier 1: Single Bottle */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTier(1)}
+                        className={`p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-start ${
+                          selectedTier === 1
+                            ? 'border-[#5A3E7A] bg-purple-50/50 shadow-xs ring-1 ring-[#5A3E7A]/20'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-slate-400">
+                              {lang === 'ar' ? 'الأساسية' : 'Standard'}
+                            </span>
+                            {selectedTier === 1 && (
+                              <span className="w-4 h-4 rounded-full bg-[#5A3E7A] text-white flex items-center justify-center">
+                                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-extrabold text-xs text-slate-900">
+                            {formatArabicQuantityLabel(1, 'bottle', lang)}
+                          </h4>
+                          <p className="text-[10px] text-slate-500">
+                            {lang === 'ar' ? 'شحن قياسي سريع' : 'Standard express'}
+                          </p>
+                        </div>
+                        <div className="pt-2 mt-2 border-t border-slate-100 font-mono font-black text-sm text-slate-900">
+                          {convertPrice(product.basePriceUSD).text}
+                        </div>
+                      </button>
+
+                      {/* Tier 2: Duo Pack (10% OFF) */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTier(2)}
+                        className={`p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-start ${
+                          selectedTier === 2
+                            ? 'border-emerald-600 bg-emerald-50/50 shadow-sm ring-1 ring-emerald-600/25'
+                            : 'border-slate-200 bg-white hover:border-emerald-300'
+                        }`}
+                      >
+                        <span className="absolute -top-2.5 end-3 px-2 py-0.5 rounded-lg text-[9px] font-extrabold bg-emerald-600 text-white shadow-xs">
+                          {lang === 'ar' ? 'الأكثر طلباً' : 'Most Popular'}
+                        </span>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-emerald-700">
+                              {lang === 'ar' ? 'وفّري 10%' : 'Save 10%'}
+                            </span>
+                            {selectedTier === 2 && (
+                              <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-extrabold text-xs text-slate-900">
+                            {formatArabicQuantityLabel(2, 'bottle', lang)}
+                          </h4>
+                          <p className="text-[10px] text-emerald-800 font-semibold">
+                            {lang === 'ar' ? 'توصيل مجاني بالكامل' : '100% Free Shipping'}
+                          </p>
+                        </div>
+                        <div className="pt-2 mt-2 border-t border-slate-100">
+                          <div className="font-mono font-black text-sm text-slate-900">
+                            {convertPrice(product.basePriceUSD * 2 * 0.9).text}
+                          </div>
+                          <div className="text-[10px] text-slate-400 line-through">
+                            {convertPrice(product.basePriceUSD * 2).text}
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Tier 3: Value Pack of 3 (20% OFF + Free Gift) */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTier(3)}
+                        className={`p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-start ${
+                          selectedTier === 3
+                            ? 'border-amber-500 bg-amber-50/60 shadow-sm ring-1 ring-amber-500/25'
+                            : 'border-slate-200 bg-white hover:border-amber-300'
+                        }`}
+                      >
+                        <span className="absolute -top-2.5 end-3 px-2 py-0.5 rounded-lg text-[9px] font-extrabold bg-amber-500 text-white shadow-xs flex items-center gap-1">
+                          <Gift className="w-2.5 h-2.5" />
+                          <span>{lang === 'ar' ? 'أعلى قيمة' : 'Best Value'}</span>
+                        </span>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-amber-800">
+                              {lang === 'ar' ? 'وفّري 20% + هدية' : 'Save 20% + Gift'}
+                            </span>
+                            {selectedTier === 3 && (
+                              <span className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center">
+                                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-extrabold text-xs text-slate-900">
+                            {formatArabicQuantityLabel(3, 'bottle', lang)}
+                          </h4>
+                          <p className="text-[10px] text-amber-900 font-semibold">
+                            {lang === 'ar' ? 'شحن مجاني + هدية مخملية' : 'Free Ship + Velvet Gift'}
+                          </p>
+                        </div>
+                        <div className="pt-2 mt-2 border-t border-slate-100">
+                          <div className="font-mono font-black text-sm text-slate-900">
+                            {convertPrice(product.basePriceUSD * 3 * 0.8).text}
+                          </div>
+                          <div className="text-[10px] text-slate-400 line-through">
+                            {convertPrice(product.basePriceUSD * 3).text}
+                          </div>
+                        </div>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200/80">
+                    <div>
+                      <span className="block text-xs font-extrabold text-slate-900">
+                        {lang === 'ar' ? 'الكمية المطلوبة' : 'Select Quantity'}
+                      </span>
+                      <span className="text-[11px] font-semibold text-slate-500">
+                        {formatArabicQuantityLabel(quantity, quantityUnit, lang)}
+                      </span>
+                    </div>
+                    <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-white">
+                      <button
+                        type="button"
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        aria-label={lang === 'ar' ? 'تقليل الكمية' : 'Decrease quantity'}
+                        className="min-w-[44px] h-10 hover:bg-slate-100 active:bg-slate-200 transition-colors font-bold text-slate-700 cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <span className="px-4 h-10 flex items-center justify-center font-extrabold text-sm text-slate-900 border-x border-slate-100 min-w-[44px]">
+                        {quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setQuantity(Math.min(Math.max(1, product.stock || 10), quantity + 1))}
+                        aria-label={lang === 'ar' ? 'زيادة الكمية' : 'Increase quantity'}
+                        className="min-w-[44px] h-10 hover:bg-slate-100 active:bg-slate-200 transition-colors font-bold text-slate-700 cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )
               )}
 
               {/* 5. PRIMARY CALL TO ACTION BUTTONS (Cart + WhatsApp) */}
-              <div className="space-y-2.5 pt-2">
+              <div className="space-y-2.5 pt-1">
                 <button
                   onClick={() => {
                     if (isOutOfStock) {
                       handleWhatsAppOrder();
                     } else {
-                      // Add with effective quantity and tier pricing
                       const tierProduct: Product = {
                         ...product,
                         basePriceUSD: discountedSingleUSD,
@@ -802,24 +864,24 @@ export const PDPView: React.FC = () => {
                       addToCart(tierProduct, effectiveQuantity);
                     }
                   }}
-                  className={`w-full py-4 px-6 rounded-2xl font-black flex items-center justify-center gap-2 text-base transition-all shadow-md min-h-[50px] cursor-pointer ${
+                  className={`w-full h-11 px-5 rounded-xl font-extrabold flex items-center justify-center gap-2 text-sm sm:text-base transition-all shadow-sm cursor-pointer ${
                     isOutOfStock
                       ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                      : 'bg-[#5A3E7A] hover:bg-[#483162] text-white hover:shadow-xl hover:scale-[1.01] active:scale-98'
+                      : 'bg-[#5A3E7A] hover:bg-[#483162] text-white hover:shadow-md active:scale-[0.98]'
                   }`}
                 >
                   {isOutOfStock ? (
                     <>
-                      <MessageCircle className="w-5 h-5" />
+                      <MessageCircle className="w-4.5 h-4.5" />
                       <span>{lang === 'ar' ? 'حجز مسبق فوري عبر واتساب' : 'Instant Pre-Order on WhatsApp'}</span>
                     </>
                   ) : (
                     <>
-                      <StoreCartIcon className="w-5 h-5 text-white" />
+                      <StoreCartIcon className="w-4.5 h-4.5 text-white" />
                       <span>
                         {lang === 'ar'
-                          ? `إضافة للسلة • ${currentPrice.text} ${tierDiscountPercent > 0 ? `(وفرتِ ${tierDiscountPercent}%)` : ''}`
-                          : `Add to Bag • ${currentPrice.text} ${tierDiscountPercent > 0 ? `(Save ${tierDiscountPercent}%)` : ''}`}
+                          ? `إضافة للسلة • ${currentPrice.text}${tierDiscountPercent > 0 ? ` (وفرتِ ${tierDiscountPercent}%)` : ''}`
+                          : `Add to Bag • ${currentPrice.text}${tierDiscountPercent > 0 ? ` (Save ${tierDiscountPercent}%)` : ''}`}
                       </span>
                     </>
                   )}
@@ -828,51 +890,11 @@ export const PDPView: React.FC = () => {
                 {/* Direct Smart WhatsApp Ordering Button */}
                 <button
                   onClick={handleWhatsAppOrder}
-                  className="w-full py-3 px-6 rounded-2xl font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-all flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+                  className="w-full h-11 px-5 rounded-xl font-bold text-xs sm:text-sm text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
                 >
-                  <MessageCircle className="w-5 h-5 text-emerald-600" />
-                  <span>{lang === 'ar' ? 'اطلب بنقرة واحدة عبر واتساب (دفع عند الاستلام)' : 'One-Click Order via WhatsApp (COD)'}</span>
+                  <MessageCircle className="w-4.5 h-4.5 text-emerald-600" />
+                  <span>{lang === 'ar' ? 'اطلبي بنقرة واحدة عبر واتساب (دفع عند الاستلام)' : 'One-Click Order via WhatsApp (COD)'}</span>
                 </button>
-              </div>
-
-              {/* 6. DYNAMIC DELIVERY ESTIMATE (Arrival Window) */}
-              <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs text-emerald-950">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-200/80 text-emerald-900 flex items-center justify-center shrink-0">
-                    <Truck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="font-extrabold block text-slate-900">
-                      {lang === 'ar' ? 'موعد التوصيل المتوقع (شحن سريع):' : 'Estimated Delivery Window:'}
-                    </span>
-                    <span className="text-[11px] text-emerald-800 font-medium">
-                      {lang === 'ar' ? `يصلك بين: ${estDeliveryText}` : `Arrives: ${estDeliveryText}`}
-                    </span>
-                  </div>
-                </div>
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-600 text-white shrink-0">
-                  {selectedTier >= 2 ? (lang === 'ar' ? 'شحن مجاني' : 'FREE Shipping') : (lang === 'ar' ? 'شحن فوري' : 'Express')}
-                </span>
-              </div>
-
-              {/* Value propositions icons list */}
-              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 text-xs text-slate-600">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{lang === 'ar' ? 'أصلي ومضمون 100%' : '100% Guaranteed Authentic'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-blue-600 shrink-0" />
-                  <span>{lang === 'ar' ? 'شحن سريع لكافة المدن' : 'Fast Regional Dispatch'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RotateCcw className="w-4 h-4 text-purple-600 shrink-0" />
-                  <span>{lang === 'ar' ? 'استبدال واسترجاع ميسر' : 'Hassle-Free Returns'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span>{lang === 'ar' ? 'دعم فني واستشارة مجانية' : 'Free Beauty Consultation'}</span>
-                </div>
               </div>
             </div>
           </div>
@@ -900,16 +922,16 @@ export const PDPView: React.FC = () => {
               <div className="flex items-center gap-4 flex-wrap">
                 {/* Bundle Thumbnails */}
                 <div className="flex items-center gap-2">
-                  <img src={product.images[0]} alt="main" className="w-14 h-14 rounded-xl object-cover border border-purple-200" />
+                  <img src={product.images[0]} alt="main" referrerPolicy="no-referrer" decoding="async" onError={(e) => handleImageLoadError(e.currentTarget)} className="w-14 h-14 rounded-xl object-cover border border-purple-200" />
                   <span className="text-slate-400 font-bold">+</span>
                   {product.bundle.items.map((bItem) => (
-                    <img key={bItem.id} src={bItem.image} alt={bItem.name[lang]} className="w-14 h-14 rounded-xl object-cover border border-purple-200" />
+                    <img key={bItem.id} src={bItem.image} alt={bItem.name[lang]} referrerPolicy="no-referrer" decoding="async" onError={(e) => handleImageLoadError(e.currentTarget)} className="w-14 h-14 rounded-xl object-cover border border-purple-200" />
                   ))}
                 </div>
 
                 <button
                   onClick={handleAddBundle}
-                  className="bg-purple-900 hover:bg-purple-800 text-white text-xs sm:text-sm font-bold px-6 py-3 rounded-2xl shadow-md flex items-center gap-2 min-h-[44px] transition-all hover:scale-105"
+                  className="bg-[#5A3E7A] hover:bg-[#483162] text-white text-xs sm:text-sm font-bold px-5 h-10 sm:h-11 rounded-xl shadow-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>
@@ -973,36 +995,17 @@ export const PDPView: React.FC = () => {
                   <p>{product.tabs.description[lang]}</p>
                 </div>
 
-                {/* Highlights Bullet Matrix */}
+                {/* Context-Aware Highlights Matrix */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-50/60 border border-purple-100 text-xs sm:text-sm text-purple-950 font-medium">
-                    <CheckCircle2 className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
-                    <span>{lang === 'ar' ? 'تركيبة أصلية معتمدة 100% مختبرة سريرياً' : '100% Certified clinically proven formula'}</span>
-                  </div>
-                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-50/60 border border-purple-100 text-xs sm:text-sm text-purple-950 font-medium">
-                    <CheckCircle2 className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
-                    <span>{lang === 'ar' ? 'مصممة لتلائم الاستخدام اليومي المنتظم' : 'Crafted for optimal regular daily care'}</span>
-                  </div>
-                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-50/60 border border-purple-100 text-xs sm:text-sm text-purple-950 font-medium">
-                    <CheckCircle2 className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
-                    <span>{lang === 'ar' ? 'نتائج ملحوظة وملموسة من أول أسبوعين' : 'Noticeable visible results within 2 weeks'}</span>
-                  </div>
-                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-50/60 border border-purple-100 text-xs sm:text-sm text-purple-950 font-medium">
-                    <CheckCircle2 className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
-                    <span>{lang === 'ar' ? 'حائز على أعلى تقييمات الرضى من العميلات' : 'Top rated satisfaction by verified buyers'}</span>
-                  </div>
-                </div>
-
-                {/* Micro Guarantee Badges */}
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">
-                    <Award className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{lang === 'ar' ? 'ضمان الجودة الفائقة' : 'Premium Quality Guarantee'}</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{lang === 'ar' ? 'خالٍ من الإضافات الكيميائية الضارة' : 'Free of Harmful Additives'}</span>
-                  </span>
+                  {contextCopy.descHighlights.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-50/60 border border-purple-100 text-xs sm:text-sm text-purple-950 font-medium leading-relaxed"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -1025,12 +1028,12 @@ export const PDPView: React.FC = () => {
                     <h4 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
                       {lang === 'ar' ? 'طريقة الاستخدام والخطوات الموصى بها' : 'How to Use & Application Guide'}
                     </h4>
-                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                      {lang === 'ar' ? 'نصائح الخبراء' : 'Expert Routine'}
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                      {lang === 'ar' ? 'نصائح الخبراء' : 'Expert Guide'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 truncate mt-0.5">
-                    {lang === 'ar' ? 'الخطوات السليمة لتحقيق أقصى فاعلية واستفادة' : 'Step-by-step instructions for best performance'}
+                    {lang === 'ar' ? 'الخطوات السليمة لتحقيق أقصى فاعلية واستفادة' : 'Step-by-step instructions for best results'}
                   </p>
                 </div>
               </div>
@@ -1047,54 +1050,38 @@ export const PDPView: React.FC = () => {
                 <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200/80 mt-4">
                   <h5 className="font-extrabold text-amber-950 text-xs sm:text-sm mb-1.5 flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-amber-600" />
-                    <span>{lang === 'ar' ? 'إرشادات الاستخدام المعتمدة:' : 'Recommended Application Guidelines:'}</span>
+                    <span>{lang === 'ar' ? 'إرشادات الاستخدام المعتمدة:' : 'Recommended Usage Guidelines:'}</span>
                   </h5>
                   <p className="text-xs sm:text-sm text-amber-900 leading-relaxed">
                     {product.tabs.usage[lang]}
                   </p>
                 </div>
 
-                {/* 3 Step Practical Workflow */}
+                {/* 3 Context-Aware Practical Steps */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-                    <span className="w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center mb-2">
-                      1
-                    </span>
-                    <h6 className="font-bold text-xs text-slate-900 mb-1">
-                      {lang === 'ar' ? 'التحضير والتنظيف' : 'Preparation & Cleanse'}
-                    </h6>
-                    <p className="text-[11px] text-slate-500 leading-normal">
-                      {lang === 'ar' ? 'تأكدي من تنظيف وتجفيف المنطقة بعناية قبل البدء.' : 'Ensure skin/hair is clean and prepared.'}
-                    </p>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-                    <span className="w-6 h-6 rounded-full bg-purple-700 text-white font-bold text-xs flex items-center justify-center mb-2">
-                      2
-                    </span>
-                    <h6 className="font-bold text-xs text-slate-900 mb-1">
-                      {lang === 'ar' ? 'التطبيق المتوازن' : 'Even Application'}
-                    </h6>
-                    <p className="text-[11px] text-slate-500 leading-normal">
-                      {lang === 'ar' ? 'وزّعي كمية مناسبة بحركات دائرية هادئة للامتصاص التام.' : 'Apply evenly with gentle circular motions.'}
-                    </p>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-                    <span className="w-6 h-6 rounded-full bg-emerald-700 text-white font-bold text-xs flex items-center justify-center mb-2">
-                      3
-                    </span>
-                    <h6 className="font-bold text-xs text-slate-900 mb-1">
-                      {lang === 'ar' ? 'التثبيت والانتظام' : 'Consistency'}
-                    </h6>
-                    <p className="text-[11px] text-slate-500 leading-normal">
-                      {lang === 'ar' ? 'كرّري الاستخدام وفق الروتين الموصى به للحفاظ على النضارة.' : 'Repeat regularly as part of your daily routine.'}
-                    </p>
-                  </div>
+                  {contextCopy.usageSteps.map((step, idx) => {
+                    const stepBg =
+                      idx === 0 ? 'bg-slate-900' : idx === 1 ? 'bg-[#5A3E7A]' : 'bg-emerald-700';
+                    return (
+                      <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                        <span className={`w-6 h-6 rounded-full ${stepBg} text-white font-bold text-xs flex items-center justify-center mb-2`}>
+                          {idx + 1}
+                        </span>
+                        <h6 className="font-bold text-xs text-slate-900 mb-1">
+                          {step.title}
+                        </h6>
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          {step.body}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
           </div>
 
-          {/* ACCORDION 3: Specifications or Pure Formulation */}
+          {/* ACCORDION 3: Technical Specs, Box Contents, or Pure Formulation */}
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden transition-all duration-300 hover:border-purple-200">
             <button
               type="button"
@@ -1109,18 +1096,14 @@ export const PDPView: React.FC = () => {
                 <div className="truncate">
                   <div className="flex items-center gap-2">
                     <h4 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
-                      {product.isTechSpecs
-                        ? (lang === 'ar' ? 'المواصفات الفنية المعتمدة' : 'Technical Specifications')
-                        : (lang === 'ar' ? 'المكونات الفعالة والتركيبة النقية' : 'Ingredients & Pure Formulation')}
+                      {contextCopy.specsHeader.title}
                     </h4>
-                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      {lang === 'ar' ? 'موثقة مخبرياً' : 'Lab Tested'}
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      {contextCopy.specsHeader.badge}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 truncate mt-0.5">
-                    {product.isTechSpecs
-                      ? (lang === 'ar' ? 'الأبعاد، الجهد الكهربائي، درجات الحرارة والضمان' : 'Voltage, wattage, temperatures and warranty')
-                      : (lang === 'ar' ? 'الخلاصات الطبيعية والمستخلصات العضوية النقية' : 'Natural extracts and active botanical ingredients')}
+                    {contextCopy.specsHeader.subtitle}
                   </p>
                 </div>
               </div>
@@ -1135,7 +1118,7 @@ export const PDPView: React.FC = () => {
             {openAccordions.specs && (
               <div className="p-4 sm:p-6 pt-0 border-t border-slate-100 space-y-4 animate-in fade-in duration-200">
                 <div className="pt-4">
-                  {product.isTechSpecs && product.techSpecs ? (
+                  {product.isTechSpecs && product.techSpecs && product.techSpecs.length > 0 ? (
                     <div className="overflow-hidden border border-slate-200 rounded-2xl shadow-xs">
                       <table className="w-full text-start text-xs sm:text-sm">
                         <tbody>
@@ -1152,12 +1135,45 @@ export const PDPView: React.FC = () => {
                         </tbody>
                       </table>
                     </div>
+                  ) : (productKind === 'hair' || productKind === 'box') && pipeSpecs.length >= 2 ? (
+                    <div className="space-y-3">
+                      <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200/80 space-y-3">
+                        <h5 className="font-extrabold text-emerald-950 text-xs sm:text-sm flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-4 h-4 text-emerald-700" />
+                          <span>{contextCopy.specsHeader.sectionTitle}</span>
+                        </h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {pipeSpecs.map((specItem, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-start gap-2 p-3 rounded-xl bg-white border border-emerald-100 text-xs sm:text-sm text-slate-800 font-semibold leading-relaxed"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                              <span>{specItem}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 lg:gap-3 pt-1">
+                        {contextCopy.specsHeader.chips.map((chipLabel, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs font-bold text-slate-700 ${
+                              idx === 2 ? 'col-span-2 sm:col-span-1' : ''
+                            }`}
+                          >
+                            {chipLabel}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/80">
                         <h5 className="font-extrabold text-emerald-950 text-xs sm:text-sm mb-1.5 flex items-center gap-1.5">
                           <FlaskConical className="w-4 h-4 text-emerald-700" />
-                          <span>{lang === 'ar' ? 'تركيبة نقية ومختبرة مخبرياً:' : 'Pure Tested Formulation:'}</span>
+                          <span>{contextCopy.specsHeader.sectionTitle}</span>
                         </h5>
                         <p className="text-xs sm:text-sm text-emerald-900 leading-relaxed">
                           {product.tabs.ingredientsOrSpecs?.[lang] || (lang === 'ar' ? 'مستخلصات نباتية طبيعية غنية بالعناصر المغذية ومضادات الأكسدة.' : 'Pure natural plant extracts rich in nourishing antioxidants.')}
@@ -1165,15 +1181,16 @@ export const PDPView: React.FC = () => {
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 lg:gap-3 pt-1">
-                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs font-bold text-slate-700">
-                          {lang === 'ar' ? 'نباتي نقي 100%' : '100% Botanical'}
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs font-bold text-slate-700">
-                          {lang === 'ar' ? 'خفيف سريع الامتصاص' : 'Fast Absorbing'}
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs font-bold text-slate-700 col-span-2 sm:col-span-1">
-                          {lang === 'ar' ? 'آمن للبشرة الحساسة' : 'Sensitive Skin Safe'}
-                        </div>
+                        {contextCopy.specsHeader.chips.map((chipLabel, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs font-bold text-slate-700 ${
+                              idx === 2 ? 'col-span-2 sm:col-span-1' : ''
+                            }`}
+                          >
+                            {chipLabel}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -1199,7 +1216,7 @@ export const PDPView: React.FC = () => {
                     <h4 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
                       {lang === 'ar' ? 'الشحن السريع، الدفع عند الاستلام، والضمان الذهبي' : 'Shipping, COD & Golden Guarantee'}
                     </h4>
-                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
                       {lang === 'ar' ? 'ضمان 100%' : '100% Guaranteed'}
                     </span>
                   </div>
@@ -1225,7 +1242,7 @@ export const PDPView: React.FC = () => {
                       <span>{lang === 'ar' ? 'شحن فوري وسريع' : 'Express Delivery'}</span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      {lang === 'ar' ? 'يتم تجهيز الطلب وإرساله مع مندوب معتمد خلال 24 إلى 48 ساعة لباب منزلك.' : 'Dispatched with certified express couriers within 24-48 hours.'}
+                      {lang === 'ar' ? 'يتم تجهيز الطلب وإرساله مع مندوب معتمد خلال 24 إلى 48 ساعة لباب منزلكِ.' : 'Dispatched with certified express couriers within 24-48 hours.'}
                     </p>
                   </div>
 
@@ -1235,7 +1252,7 @@ export const PDPView: React.FC = () => {
                       <span>{lang === 'ar' ? 'الدفع عند الاستلام (COD)' : 'Cash on Delivery (COD)'}</span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      {lang === 'ar' ? 'لا حاجة للدفع مسبقاً، يمكنك معاينة وفحص الشحنة عند الاستلام ثم الدفع بكل ثقة.' : 'No upfront payment required. Inspect your order and pay with full confidence.'}
+                      {lang === 'ar' ? 'لا حاجة للدفع مسبقاً، يمكنكِ معاينة وفحص الشحنة عند الاستلام ثم الدفع بكل ثقة.' : 'No upfront payment required. Inspect your order and pay with full confidence.'}
                     </p>
                   </div>
 
@@ -1245,7 +1262,9 @@ export const PDPView: React.FC = () => {
                       <span>{lang === 'ar' ? 'الضمان الذهبي للاستبدال' : 'Golden Replacement Guarantee'}</span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      {lang === 'ar' ? 'سياسة استبدال أو استرجاع فورية في حال وجود أي ملاحظة خلال 14 يوماً من الاستلام.' : 'Easy 14-day replacement or return policy if you have any questions.'}
+                      {productKind === 'hair'
+                        ? (lang === 'ar' ? 'ضمان سنتين معتمد ضد عيوب التصنيع + استبدال فوري خلال 14 يوماً من الاستلام.' : '2-year certified warranty + easy 14-day replacement upon delivery.')
+                        : (lang === 'ar' ? 'سياسة استبدال أو استرجاع ميسرة في حال وجود أي ملاحظة خلال 14 يوماً من الاستلام.' : 'Easy 14-day replacement or return policy if you have any concerns.')}
                     </p>
                   </div>
 
@@ -1255,7 +1274,9 @@ export const PDPView: React.FC = () => {
                       <span>{lang === 'ar' ? 'تغليف آمن وفاخر' : 'Luxury Secure Packaging'}</span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      {lang === 'ar' ? 'تصلك المنتجات في تغليف حماية عازل للصدمات يحفظ نقاء وفاعلية المكونات.' : 'Items arrive safely in impact-resistant luxury packaging.'}
+                      {productKind === 'hair'
+                        ? (lang === 'ar' ? 'يصلكِ الجهاز في تغليف حماية عازل للصدمات يحفظ سلامة الجهاز وملحقاته.' : 'Arrives securely in shock-resistant packaging protecting the device and attachments.')
+                        : (lang === 'ar' ? 'تصلكِ المنتجات في تغليف حماية عازل للصدمات يحفظ جودة العبوات ونضارة التركيبة.' : 'Items arrive safely in impact-resistant luxury packaging.')}
                     </p>
                   </div>
                 </div>
@@ -1294,12 +1315,12 @@ export const PDPView: React.FC = () => {
                     <h4 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
                       {lang === 'ar' ? `تقييمات وتجارب العميلات المعتمدة (${product.reviewsCount})` : `Verified Customer Reviews (${product.reviewsCount})`}
                     </h4>
-                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-[#5A3E7A] border border-purple-200">
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-purple-50 text-[#5A3E7A] border border-purple-200">
                       {product.rating} / 5
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 truncate mt-0.5">
-                    {lang === 'ar' ? 'آراء وتجارب واقعية موثقة من مشترين حقيقيين' : 'Real verified feedback from actual shoppers'}
+                    {lang === 'ar' ? 'آراء وتجارب واقعية موثقة من عميلاتنا' : 'Verified feedback from real shoppers'}
                   </p>
                 </div>
               </div>
@@ -1320,15 +1341,15 @@ export const PDPView: React.FC = () => {
                       {product.rating}
                     </div>
                     <div>
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 text-[#5A3E7A] border border-purple-200/70 text-[11px] font-black mb-1">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-purple-50 text-[#5A3E7A] border border-purple-200/70 text-[11px] font-extrabold mb-1">
                         <BadgeCheck className="w-3.5 h-3.5" />
                         <span>{lang === 'ar' ? `تقييم معتمد • ${product.rating} من 5` : `Verified Score • ${product.rating} / 5`}</span>
                       </div>
                       <p className="text-xs font-bold text-slate-800">
-                        {lang === 'ar' ? 'معدل رضى فائق بنسبة 98% من المشترين' : '98% Customer Satisfaction Rate'}
+                        {lang === 'ar' ? 'تقييمات حقيقية من طلبات مكتملة' : 'Authentic ratings from completed orders'}
                       </p>
                       <p className="text-[11px] text-slate-500">
-                        {lang === 'ar' ? `بناءً على ${product.reviewsCount} تقييم موثق من الطلبات المكتملة` : `Based on ${product.reviewsCount} verified purchases`}
+                        {lang === 'ar' ? `بناءً على ${product.reviewsCount} تقييماً موثقاً` : `Based on ${product.reviewsCount} verified purchases`}
                       </p>
                     </div>
                   </div>
@@ -1336,26 +1357,27 @@ export const PDPView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsReviewModalOpen(true)}
-                    className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer min-h-[44px]"
+                    className="px-5 h-10 sm:h-11 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
                   >
                     <PenLine className="w-4 h-4" />
-                    <span>{lang === 'ar' ? 'أضيفي تقييمك وتجربتك' : 'Write a Review'}</span>
+                    <span>{lang === 'ar' ? 'أضيفي تقييمكِ وتجربتكِ' : 'Write a Review'}</span>
                   </button>
                 </div>
 
                 {/* Testimonial Quote */}
                 <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100/80 space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-purple-200 text-purple-900 font-bold text-xs flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-full bg-purple-200 text-purple-900 font-bold text-xs flex items-center justify-center shrink-0">
                         <Check className="w-3.5 h-3.5" />
                       </div>
                       <span className="font-extrabold text-xs text-slate-900">
-                        {lang === 'ar' ? 'مراجعة موثقة من مشتري حقيقي' : 'Verified Buyer Review'}
+                        {lang === 'ar' ? 'مراجعة موثقة من عميلة حقيقية' : 'Verified Buyer Review'}
                       </span>
                     </div>
-                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold border border-emerald-200">
-                      {lang === 'ar' ? 'شراء مؤكد ✓' : 'Verified Purchase ✓'}
+                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg font-bold border border-emerald-200 shrink-0">
+                      <Check className="w-3 h-3" />
+                      <span>{lang === 'ar' ? 'شراء مؤكد' : 'Verified Purchase'}</span>
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-700 leading-relaxed italic">
@@ -1367,18 +1389,18 @@ export const PDPView: React.FC = () => {
           </div>
         </div>
 
-        {/* 7. WHY US VS MARKET COMPETITORS (Comparison Matrix Inspired by CRO High-Converting Stores) */}
+        {/* 7. CONTEXT-AWARE COMPARISON MATRIX */}
         <div className="mt-10 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
           <div className="text-center space-y-2 max-w-xl mx-auto">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-purple-100 text-[#5A3E7A] border border-purple-200">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-extrabold bg-purple-100 text-[#5A3E7A] border border-purple-200">
               <ShieldCheck className="w-3.5 h-3.5 text-[#5A3E7A]" />
               <span>{lang === 'ar' ? 'معايير الجودة والتميز' : 'Why Choose NADI'}</span>
             </span>
-            <h3 className="text-xl sm:text-2xl font-black text-slate-900 font-brand-ar">
-              {lang === 'ar' ? `لماذا تتفوق مستحضرات ${activeData.storeName.ar} على بدائل السوق؟` : `Why NADI Outperforms Market Alternatives?`}
+            <h3 className="text-fluid-h2 font-black text-slate-900 font-brand-ar leading-relaxed">
+              {contextCopy.comparison.title}
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500">
-              {lang === 'ar' ? 'مقارنة صريحة توضح التزامنا الصارم بالنقاء العضوي، الفاعلية، والضمان الحقيقي.' : 'An honest comparison highlighting our botanical purity, real results, and certified warranty.'}
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+              {contextCopy.comparison.subtitle}
             </p>
           </div>
 
@@ -1393,81 +1415,36 @@ export const PDPView: React.FC = () => {
                       <span>{activeData.storeName[lang]}</span>
                     </span>
                   </th>
-                  <th className="py-3 px-4 text-center font-bold text-slate-400">{lang === 'ar' ? 'مستحضرات السوق العادية' : 'Market Competitors'}</th>
+                  <th className="py-3 px-4 text-center font-bold text-slate-400">{contextCopy.comparison.competitorHeader}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs sm:text-sm text-slate-700">
-                <tr>
-                  <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                    {lang === 'ar' ? 'المكونات والنقاء النباتي' : 'Botanical Purity & Formulation'}
-                  </td>
-                  <td className="py-3.5 px-4 text-center bg-purple-50/40 border-x border-purple-200/60 font-bold text-emerald-800">
-                    <span className="inline-flex items-center gap-1.5 justify-center">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>{lang === 'ar' ? 'نباتي نقي 100% بدون كيميائيات ضارة' : '100% Pure Botanical, Zero Harsh Chemicals'}</span>
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-center text-slate-400">
-                    <span className="inline-flex items-center gap-1.5 justify-center text-rose-500 font-semibold">
-                      <CloseIcon className="w-4 h-4 text-rose-500 shrink-0" />
-                      <span>{lang === 'ar' ? 'مركبات مجهولة المصدر ومواد حافظة' : 'Synthetic fillers & harsh preservatives'}</span>
-                    </span>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                    {lang === 'ar' ? 'معاينة الطلب عند الاستلام (COD)' : 'Inspection Upon Delivery (COD)'}
-                  </td>
-                  <td className="py-3.5 px-4 text-center bg-purple-50/40 border-x border-purple-200/60 font-bold text-emerald-800">
-                    <span className="inline-flex items-center gap-1.5 justify-center">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>{lang === 'ar' ? 'متاح فحص الشحنة والتأكد قبل الدفع' : 'Full inspection before payment allowed'}</span>
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-center text-slate-400">
-                    <span className="inline-flex items-center gap-1.5 justify-center text-rose-500 font-semibold">
-                      <CloseIcon className="w-4 h-4 text-rose-500 shrink-0" />
-                      <span>{lang === 'ar' ? 'دفع مسبق إجباري دون ضمان المعاينة' : 'Mandatory advance pay without inspection'}</span>
-                    </span>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                    {lang === 'ar' ? 'الضمان والاستبدال الذهبي' : 'Warranty & Golden Replacement'}
-                  </td>
-                  <td className="py-3.5 px-4 text-center bg-purple-50/40 border-x border-purple-200/60 font-bold text-emerald-800">
-                    <span className="inline-flex items-center gap-1.5 justify-center">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>{lang === 'ar' ? 'ضمان سنتين شامل معتمد أو 14 يوماً للاستبدال' : 'Certified 2-Year or 14-Day easy swap'}</span>
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-center text-slate-400">
-                    <span className="inline-flex items-center gap-1.5 justify-center text-rose-500 font-semibold">
-                      <CloseIcon className="w-4 h-4 text-rose-500 shrink-0" />
-                      <span>{lang === 'ar' ? 'بدون ضمان أو إجراءات استرجاع معقدة' : 'No warranty or restrictive policies'}</span>
-                    </span>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                    {lang === 'ar' ? 'الاستشارة والمتابعة بعد البيع' : 'Post-Purchase Expert Consultation'}
-                  </td>
-                  <td className="py-3.5 px-4 text-center bg-purple-50/40 border-x border-b border-purple-200/60 font-bold text-emerald-800 rounded-b-2xl">
-                    <span className="inline-flex items-center gap-1.5 justify-center">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>{lang === 'ar' ? 'متابعة شخصية مستمرة عبر واتساب مجاناً' : 'Dedicated ongoing WhatsApp care'}</span>
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-center text-slate-400">
-                    <span className="inline-flex items-center gap-1.5 justify-center text-rose-500 font-semibold">
-                      <CloseIcon className="w-4 h-4 text-rose-500 shrink-0" />
-                      <span>{lang === 'ar' ? 'انقطاع التواصل فور تسليم الشحنة' : 'Zero support post-dispatch'}</span>
-                    </span>
-                  </td>
-                </tr>
+                {contextCopy.comparison.rows.map((row, idx) => {
+                  const isLast = idx === contextCopy.comparison.rows.length - 1;
+                  return (
+                    <tr key={idx}>
+                      <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                        {row.criterion}
+                      </td>
+                      <td
+                        className={`py-3.5 px-4 text-center bg-purple-50/40 border-x border-purple-200/60 font-bold text-emerald-800 ${
+                          isLast ? 'border-b rounded-b-2xl' : ''
+                        }`}
+                      >
+                        <span className="inline-flex items-center gap-1.5 justify-center">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>{row.nadi}</span>
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-center text-slate-400">
+                        <span className="inline-flex items-center gap-1.5 justify-center text-rose-500 font-semibold">
+                          <CloseIcon className="w-4 h-4 text-rose-500 shrink-0" />
+                          <span>{row.competitor}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1490,7 +1467,7 @@ export const PDPView: React.FC = () => {
               e.stopPropagation();
               returnFromPDPToStore();
             }}
-            className="flex items-center gap-2 px-6 py-3 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-full font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
+            className="flex items-center gap-2 px-5 h-11 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all active:scale-95 cursor-pointer shrink-0"
           >
             {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
             <span>{lang === 'ar' ? 'الرجوع للمتجر ومتابعة التسوق' : 'Back to Store & Continue'}</span>
@@ -1593,14 +1570,14 @@ export const PDPView: React.FC = () => {
               <img
                 src={activeImage}
                 alt={product.name[lang]}
+                referrerPolicy="no-referrer"
+                decoding="async"
                 draggable={false}
                 className="max-h-[76vh] sm:max-h-[80vh] max-w-[90vw] object-contain drop-shadow-2xl transition-transform duration-100 ease-out select-none pointer-events-none"
                 style={{
                   transform: `scale(${lightboxScale}) translate(${lightboxPan.x / lightboxScale}px, ${lightboxPan.y / lightboxScale}px)`,
                 }}
-                onError={(e) => {
-                  e.currentTarget.src = fallbackImage;
-                }}
+                onError={(e) => handleImageLoadError(e.currentTarget)}
               />
             </div>
 
@@ -1646,10 +1623,10 @@ export const PDPView: React.FC = () => {
                     <img 
                       src={img} 
                       alt="thumb" 
+                      referrerPolicy="no-referrer"
+                      decoding="async"
                       className="w-full h-full object-cover" 
-                      onError={(e) => {
-                        e.currentTarget.src = fallbackImage;
-                      }}
+                      onError={(e) => handleImageLoadError(e.currentTarget)}
                     />
                   </button>
                 ))}

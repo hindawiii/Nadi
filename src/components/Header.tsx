@@ -113,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                 onClick={() => {
                   setIsCurrencyDropdownOpen(!isCurrencyDropdownOpen);
                 }}
-                className="flex items-center gap-1 bg-white/15 hover:bg-white/25 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider transition-colors min-h-[32px] border border-white/10 cursor-pointer"
+                className="flex items-center gap-1 bg-white/15 hover:bg-white/25 px-2.5 h-8 rounded-xl text-[10px] sm:text-[11px] font-bold tracking-wider transition-colors border border-white/10 cursor-pointer"
                 aria-label="Currency Selector"
               >
                 <span>{currentCurrencyObj.country}</span>
@@ -154,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             {/* Language Switcher */}
             <button
               onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-              className="flex items-center gap-1 bg-white/15 hover:bg-white/25 px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider transition-colors min-h-[32px] cursor-pointer"
+              className="flex items-center gap-1 bg-white/15 hover:bg-white/25 px-2.5 h-8 rounded-xl text-[10px] sm:text-[11px] font-bold tracking-wider transition-colors border border-white/10 cursor-pointer"
             >
               <Globe className="w-3 h-3 text-slate-200 shrink-0" />
               <span>{lang === 'ar' ? 'EN' : 'عربي'}</span>

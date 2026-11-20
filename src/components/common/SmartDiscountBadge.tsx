@@ -30,6 +30,13 @@ export function calculateDiscountPercent(
 }
 
 /**
+ * Formats a clear, unambiguous localized discount badge label.
+ */
+export function formatDiscountBadgeText(percent: number, lang: 'ar' | 'en' = 'ar'): string {
+  return lang === 'ar' ? `خصم ${percent}%` : `-${percent}%`;
+}
+
+/**
  * SmartDiscountBadge - Universal Single-Source-of-Truth Discount Badge.
  * High-end luxury discount styling (Rose-Red #E11D48 / Emerald #2B827A).
  */
@@ -49,23 +56,23 @@ export const SmartDiscountBadge: React.FC<SmartDiscountBadgeProps> = ({
   }
 
   const sizeClasses = {
-    xs: 'text-[9px] sm:text-[10px] px-2 py-0.5 font-black',
-    sm: 'text-[10px] sm:text-[11px] px-2.5 py-0.5 font-black',
-    md: 'text-[11px] sm:text-xs px-2.5 py-1 font-black',
-    lg: 'text-xs sm:text-sm px-3 py-1 font-black',
+    xs: 'text-[10px] px-2 py-0.5 font-extrabold',
+    sm: 'text-[10.5px] sm:text-[11px] px-2.5 py-0.5 font-extrabold',
+    md: 'text-[11px] sm:text-xs px-2.5 py-1 font-extrabold',
+    lg: 'text-xs sm:text-sm px-3 py-1 font-extrabold',
   };
 
   const bgClasses = variant === 'emerald' 
     ? 'bg-[#2B827A] text-white' 
     : 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs';
 
-  const displayText = lang === 'ar' ? `خ ${percent}` : `-${percent}%`;
+  const displayText = formatDiscountBadgeText(percent, lang);
 
   return (
     <span
-      className={`inline-flex items-center justify-center tracking-wide select-none whitespace-nowrap ${bgClasses} ${sizeClasses[size]} ${className}`}
-      aria-label={`Discount: ${percent}%`}
-      title={`Discount: ${percent}%`}
+      className={`inline-flex items-center justify-center rounded-lg tracking-wide select-none whitespace-nowrap tabular-nums ${bgClasses} ${sizeClasses[size]} ${className}`}
+      aria-label={lang === 'ar' ? `خصم ${percent}%` : `Discount: ${percent}%`}
+      title={lang === 'ar' ? `خصم ${percent}%` : `Discount: ${percent}%`}
     >
       <span>{displayText}</span>
     </span>

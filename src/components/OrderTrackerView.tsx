@@ -195,7 +195,7 @@ export const OrderTrackerView: React.FC = () => {
                 setSearchCode(myLastTracking);
                 void lookupTracking(myLastTracking);
               }}
-              className="px-3 py-1 rounded-full font-bold bg-purple-50 text-[#5A3E7A] border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer"
+              className="px-3 h-8 rounded-xl font-bold bg-purple-50 text-[#5A3E7A] border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer"
             >
               {myLastTracking}
             </button>

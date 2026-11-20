@@ -296,8 +296,8 @@ export const siteConfig: SiteConfig = {
         ar: "تركيبات نباتية نقية لترطيب وإشراقة تدوم طوال اليوم.",
         en: "Pure botanical formulas for lasting hydration and glow."
       },
-      heroCtaPrimary: { ar: "تسوّق الآن", en: "Shop Now" },
-      heroCtaSecondary: { ar: "شاهد العروض", en: "View Offers" },
+      heroCtaPrimary: { ar: "تسوّقي", en: "Shop Now" },
+      heroCtaSecondary: { ar: "شاهدي العروض", en: "View Offers" },
       heroImage: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=1200&q=80",
       promoBanner: {
         badge: { ar: "عرض خاص", en: "Special Offer" },
@@ -310,9 +310,9 @@ export const siteConfig: SiteConfig = {
         ctaText: { ar: "اطلبي البوكس الآن", en: "Order Routine Bundle" }
       },
       beforeAfterMedia: {
-        title: { ar: "قبل وبعد (14 يوماً)", en: "Before & After (14 Days)" },
-        subtitle: { ar: "اسحبي المؤشر لمشاهدة الفرق خلال 14 يوماً.", en: "Drag to compare 14-day results." },
-        badge: { ar: "نتائج خلال أسبوعين", en: "14-Day Results" },
+        title: { ar: "قبل وبعد — 14 يوماً", en: "Before & After — 14 Days" },
+        subtitle: { ar: "اسحبي المؤشر للمقارنة.", en: "Slide to compare." },
+        badge: { ar: "نتائج ملموسة", en: "Visible Results" },
         beforeImage: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80",
         afterImage: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80",
         beforeLabel: { ar: "قبل", en: "Before" },
@@ -404,44 +404,58 @@ export const siteConfig: SiteConfig = {
       testimonials: [
         {
           id: 0,
-          name: { ar: 'فاطمة أم عبد الله', en: 'Fatima Um Abdallah' },
-          city: { ar: 'أم درمان، السودان', en: 'Omdurman, Sudan' },
-          avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
+          name: { ar: 'فاطمة عبدالله', en: 'Fatima Abdullah' },
+          city: { ar: 'أم درمان', en: 'Omdurman' },
+          avatar: '',
           purchasedProduct: { ar: 'مرطب الهيالورونيك المكثف', en: 'Intense Hyaluronic Moisturizer', id: 'sb-01' },
           date: { ar: 'منذ أسبوعين', en: '2 weeks ago' },
           comment: {
-            ar: 'أحس بالفرق من أول أسبوع! النضارة واضحة وتوصيلهم كان سريع ومحترم جداً في أم درمان. أنصح به كل صديقاتي.',
-            en: 'Felt the noticeable glow in the first week! Ultra-fast and polite delivery in Omdurman. Highly recommended!'
+            ar: 'ترطيبه لطيف وملمسه خفيف على البشرة، ووصلني الطلب سريعاً.',
+            en: 'Gentle hydration with a lightweight feel, and my order arrived quickly.'
           },
-          badge: { ar: 'مشتري مؤكد ✓', en: 'Verified Buyer ✓' },
+          badge: { ar: 'مشترية مؤكدة', en: 'Verified Buyer' },
           rating: 5
         },
         {
           id: 1,
           name: { ar: 'ريم الصادق', en: 'Reem El Sadig' },
-          city: { ar: 'الخرطوم بحري', en: 'Bahri, Khartoum' },
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+          city: { ar: 'الخرطوم', en: 'Khartoum' },
+          avatar: '',
           purchasedProduct: { ar: 'سيروم فيتامين سي المشرق', en: 'Brightening Vitamin C Serum', id: 'sb-02' },
           date: { ar: 'منذ 3 أسابيع', en: '3 weeks ago' },
           comment: {
-            ar: 'سيروم فيتامين سي خفّف التصبغات تماماً بعد رحلة البحر. تركيبته خفيفة ولا تترك أي ملمس دهني مزعج.',
-            en: 'Vitamin C serum cleared hyperpigmentation after my trip. Lightweight and zero greasy residue.'
+            ar: 'السيروم خفيف ويمتص بسرعة بدون لمعان دهني، حسّيت بنضارة هادئة.',
+            en: 'Absorbs quickly without greasiness and left a soft, healthy glow.'
           },
-          badge: { ar: 'مشتري مؤكد ✓', en: 'Verified Buyer ✓' },
+          badge: { ar: 'مشترية مؤكدة', en: 'Verified Buyer' },
           rating: 5
         },
         {
           id: 2,
-          name: { ar: 'د. سارة عثمان', en: 'Dr. Sarah Osman' },
+          name: { ar: 'سارة عثمان', en: 'Sarah Osman' },
           city: { ar: 'بورتسودان', en: 'Port Sudan' },
-          avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
+          avatar: '',
           purchasedProduct: { ar: 'كريم الليل لتجديد الكولاجين', en: 'Collagen Renewal Night Cream', id: 'sb-03' },
           date: { ar: 'منذ شهر', en: '1 month ago' },
           comment: {
-            ar: 'كمتخصصة صيدلانية، أعجبني جداً وضوح قائمة المكونات النقية. النعومة والترطيب تدوم طوال الليل.',
-            en: 'As a pharmacist, I deeply appreciate the clean ingredient deck. Rich moisture lasts all night.'
+            ar: 'الكريم الليلي مريح وناعم قبل النوم، وبشرتي أصبحت أهدأ في الصباح.',
+            en: 'Soothing and smooth before bed; my skin feels noticeably calmer by morning.'
           },
-          badge: { ar: 'طبيبة معتمدة', en: 'Verified Specialist' },
+          badge: { ar: 'مشترية مؤكدة', en: 'Verified Buyer' },
+          rating: 5
+        },
+        {
+          id: 3,
+          name: { ar: 'مروة الطاهر', en: 'Marwa Al-Tahir' },
+          city: { ar: 'الرياض', en: 'Riyadh' },
+          avatar: '',
+          purchasedProduct: { ar: 'مجموعة بوكس التوفير الكاملة', en: 'Natural Bloom Complete Box', id: 'sb-04' },
+          date: { ar: 'منذ 3 أسابيع', en: '3 weeks ago' },
+          comment: {
+            ar: 'التغليف مرتب والمنتجات لطيفة على البشرة الحساسة، تجربة موفقة.',
+            en: 'Thoughtful packaging and gentle on sensitive skin—a great experience overall.'
+          },
+          badge: { ar: 'مشترية مؤكدة', en: 'Verified Buyer' },
           rating: 5
         }
       ],

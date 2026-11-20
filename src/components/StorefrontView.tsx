@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Truck, ShieldCheck, CreditCard, ArrowRight, ArrowLeft, 
+  Truck, ShieldCheck, ArrowRight, ArrowLeft, 
   CheckCircle2, ChevronRight, ChevronLeft, MessageCircle, Heart, 
   MapPin, Phone, Mail, Award, Droplets, Sun, Shield, 
-  Layers, MessageSquarePlus, SlidersHorizontal, Quote, ThumbsUp, Check, BadgeCheck,
+  Layers, MessageSquarePlus, SlidersHorizontal, Quote, Check, BadgeCheck,
   ZoomIn, Maximize2, X, Plus, Minus, ShoppingBag, Gift, ChevronDown, ChevronUp,
   ScanFace, Gem, Flower2, LayoutGrid, Wind
 } from 'lucide-react';
@@ -12,7 +12,15 @@ import { ProductCard } from './ProductCard';
 import { InfiniteBrandTicker } from './InfiniteBrandTicker';
 import { HairDevicesSpotlight } from './HairDevicesSpotlight';
 import { BeforeAfterSlider } from './common/BeforeAfterSlider';
+import { EditorialHero } from './EditorialHero';
+import { StoreFAQSection } from './StoreFAQSection';
 import { classifyProductCollection } from '../lib/productCollections';
+import { resolveBeforeAfterCopy } from '../lib/sliderGestureIntent';
+import {
+  DEFAULT_NADI_TESTIMONIALS,
+  getReviewerInitial,
+  normalizeTestimonialList,
+} from '../lib/testimonialSanitizer';
 
 export const StorefrontView: React.FC = () => {
   const { 
@@ -25,8 +33,6 @@ export const StorefrontView: React.FC = () => {
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeSkinFilter, setActiveSkinFilter] = useState<string | null>(null);
-  const [helpfulVotes, setHelpfulVotes] = useState<Record<number, number>>({ 0: 42, 1: 37, 2: 56, 3: 29 });
-  const [userVoted, setUserVoted] = useState<Record<number, boolean>>({});
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating'>('featured');
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement>(null);
@@ -86,35 +92,35 @@ export const StorefrontView: React.FC = () => {
   const [diamondBundleQty, setDiamondBundleQty] = useState<number>(1);
   const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false);
 
-  // Promo Banner Slides definition
+  // Promo Banner Slides definition (Concise, zero-duplication highlights)
   const promoSlides = [
     {
       id: 1,
       image: activeData.promoBanner?.image1 || "https://images.unsplash.com/photo-1608248597359-25b82877fb18?auto=format&fit=crop&w=800&q=80",
       badge: activeData.promoBanner?.image1Badge ? activeData.promoBanner.image1Badge[lang] : (isRtl ? 'مكوّنات نباتية 100%' : '100% Botanicals'),
-      title: isRtl ? 'خلاصات نباتية نقية' : '100% Pure Botanicals',
+      title: isRtl ? 'خلاصات نباتية نقية 100%' : '100% Pure Botanical Extracts',
       desc: isRtl ? 'مكوّنات معصورة على البارد تغذّي البشرة بعمق.' : 'Cold-pressed extracts that nourish skin deeply.'
     },
     {
       id: 2,
       image: activeData.promoBanner?.image2 || "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80",
-      badge: activeData.promoBanner?.image2Badge ? activeData.promoBanner.image2Badge[lang] : (isRtl ? 'خصم 25% على البوكس' : '25% OFF Box'),
-      title: isRtl ? 'بوكس النضارة الكامل' : 'Complete Radiance Box',
-      desc: isRtl ? '4 مستحضرات متكاملة لروتينكِ اليومي في بوكس واحد.' : '4 daily essentials in one gift box.'
+      badge: activeData.promoBanner?.image2Badge ? activeData.promoBanner.image2Badge[lang] : (isRtl ? '4 مستحضرات متكاملة' : '4-Piece Complete Box'),
+      title: isRtl ? '4 مستحضرات متكاملة في بوكس واحد' : '4 Daily Essentials in One Box',
+      desc: isRtl ? 'روتينكِ اليومي الكامل في عبوة هدايا أنيقة.' : 'Your full daily routine in one gift box.'
     },
     {
       id: 3,
       image: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80",
-      badge: isRtl ? 'حقيبة مخملية هدية' : 'Complimentary Velvet Pouch',
-      title: isRtl ? 'حقيبة مخملية وعينات مجانية' : 'Velvet Pouch & Free Samples',
-      desc: isRtl ? 'هدية مجانية مع البوكس لحفظ مستحضراتكِ مع 3 عينات سفرية.' : 'Included free with the box along with 3 travel samples.'
+      badge: isRtl ? 'هدية مجانية' : 'Complimentary Gift',
+      title: isRtl ? 'حقيبة مخملية + 3 عينات سفرية هدية' : 'Velvet Pouch + 3 Travel Samples',
+      desc: isRtl ? 'مرفقة مجاناً مع البوكس لحفظ مستحضراتكِ.' : 'Included free with the box for travel storage.'
     },
     {
       id: 4,
       image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
-      badge: isRtl ? 'نتائج خلال 14 يوماً' : '14-Day Results',
-      title: isRtl ? 'ترطيب ونضارة تدوم' : 'Lasting Hydration & Glow',
-      desc: isRtl ? 'فرق ملحوظ في النضارة والترطيب خلال أسبوعين.' : 'Noticeable glow and hydration in two weeks.'
+      badge: isRtl ? 'نتائج 14 يوماً' : '14-Day Results',
+      title: isRtl ? 'ترطيب ونضارة ملحوظة خلال 14 يوماً' : 'Visible Hydration & Glow in 14 Days',
+      desc: isRtl ? 'فرق واضح في نعومة وإشراقة البشرة خلال أسبوعين.' : 'Noticeable glow and softness in two weeks.'
     }
   ];
 
@@ -267,61 +273,6 @@ export const StorefrontView: React.FC = () => {
     }
   ];
 
-  const testimonials = [
-    {
-      id: 0,
-      name: { ar: 'فاطمة أم عبد الله', en: 'Fatima Um Abdallah' },
-      city: { ar: 'أم درمان، السودان', en: 'Omdurman, Sudan' },
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
-      purchasedProduct: { ar: 'مرطب الهيالورونيك المكثف', en: 'Intense Hyaluronic Moisturizer', id: 'sb-01' },
-      date: { ar: 'منذ أسبوعين', en: '2 weeks ago' },
-      comment: {
-        ar: 'أحس بالفرق من أول أسبوع! النضارة واضحة وتوصيلهم كان سريع ومحترم جداً في أم درمان. أنصح به كل صديقاتي.',
-        en: 'Felt the noticeable glow in the first week! Ultra-fast and polite delivery in Omdurman. Highly recommended!'
-      },
-      badge: { ar: 'مشتري مؤكد ✓', en: 'Verified Buyer ✓' }
-    },
-    {
-      id: 1,
-      name: { ar: 'لولي ك.', en: 'Loli K.' },
-      city: { ar: 'الخرطوم، السودان', en: 'Khartoum, Sudan' },
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-      purchasedProduct: { ar: 'سيروم فيتامين سي النقي', en: 'Pure Vitamin C Serum', id: 'sb-02' },
-      date: { ar: 'منذ شهر', en: '1 month ago' },
-      comment: {
-        ar: 'المنتجات فعلاً غيرت روتين بشرتي، طبيعية وخفيفة ونتيجتها واضحة من أول استخدامين. تجربة ممتازة جداً.',
-        en: 'Truly transformed my skin routine. Completely pure, lightweight and results appear immediately.'
-      },
-      badge: { ar: 'عميلة VIP دائم', en: 'VIP Customer' }
-    },
-    {
-      id: 2,
-      name: { ar: 'مروة الطاهر', en: 'Marwa Al-Tahir' },
-      city: { ar: 'الرياض، السعودية', en: 'Riyadh, Saudi Arabia' },
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80',
-      purchasedProduct: { ar: 'مجموعة بوكس التوفير الكاملة', en: 'Natural Bloom Complete Box', id: 'sb-04' },
-      date: { ar: 'منذ 3 أسابيع', en: '3 weeks ago' },
-      comment: {
-        ar: 'أفضل منتجات عناية جربتها. مكونات أصلية ومضمونة وما سببت لي أي تحسس، وتغليف البكج فخم ومبهر.',
-        en: 'The finest skincare formulas I have used. Genuine ingredients with zero irritation, beautifully packaged.'
-      },
-      badge: { ar: 'مشتري مؤكد ✓', en: 'Verified Buyer ✓' }
-    },
-    {
-      id: 3,
-      name: { ar: 'ولاء أحمد', en: 'Walaa Ahmed' },
-      city: { ar: 'بحري، السودان', en: 'Bahri, Sudan' },
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
-      purchasedProduct: { ar: 'كريم لافندر الليلي للترميم', en: 'Lavender Night Cream', id: 'sb-03' },
-      date: { ar: 'منذ 5 أيام', en: '5 days ago' },
-      comment: {
-        ar: 'خدمة العملاء على الواتساب قمة في الذوق والمساعدة، ساعدوني في اختيار المرطب والسيروم المناسب لنوع بشرتي.',
-        en: 'WhatsApp consultation was extremely helpful and gentle. Guided me precisely to the ideal moisturizer.'
-      },
-      badge: { ar: 'استشارة موثقة ✓', en: 'Consultation Verified ✓' }
-    }
-  ];
-
   // Dynamic Skin Routine Diagnosis from activeData or fallback
   const effectiveSkinDiagnosis = (activeData?.skinDiagnosisCards && activeData.skinDiagnosisCards.length > 0)
     ? activeData.skinDiagnosisCards.map(s => ({
@@ -334,158 +285,54 @@ export const StorefrontView: React.FC = () => {
       }))
     : skinTypes;
 
-  // Dynamic Verified Testimonials from activeData or fallback (approved or seed reviews)
+  // Dynamic Verified Testimonials normalized to ensure natural copy and zero duplicate checkmarks
   const rawTestimonials = (activeData?.testimonials && activeData.testimonials.length > 0)
     ? activeData.testimonials
-    : testimonials;
+    : DEFAULT_NADI_TESTIMONIALS;
   const approvedTestimonials = rawTestimonials.filter((t: any) => t.status === 'approved' || !t.status);
-  const effectiveTestimonials = approvedTestimonials.length > 0 ? approvedTestimonials : rawTestimonials;
-
-  const iconMap: Record<string, any> = {
-    Award,
-    Truck,
-    ShieldCheck,
-    CreditCard
-  };
+  const effectiveTestimonials = normalizeTestimonialList(
+    approvedTestimonials.length > 0 ? approvedTestimonials : rawTestimonials,
+    activePresetId
+  );
 
   const sectionsContent: Record<SectionId, React.ReactNode> = {
-    // 1. HERO SECTION (Matching So Beauty style in photos 1 & 2)
+    // 1. FULL-BLEED EDITORIAL HERO (3 local store-section photographs: Skincare, Hair Care, Bundles)
     hero: sectionsControl.hero ? (
-      <section className="relative overflow-hidden bg-gradient-to-b from-purple-50/60 via-slate-50 to-white pt-6 sm:pt-12 pb-4 sm:pb-6 border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-              
-              {/* Hero Copy */}
-              <div className="lg:col-span-6 space-y-6 text-center lg:text-start">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-100/90 text-[#5A3E7A] text-xs sm:text-sm font-extrabold border border-purple-200/90 shadow-xs backdrop-blur-xs">
-                  <Droplets className="w-3.5 h-3.5 text-[#5A3E7A] shrink-0" />
-                  <span>{activeData.storeSlogan ? activeData.storeSlogan[lang] : (lang === 'ar' ? 'إشراقة طبيعية، تليق بك.' : 'Natural radiance, made for you.')}</span>
-                </div>
+      <EditorialHero
+        lang={lang}
+        activePresetId={activePresetId}
+        slogan={
+          activeData.storeSlogan || {
+            ar: 'إشراقة طبيعية، تليق بك.',
+            en: 'Natural radiance, made for you.',
+          }
+        }
+        title={activeData.heroTitle}
+        subtitle={activeData.heroSubtitle}
+        ctaPrimary={activeData.heroCtaPrimary}
+        ctaSecondary={activeData.heroCtaSecondary}
+        customHeroImage={activeData.heroImage}
+        onPrimaryAction={() => {
+          document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
+        }}
+        onSecondaryAction={() => {
+          document.getElementById('campaign-section')?.scrollIntoView({ behavior: 'smooth' });
+        }}
+        onSelectCollection={(collectionId) => {
+          setActiveSkinFilter(null);
+          setSelectedCategory(collectionId);
+          document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
+        }}
+      />
+    ) : null,
 
-                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.25] font-brand-ar">
-                  {activeData.heroTitle[lang]}
-                </h1>
+    // LUXURY INFINITE BRAND & SLOGAN TICKER (Docked seamlessly under Editorial Hero)
+    brandTicker: sectionsControl.brandTicker ? (
+      <InfiniteBrandTicker className="!mt-0 mb-6 sm:mb-8" />
+    ) : null,
 
-                <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
-                  {activeData.heroSubtitle[lang]}
-                </p>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="w-full sm:w-auto px-8 py-3.5 bg-theme-primary hover:bg-theme-primary-hover text-white font-extrabold rounded-full text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 min-h-[48px] cursor-pointer"
-                  >
-                    <span>{activeData.heroCtaPrimary[lang]}</span>
-                    {isRtl ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      document.getElementById('campaign-section')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="w-full sm:w-auto px-8 py-3.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 font-bold rounded-full text-sm sm:text-base transition-all duration-300 flex items-center justify-center min-h-[48px] shadow-xs cursor-pointer"
-                  >
-                    <span>{activeData.heroCtaSecondary[lang]}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Hero Image Presentation */}
-              <div className="lg:col-span-6 relative">
-                <div className="relative aspect-[4/5] sm:aspect-[4/4.8] max-w-md mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
-                  <img
-                    src={activeData.heroImage}
-                    alt={activeData.heroTitle[lang]}
-                    className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent to-transparent" />
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </section>
-      ) : null,
-
-      // LUXURY INFINITE BRAND & SLOGAN TICKER
-      brandTicker: sectionsControl.brandTicker ? (
-        <InfiniteBrandTicker className="mt-1 mb-6 sm:mt-2 sm:mb-8" />
-      ) : null,
-
-      // 2. VALUE PROPOSITIONS STRIP (Matching Photo 2: نتائج فعالة، شحن سريع، أصلية 100%، دفع آمن)
-      valueProps: sectionsControl.valueProps ? (
-        <>
-          <section className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-sm">
-              {activeData.valueProps.map((item, idx) => {
-                const Icon = iconMap[item.icon] || Award;
-                return (
-                  <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-3 p-2">
-                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5A3E7A] flex items-center justify-center shrink-0 border border-purple-100 shadow-xs">
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                        {item.title[lang]}
-                      </h3>
-                      <p className="text-xs text-slate-500 leading-relaxed">
-                        {item.desc[lang]}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* CLONED VALUE PROPOSITIONS INSTANCE */}
-          {clonedSections?.valueProps?.isCloned && (
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 animate-in fade-in duration-300">
-          <div className="bg-gradient-to-r from-purple-950/90 via-slate-900 to-purple-950/90 text-white p-6 sm:p-8 rounded-3xl border-2 border-purple-500/40 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 text-xs font-bold flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-amber-300" />
-                  {(clonedSections.valueProps.badgeAr || 'نسخة إضافية مخصصة').replace(/\s*[\u2728\u2B50\u{1F31F}\u2605\u2726]/gu, '')}
-                </span>
-                <h3 className="text-base sm:text-lg font-black text-white">
-                  {lang === 'ar' ? (clonedSections.valueProps.titleAr || 'ضماناتنا وعروضنا الحصرية') : (clonedSections.valueProps.titleEn || 'Exclusive Guarantees')}
-                </h3>
-              </div>
-              <p className="text-xs text-purple-200/80 hidden sm:block">
-                {lang === 'ar' ? (clonedSections.valueProps.subtitleAr || 'مزايا إضافية لراحة عملائنا') : (clonedSections.valueProps.subtitleEn || 'Tailored perks')}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 pt-2">
-              {activeData.valueProps.map((item, idx) => {
-                const Icon = iconMap[item.icon] || Award;
-                return (
-                  <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-3 p-2 bg-slate-900/60 rounded-2xl border border-purple-900/40">
-                    <div className="w-11 h-11 rounded-xl bg-purple-600/30 text-purple-300 flex items-center justify-center shrink-0 border border-purple-500/40 shadow-xs">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <h4 className="font-extrabold text-xs sm:text-sm text-white">
-                        {item.title[lang]}
-                      </h4>
-                      <p className="text-[11px] text-slate-300 leading-tight">
-                        {item.desc[lang]}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-        )}
-        </>
-      ) : null,
+    // 2. VALUE PROPOSITIONS STRIP (Removed completely per user approval — Option 1)
+    valueProps: null,
 
       // 3. "اختاري بشرتك" / SKIN TYPE SOLUTIONS (Single-Row Smart Interactive 4-Card System)
       routineDiagnosis: (sectionsControl.routineDiagnosis && activePresetId === 'cosmetics') ? (
@@ -496,7 +343,7 @@ export const StorefrontView: React.FC = () => {
               <ScanFace className="w-3.5 h-3.5 text-purple-600" />
               <span>{lang === 'ar' ? 'اختاري حسب بشرتكِ' : 'By Skin Goal'}</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-brand-ar">
+            <h2 className="text-fluid-h2 font-extrabold text-slate-900 font-brand-ar leading-tight">
               {lang === 'ar' ? 'اختاري ما يلائم بشرتكِ' : 'Tailored For Your Skin'}
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 max-w-xl">
@@ -506,8 +353,8 @@ export const StorefrontView: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-            {activeSkinFilter && (
+          {activeSkinFilter && (
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
               <button
                 type="button"
                 onClick={() => {
@@ -518,20 +365,8 @@ export const StorefrontView: React.FC = () => {
               >
                 <span>{lang === 'ar' ? '✕ إلغاء تصفية البشرة' : '✕ Clear Skin Filter'}</span>
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCategory('box');
-                document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              className="h-11 px-4 rounded-xl border border-purple-200/90 bg-purple-50/70 hover:bg-purple-100/80 text-purple-900 font-bold text-xs transition-all flex items-center gap-2 cursor-pointer active:scale-95"
-            >
-              <Gift className="w-4 h-4 text-purple-700" />
-              <span>{lang === 'ar' ? 'تصفحي بكجات العناية الجاهزة' : 'Browse Ready Gift Bundles'}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-purple-600" />
-            </button>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* 4 Smart Cards: Exactly 4 in a single row on all larger devices (sm:grid-cols-4), and 2 on Mobile (grid-cols-2) */}
@@ -643,7 +478,7 @@ export const StorefrontView: React.FC = () => {
               <span className="text-[11px] sm:text-xs font-bold text-purple-700 uppercase tracking-widest block">
                 {lang === 'ar' ? 'تصفّحي حسب الركن' : 'Browse by Collection'}
               </span>
-              <h2 className="text-xl sm:text-3xl font-extrabold text-slate-900 font-brand-ar leading-tight">
+              <h2 className="text-fluid-h2 font-extrabold text-slate-900 font-brand-ar leading-tight">
                 {lang === 'ar' ? 'أركان منتجاتنا' : 'Our Collections'}
               </h2>
             </div>
@@ -854,13 +689,13 @@ export const StorefrontView: React.FC = () => {
                         setDiamondBundleQty(1);
                         setIsDiamondBundleModalOpen(true);
                       }}
-                      className="px-6 py-3 bg-white text-[#5A3E7A] hover:bg-purple-50 font-black rounded-full text-xs sm:text-sm shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 min-h-[44px] cursor-pointer"
+                      className="h-10 sm:h-11 px-4 sm:px-5 bg-white text-[#5A3E7A] hover:bg-purple-50 font-extrabold rounded-xl text-xs sm:text-sm shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all inline-flex items-center gap-2 cursor-pointer"
                     >
-                      <ShoppingBag className="w-4 h-4 text-[#5A3E7A]" />
+                      <ShoppingBag className="w-4 h-4 text-[#5A3E7A] shrink-0" />
                       <span>
                         {activeData.promoBanner?.ctaText ? activeData.promoBanner.ctaText[lang] : (lang === 'ar' ? 'اطلبي البوكس الآن' : 'Order Routine Bundle')}
                       </span>
-                      {isRtl ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                      {isRtl ? <ArrowLeft className="w-4 h-4 shrink-0" /> : <ArrowRight className="w-4 h-4 shrink-0" />}
                     </button>
 
                     <button
@@ -876,9 +711,9 @@ export const StorefrontView: React.FC = () => {
                         });
                         setIsCartOpen(true);
                       }}
-                      className="px-4 py-3 bg-purple-900/60 hover:bg-purple-900/90 text-white border border-white/20 font-bold rounded-full text-xs sm:text-sm backdrop-blur-sm transition-all flex items-center gap-2 min-h-[44px] cursor-pointer"
+                      className="h-10 sm:h-11 px-4 bg-purple-900/60 hover:bg-purple-900/90 text-white border border-white/25 font-bold rounded-xl text-xs sm:text-sm backdrop-blur-sm transition-all inline-flex items-center gap-2 cursor-pointer"
                     >
-                      <span>{isRtl ? 'إضافة سريعة للسلة (خصم 25%)' : 'Quick Add (-25%)'}</span>
+                      <span>{isRtl ? 'إضافة سريعة للسلة' : 'Quick Add to Bag'}</span>
                     </button>
                   </div>
                 </div>
@@ -901,18 +736,13 @@ export const StorefrontView: React.FC = () => {
 
                   {/* Dedicated Meta & Navigation Control Card (Top Row: Badge + Expand | Bottom Row: Spacious Navigation) */}
                   <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-sm text-start space-y-3">
-                    {/* Top Row: Badge + Title Aligned Horizontally with Fullscreen Expand Button */}
+                    {/* Top Row: Single Clear Slide Title + Fullscreen Expand Button (Zero Redundant Badge) */}
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap min-w-0">
-                        <span className="inline-block text-[11px] sm:text-xs font-bold text-amber-300 bg-purple-950/90 px-3 py-1 rounded-lg border border-amber-400/30 shrink-0 shadow-xs">
-                          {promoSlides[activePromoSlide].badge}
-                        </span>
-                        <h4 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate max-w-[200px] sm:max-w-none">
-                          {promoSlides[activePromoSlide].title}
-                        </h4>
-                      </div>
+                      <h4 className="text-xs sm:text-sm font-bold text-white tracking-tight leading-snug min-w-0">
+                        {promoSlides[activePromoSlide].title}
+                      </h4>
 
-                      {/* Dedicated Fullscreen Expand Button Aligned Perfectly with Badge */}
+                      {/* Dedicated Fullscreen Expand Button */}
                       <button
                         type="button"
                         onClick={() => setIsLightboxOpen(true)}
@@ -957,15 +787,18 @@ export const StorefrontView: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Interactive Miniature Cards (الكروت الصغيرة قابلة للضغط والتكبير) */}
+                  {/* Interactive Miniature Cards (Pure Photography Thumbnails — Zero Truncated Text Clutter) */}
                   <div className="grid grid-cols-4 gap-2 pt-1">
                     {promoSlides.map((slide, idx) => {
                       const isActive = activePromoSlide === idx;
                       return (
                         <button
                           key={slide.id}
+                          type="button"
                           onClick={() => setActivePromoSlide(idx)}
-                          className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all cursor-pointer group text-start ${
+                          aria-label={slide.title}
+                          aria-current={isActive ? 'true' : undefined}
+                          className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all cursor-pointer group ${
                             isActive 
                               ? 'border-amber-400 ring-2 ring-amber-400/50 scale-[1.03] shadow-lg' 
                               : 'border-white/20 hover:border-white/50 opacity-75 hover:opacity-100'
@@ -977,14 +810,8 @@ export const StorefrontView: React.FC = () => {
                             alt={slide.title} 
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-                          <div className="absolute bottom-1 inset-x-1 text-center">
-                            <span className="text-[9px] font-bold text-white line-clamp-1 drop-shadow-sm">
-                              {slide.badge.split(' ')[0]} {slide.badge.split(' ')[1] || ''}
-                            </span>
-                          </div>
                           {isActive && (
-                            <div className="absolute top-1 end-1 w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-purple-950" />
+                            <div className="absolute top-1.5 end-1.5 w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-purple-950" />
                           )}
                         </button>
                       );
@@ -998,32 +825,33 @@ export const StorefrontView: React.FC = () => {
         );
       })() : null,
 
-      // 6. BEFORE & AFTER PROOF (Interactive Slider - Completely Dynamic)
-      beforeAfter: (sectionsControl.beforeAfter && activePresetId === 'cosmetics') ? (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-        <div className="text-start space-y-1.5 max-w-2xl">
-          <span className="text-xs font-black text-[#5A3E7A] uppercase tracking-widest">
-            {activeData.beforeAfterMedia?.badge ? activeData.beforeAfterMedia.badge[lang] : (lang === 'ar' ? 'نتائج واقعية ومثبتة' : 'Proven Transformations')}
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-            {activeData.beforeAfterMedia?.title ? activeData.beforeAfterMedia.title[lang] : (lang === 'ar' ? 'قبل وبعد (14 يوماً من النضارة)' : 'Before & After (14 Days)')}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500">
-            {activeData.beforeAfterMedia?.subtitle ? activeData.beforeAfterMedia.subtitle[lang] : (lang === 'ar'
-              ? 'مقارنة حقيقية لنضارة وترطيب البشرة قبل وبعد 14 يوماً من الاستخدام المنتظم لمنتجات نَدِي الطبيعية. اسحبي المؤشر لمعاينة الفرق.'
-              : 'Real photographic comparison of skin radiance and hydration before and after 14 days of NADI care. Drag to compare.')}
-          </p>
-        </div>
+      // 6. BEFORE & AFTER PROOF (Interactive Slider - Completely Dynamic, Deduplicated Copy)
+      beforeAfter: (sectionsControl.beforeAfter && activePresetId === 'cosmetics') ? (() => {
+        const baCopy = resolveBeforeAfterCopy(activeData.beforeAfterMedia, lang);
+        return (
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-5 sm:space-y-6">
+            <div className="text-start space-y-1 max-w-2xl">
+              <span className="text-xs font-black text-[#5A3E7A] uppercase tracking-widest block">
+                {baCopy.badge}
+              </span>
+              <h2 className="text-fluid-h2 font-black text-slate-900 font-brand-ar leading-tight">
+                {baCopy.title}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                {baCopy.subtitle}
+              </p>
+            </div>
 
-        {/* Isolated 60fps Before/After Comparison Slider */}
-        <BeforeAfterSlider
-          beforeImage={activeData.beforeAfterMedia?.beforeImage}
-          afterImage={activeData.beforeAfterMedia?.afterImage}
-          lang={lang}
-          isRtl={isRtl}
-        />
-      </section>
-      ) : null,
+            {/* Isolated 60fps Scroll-Safe Before/After Comparison Slider */}
+            <BeforeAfterSlider
+              beforeImage={activeData.beforeAfterMedia?.beforeImage}
+              afterImage={activeData.beforeAfterMedia?.afterImage}
+              lang={lang}
+              isRtl={isRtl}
+            />
+          </section>
+        );
+      })() : null,
 
       // 7. VERIFIED CUSTOMER REVIEWS (Smart Luxury Testimonial Cards)
       testimonials: sectionsControl.testimonials ? (
@@ -1031,22 +859,23 @@ export const StorefrontView: React.FC = () => {
         <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 sm:pb-4">
           <div className="space-y-0.5 sm:space-y-1 text-start">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 font-brand-ar tracking-tight">
-              {lang === 'ar' ? 'آراء عملائنا' : 'Customer Reviews'}
+            <h2 className="text-fluid-h2 font-black text-slate-900 font-brand-ar tracking-tight">
+              {lang === 'ar' ? 'آراء عميلاتنا' : 'Customer Reviews'}
             </h2>
-            <p className="text-[11px] sm:text-xs md:text-sm text-slate-500 font-medium">
+            <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
               {lang === 'ar' 
-                ? 'تجارب موثقة من عميلاتنا'
-                : 'Verified client experiences'}
+                ? 'تجارب موثّقة من عميلات نَـدِي'
+                : 'Verified experiences from NADI clients'}
             </p>
           </div>
 
-          {/* Share Experience CTA Button (Aligned on the exact same row with ample breathing room) */}
+          {/* Share Experience CTA Button: 3-Stop Plum-to-Amber Luxury Gradient matching Card Accent */}
           <button
+            type="button"
             onClick={() => setIsReviewModalOpen(true)}
-            className="shrink-0 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 sm:gap-2 min-h-[38px] sm:min-h-[42px] active:scale-95 cursor-pointer"
+            className="shrink-0 h-10 sm:h-11 px-4 sm:px-5 rounded-xl bg-gradient-to-r from-[#5A3E7A] via-[#8B5478] to-[#C67D2E] hover:from-[#4C3368] hover:via-[#7A4768] hover:to-[#B26E24] text-white font-extrabold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 sm:gap-2 active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A3E7A] focus-visible:ring-offset-2"
           >
-            <MessageSquarePlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-950" />
+            <MessageSquarePlus className="w-4 h-4 text-white shrink-0" aria-hidden="true" />
             <span>{lang === 'ar' ? '+ شاركينا' : '+ Share'}</span>
           </button>
         </div>
@@ -1081,107 +910,83 @@ export const StorefrontView: React.FC = () => {
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 sm:gap-6">
             {[effectiveTestimonials[reviewSlide % effectiveTestimonials.length], effectiveTestimonials[(reviewSlide + 1) % effectiveTestimonials.length]].filter(Boolean).map((review, idx) => {
-              const reviewId = review.id;
-              const hasVoted = !!userVoted[reviewId];
-              const votesCount = helpfulVotes[reviewId] || 40;
+              const reviewerInitial = getReviewerInitial(review.name[lang]);
 
               return (
                 <div 
-                  key={idx} 
-                  className={`bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-5 relative overflow-hidden group ${
+                  key={`${review.id}-${idx}`}
+                  className={`bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between gap-4 relative overflow-hidden group ${
                     idx === 1 ? 'hidden sm:flex' : 'flex'
                   }`}
                 >
-                  {/* Subtle Luxury Gradient Accent on Top */}
-                  <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-purple-500 via-amber-400 to-rose-400" />
+                  {/* Signature Luxury Gradient Accent on Top (Harmonizes with Share CTA Gradient) */}
+                  <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-purple-500 via-amber-400 to-rose-400" aria-hidden="true" />
 
-                  {/* Header: Stars + Verified Badge + Date */}
-                  <div className="space-y-4 text-start">
+                  {/* Header: Rating + Clean Single-Checkmark Verified Badge */}
+                  <div className="space-y-3.5 text-start">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 text-[#5A3E7A] border border-purple-200/80 text-xs font-black">
-                        <BadgeCheck className="w-3.5 h-3.5 text-[#5A3E7A]" />
-                        <span>{Number((review as any).rating || 5).toFixed(1)} / 5</span>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 text-[#5A3E7A] border border-purple-200/80 text-xs font-black tabular-nums">
+                        <BadgeCheck className="w-3.5 h-3.5 text-[#5A3E7A]" aria-hidden="true" />
+                        <span>{Number(review.rating || 5).toFixed(1)} / 5</span>
                       </span>
-                      
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-slate-400">
-                          {review.date[lang]}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>{review.badge[lang]}</span>
-                        </span>
-                      </div>
+
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/90">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" aria-hidden="true" />
+                        <span>{review.badge[lang]}</span>
+                      </span>
                     </div>
 
                     {/* Testimonial Quote */}
-                    <div className="relative">
-                      <Quote className="w-8 h-8 text-purple-100 absolute -top-3 -start-2 -z-0 opacity-80" />
-                      <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-medium relative z-10 italic">
-                        "{review.comment[lang]}"
+                    <div className="relative pt-1">
+                      <Quote className="w-7 h-7 text-purple-100 absolute -top-2 -start-1.5 -z-0 opacity-80" aria-hidden="true" />
+                      <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-medium relative z-10">
+                        «{review.comment[lang]}»
                       </p>
                     </div>
 
-                    {/* Smart Badge: Purchased Product Tag (Interactive Deep Link) */}
-                    <div className="pt-2">
+                    {/* Purchased Product Deep-Link Pill */}
+                    <div className="pt-1">
                       <button
+                        type="button"
                         onClick={() => {
                           const targetProd = products.find(p => p.id === review.purchasedProduct.id) || products[0];
                           openProductPDP(targetProd);
                         }}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-50/80 hover:bg-purple-100 text-[#5A3E7A] text-xs font-extrabold transition-colors border border-purple-200/60 group/btn"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 min-h-[38px] rounded-xl bg-purple-50/80 hover:bg-purple-100 text-[#5A3E7A] text-xs font-extrabold transition-colors border border-purple-200/60 group/btn cursor-pointer"
                         title={lang === 'ar' ? 'عرض هذا المنتج' : 'View Product'}
                       >
-                        <ShoppingBag className="w-3.5 h-3.5 text-purple-600" />
-                        <span>{lang === 'ar' ? 'المنتج المقتنى:' : 'Purchased:'}</span>
+                        <ShoppingBag className="w-3.5 h-3.5 text-[#5A3E7A] shrink-0" aria-hidden="true" />
                         <span className="underline decoration-purple-300 group-hover/btn:decoration-[#5A3E7A]">
                           {review.purchasedProduct[lang]}
                         </span>
-                        {isRtl ? <ArrowLeft className="w-3 h-3 ms-1" /> : <ArrowRight className="w-3 h-3 ms-1" />}
+                        {isRtl ? <ArrowLeft className="w-3 h-3 ms-0.5 shrink-0" aria-hidden="true" /> : <ArrowRight className="w-3 h-3 ms-0.5 shrink-0" aria-hidden="true" />}
                       </button>
                     </div>
                   </div>
 
-                  {/* Footer: User Details + Helpful Reaction Counter */}
-                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-start">
-                    <div className="flex items-center gap-3">
-                      <img 
-                        src={review.avatar} 
-                        alt={review.name[lang]} 
-                        className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-100 shadow-2xs"
-                      />
-                      <div>
-                        <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-tight">
+                  {/* Clean Footer: Luxury Monogram Avatar + Name/City + Review Date */}
+                  <div className="pt-3.5 border-t border-slate-100 flex items-center justify-between gap-3 text-start">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        aria-hidden="true"
+                        className="w-10 h-10 rounded-full bg-gradient-to-br from-[#5A3E7A] to-[#8B5478] text-white font-extrabold text-sm flex items-center justify-center ring-2 ring-purple-100 shadow-2xs shrink-0"
+                      >
+                        {reviewerInitial}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-snug truncate">
                           {review.name[lang]}
                         </h4>
-                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-slate-400" />
-                          <span>{review.city[lang]}</span>
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5 truncate">
+                          <MapPin className="w-3 h-3 text-slate-400 shrink-0" aria-hidden="true" />
+                          <span className="truncate">{review.city[lang]}</span>
                         </p>
                       </div>
                     </div>
 
-                    {/* Interactive 'Helpful' Reaction Button */}
-                    <button
-                      onClick={() => {
-                        if (hasVoted) return;
-                        setUserVoted(prev => ({ ...prev, [reviewId]: true }));
-                        setHelpfulVotes(prev => ({ ...prev, [reviewId]: (prev[reviewId] || 40) + 1 }));
-                        showToast(lang === 'ar' ? 'شكراً لتقييمك لمصداقية الرأي' : 'Thank you for your feedback!');
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all min-h-[36px] ${
-                        hasVoted 
-                          ? 'bg-purple-100 text-[#5A3E7A] ring-1 ring-purple-300' 
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900'
-                      }`}
-                      title={lang === 'ar' ? 'هل كان هذا الرأي مفيداً؟' : 'Was this review helpful?'}
-                    >
-                      <ThumbsUp className={`w-3.5 h-3.5 ${hasVoted ? 'fill-current' : ''}`} />
-                      <span>{votesCount}</span>
-                      <span className="hidden sm:inline text-[10px]">
-                        {lang === 'ar' ? 'مفيد' : 'Helpful'}
-                      </span>
-                    </button>
+                    <span className="text-[11px] font-semibold text-slate-400 shrink-0">
+                      {review.date[lang]}
+                    </span>
                   </div>
                 </div>
               );
@@ -1317,6 +1122,9 @@ export const StorefrontView: React.FC = () => {
           {sectionsContent[sectionId]}
         </React.Fragment>
       ))}
+
+      {/* Storefront FAQ Accordion Section (Placed cleanly right above the Footer) */}
+      <StoreFAQSection />
 
       {/* IN-PAGE DIAMOND BUNDLE QUICK VIEW MODAL (معاينة وشراء البوكس الماسي الفورية في الصفحة الرئيسية) */}
       {isDiamondBundleModalOpen && (() => {
@@ -1608,7 +1416,7 @@ export const StorefrontView: React.FC = () => {
                   setDiamondBundleQty(1);
                   setIsDiamondBundleModalOpen(true);
                 }}
-                className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-extrabold rounded-full text-xs shadow-lg transition-all flex items-center gap-2 min-h-[42px] cursor-pointer"
+                className="h-10 sm:h-11 px-5 bg-[#5A3E7A] hover:bg-[#483162] text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-lg transition-all flex items-center gap-2 cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4 text-amber-300" />
                 <span>{isRtl ? 'اطلبي هذا البوكس الآن (خصم 25%)' : 'Order This Bundle (-25%)'}</span>

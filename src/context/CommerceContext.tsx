@@ -675,7 +675,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Section Visibility Management (Single Source of Truth for Developer Panel)
   const defaultSections: SectionVisibilityMap = {
     hero: true,
-    valueProps: true,
+    valueProps: false,
     brandTicker: true,
     routineDiagnosis: true,
     hairDevices: true,

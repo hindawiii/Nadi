@@ -8,6 +8,7 @@ import {
   matchesSearchCollection,
   SearchCollectionItem,
 } from '../lib/productCollections';
+import { handleImageLoadError } from '../lib/imageResilience';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -360,6 +361,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                           <img
                             src={product.images[0]}
                             alt={product.name[lang]}
+                            referrerPolicy="no-referrer"
+                            decoding="async"
+                            onError={(e) => handleImageLoadError(e.currentTarget)}
                             className="w-14 h-14 rounded-xl object-cover bg-slate-50 border border-slate-100 shrink-0 group-hover:scale-105 transition-transform"
                           />
                           <div className="flex-1 min-w-0">

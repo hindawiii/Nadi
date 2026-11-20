@@ -7,6 +7,7 @@ import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
 import { ProductCard } from './ProductCard';
 import { hairStylingDevices } from './HairDevicesSpotlight';
+import { handleImageLoadError } from '../lib/imageResilience';
 
 export const WishlistView: React.FC = () => {
   const { 
@@ -67,7 +68,7 @@ export const WishlistView: React.FC = () => {
               <button
                 type="button"
                 onClick={clearWishlist}
-                className="px-4 py-2.5 rounded-full border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1.5 min-h-[44px] cursor-pointer"
+                className="px-4 h-10 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 text-slate-400" />
                 <span>{lang === 'ar' ? 'تفريغ المفضلة' : 'Clear All'}</span>
@@ -75,7 +76,7 @@ export const WishlistView: React.FC = () => {
 
               <button
                 onClick={addAllWishlistToCart}
-                className="px-6 py-2.5 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-full text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 min-h-[44px]"
+                className="px-5 h-10 bg-[#5A3E7A] hover:bg-[#483162] text-white rounded-xl text-xs font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4 text-amber-300" />
                 <span>{lang === 'ar' ? 'نقل الكل إلى السلة' : 'Move All to Bag'}</span>
@@ -101,7 +102,7 @@ export const WishlistView: React.FC = () => {
             </p>
             <button
               onClick={() => navigateTo('store')}
-              className="px-8 py-3.5 bg-[#5A3E7A] hover:bg-[#483162] text-white text-sm font-extrabold rounded-full shadow-lg hover:shadow-xl transition-all inline-flex items-center gap-2 min-h-[48px] cursor-pointer"
+              className="px-6 h-11 bg-[#5A3E7A] hover:bg-[#483162] text-white text-xs sm:text-sm font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all inline-flex items-center gap-2 cursor-pointer"
             >
               <span>{lang === 'ar' ? 'تصفح المتجر' : 'Browse Store'}</span>
               {isRtl ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
@@ -124,6 +125,9 @@ export const WishlistView: React.FC = () => {
                       <img 
                         src={p.images[0]} 
                         alt={p.name[lang]} 
+                        referrerPolicy="no-referrer"
+                        decoding="async"
+                        onError={(e) => handleImageLoadError(e.currentTarget)}
                         className="w-full h-32 object-cover rounded-xl mb-2 group-hover:scale-102 transition-transform" 
                       />
                       <p className="text-xs font-bold text-slate-900 truncate">{p.name[lang]}</p>

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { 
-  ChevronLeft, ChevronRight, LayoutGrid, ChevronDown, ChevronUp
+  ChevronLeft, ChevronRight, LayoutGrid, ChevronDown, ChevronUp,
+  Waves, Sparkles, Wind
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import { Product } from '../data/siteConfig';
@@ -247,23 +248,27 @@ export const HairDevicesSpotlight: React.FC = () => {
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
 
-  // Sub-category filters (All first, concise and professional)
+  // Sub-category filters (Mirrors "Our Collections" icon + label + live count badge architecture)
   const tabs = [
     {
       id: 'all' as SubCategoryKey,
+      icon: LayoutGrid,
       label: { ar: 'الكل', en: 'All' },
     },
     {
       id: 'waving' as SubCategoryKey,
-      label: { ar: 'مكواة تجعيد وتمويج', en: 'Curling & Waving' },
+      icon: Waves,
+      label: { ar: 'تمويج وتجعيد', en: 'Wavers' },
     },
     {
       id: 'straightener' as SubCategoryKey,
-      label: { ar: 'مكواة تمليس الشعر', en: 'Hair Straighteners' },
+      icon: Sparkles,
+      label: { ar: 'تمليس', en: 'Straighteners' },
     },
     {
       id: 'dryer' as SubCategoryKey,
-      label: { ar: 'مجفف الشعر', en: 'Hair Dryers & Blowers' },
+      icon: Wind,
+      label: { ar: 'تجفيف', en: 'Dryers' },
     },
   ];
 
@@ -317,25 +322,27 @@ export const HairDevicesSpotlight: React.FC = () => {
   }
   const effectiveDevices = availableDevices;
 
-  // Filter products based on sub-category
-  const filteredProducts = effectiveDevices.filter((item) => {
-    if (activeSubCategory === 'all') return true;
+  const matchesSubCategory = (item: Product, targetSub: SubCategoryKey) => {
+    if (targetSub === 'all') return true;
     const subCat = (item as any).subCategory;
     if (subCat) {
-      return subCat === activeSubCategory;
+      return subCat === targetSub;
     }
     const name = (item.name.ar + ' ' + item.name.en).toLowerCase();
-    if (activeSubCategory === 'waving') {
+    if (targetSub === 'waving') {
       return item.id === 'hd-01' || item.id === 'hd-02' || item.id === 'hd-03' || name.includes('تجعيد') || name.includes('تمويج') || name.includes('waver') || name.includes('curler');
     }
-    if (activeSubCategory === 'straightener') {
+    if (targetSub === 'straightener') {
       return item.id === 'hd-05' || item.id === 'hd-02' || name.includes('تمليس') || name.includes('فرد') || name.includes('straightener');
     }
-    if (activeSubCategory === 'dryer') {
+    if (targetSub === 'dryer') {
       return item.id === 'hd-04' || item.id === 'hd-06' || name.includes('مجفف') || name.includes('استشوار') || name.includes('dryer') || name.includes('blowout');
     }
     return true;
-  });
+  };
+
+  // Filter products based on sub-category
+  const filteredProducts = effectiveDevices.filter((item) => matchesSubCategory(item, activeSubCategory));
 
   // Switch tab and smoothly reset horizontal scroll to start
   const handleTabChange = (tabId: SubCategoryKey) => {
@@ -485,34 +492,52 @@ export const HairDevicesSpotlight: React.FC = () => {
         })}
       </div>
 
-      {/* 2. SECTION HEADER WITH DECORATIVE ACCENT LINES (—— اجهزة الشعر ——) */}
-      <div id="hair-devices-carousel" className="flex items-center justify-center gap-3 sm:gap-4 pt-4 scroll-mt-20">
-        <div className="w-12 sm:w-20 h-0.5 bg-[#2B827A] rounded-full" />
-        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-brand-ar">
-          {lang === 'ar' ? 'اجهزة الشعر' : 'Hair Styling Devices'}
+      {/* 2. SECTION HEADER WITH UNIFIED NADI ACCENT LINES (—— أجهزة الشعر ——) */}
+      <div id="hair-devices-carousel" className="flex items-center justify-center gap-3 sm:gap-4 pt-3 scroll-mt-20">
+        <div className="w-10 sm:w-16 h-0.5 bg-[#5A3E7A]/70 rounded-full" />
+        <h2 className="text-fluid-h2 font-black text-slate-900 tracking-tight font-brand-ar leading-tight">
+          {lang === 'ar' ? 'أجهزة الشعر' : 'Hair Styling Devices'}
         </h2>
-        <div className="w-12 sm:w-20 h-0.5 bg-[#2B827A] rounded-full" />
+        <div className="w-10 sm:w-16 h-0.5 bg-[#5A3E7A]/70 rounded-full" />
       </div>
 
-      {/* 3. SUB-CATEGORY TABS / PILLS */}
-      <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
-        {tabs.map((tab) => {
-          const isActive = activeSubCategory === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all min-h-[44px] flex items-center gap-2 border select-none ${
-                isActive
-                  ? 'bg-[#2B827A] text-white border-[#2B827A] shadow-md shadow-[#2B827A]/20 scale-102'
-                  : 'bg-white text-slate-700 border-slate-200 hover:border-[#2B827A]/40 hover:bg-slate-50'
-              }`}
-            >
-              <span>{tab.label[lang]}</span>
-              {isActive && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-            </button>
-          );
-        })}
+      {/* 3. UNIFIED SMART CAPSULE DOCK (Exact match to "Our Collections" rounded-2xl / rounded-xl architecture) */}
+      <div className="w-full overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden flex justify-start sm:justify-center">
+        <div
+          role="tablist"
+          aria-label={lang === 'ar' ? 'تصنيفات أجهزة الشعر' : 'Hair device categories'}
+          className="inline-flex items-center gap-1 p-1 bg-slate-100/85 border border-slate-200/85 rounded-2xl shadow-2xs backdrop-blur-xs snap-x snap-mandatory mx-auto"
+        >
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeSubCategory === tab.id;
+            const count = effectiveDevices.filter((item) => matchesSubCategory(item, tab.id)).length;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => handleTabChange(tab.id)}
+                className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 rounded-xl text-[11.5px] sm:text-[13px] font-bold transition-all whitespace-nowrap min-h-[42px] sm:min-h-[44px] cursor-pointer active:scale-[0.98] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A3E7A]/40 ${
+                  isActive
+                    ? 'bg-theme-primary text-white shadow-sm shadow-purple-900/15'
+                    : 'text-slate-700 hover:text-[#5A3E7A] hover:bg-white/90'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-purple-100' : 'text-[#5A3E7A]/80'}`} />
+                <span>{tab.label[lang]}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold tabular-nums leading-none ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-500 border border-slate-200/70'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* 4. PRODUCTS DISPLAY: EITHER HORIZONTAL CAROUSEL OR FULL RESPONSIVE GRID */}
@@ -523,7 +548,7 @@ export const HairDevicesSpotlight: React.FC = () => {
             type="button"
             onClick={() => scrollCarousel('prev')}
             aria-label={lang === 'ar' ? 'السابق' : 'Previous devices'}
-            className="hidden md:flex absolute -start-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#2B827A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
+            className="hidden md:flex absolute -start-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#5A3E7A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
           >
             {isRtl ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           </button>
@@ -558,7 +583,7 @@ export const HairDevicesSpotlight: React.FC = () => {
             type="button"
             onClick={() => scrollCarousel('next')}
             aria-label={lang === 'ar' ? 'التالي' : 'Next devices'}
-            className="hidden md:flex absolute -end-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#2B827A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
+            className="hidden md:flex absolute -end-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#5A3E7A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
           >
             {isRtl ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </button>
@@ -576,9 +601,9 @@ export const HairDevicesSpotlight: React.FC = () => {
                 handleTabChange('all');
                 showToast(lang === 'ar' ? 'تم فتح شبكة عرض كافة الأجهزة' : 'Switched to full grid view');
               }}
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#2B827A] bg-white hover:bg-slate-50 border border-slate-200/90 hover:border-[#2B827A]/40 transition-all py-2 px-4 sm:px-5 rounded-full min-h-[42px] shadow-sm hover:shadow active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#5A3E7A] bg-white hover:bg-purple-50/50 border border-slate-200/90 hover:border-[#5A3E7A]/40 transition-all h-10 px-4 sm:px-5 rounded-xl shadow-xs hover:shadow active:scale-95 cursor-pointer"
             >
-              <LayoutGrid className="w-4 h-4 text-[#2B827A]" />
+              <LayoutGrid className="w-4 h-4 text-[#5A3E7A]" />
               <span>
                 {lang === 'ar' ? 'عرض كافة الأجهزة' : 'View All Devices'}
               </span>
@@ -608,7 +633,7 @@ export const HairDevicesSpotlight: React.FC = () => {
                 document.getElementById('hair-devices-carousel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 showToast(lang === 'ar' ? 'تمت العودة للعرض كشريط أفقي' : 'Returned to carousel view');
               }}
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#2B827A] bg-white hover:bg-slate-50 border border-slate-200/90 hover:border-[#2B827A]/40 transition-all py-2 px-5 rounded-full min-h-[42px] shadow-sm hover:shadow active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#5A3E7A] bg-white hover:bg-purple-50/50 border border-slate-200/90 hover:border-[#5A3E7A]/40 transition-all h-10 px-5 rounded-xl shadow-xs hover:shadow active:scale-95 cursor-pointer"
             >
               <span>{lang === 'ar' ? 'عرض أقل' : 'Show Less'}</span>
               <ChevronUp className="w-4 h-4 text-slate-500" />

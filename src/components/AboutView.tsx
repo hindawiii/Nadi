@@ -4,6 +4,7 @@ import {
   ArrowRight, ArrowLeft, Leaf, Award, ChevronLeft, ChevronRight, Home 
 } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
+import { handleImageLoadError } from '../lib/imageResilience';
 
 export const AboutView: React.FC = () => {
   const { lang, activeData, navigateTo } = useCommerce();
@@ -95,6 +96,9 @@ export const AboutView: React.FC = () => {
             <img
               src="https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=1200&q=80"
               alt="NADI Natural Skincare Botanical Presentation"
+              referrerPolicy="no-referrer"
+              decoding="async"
+              onError={(e) => handleImageLoadError(e.currentTarget)}
               className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent to-transparent" />
@@ -190,7 +194,7 @@ export const AboutView: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-sm mx-auto">
               <button
                 onClick={() => navigateTo('store')}
-                className="w-full sm:w-auto px-8 py-3.5 bg-[#5A3E7A] hover:bg-[#483162] text-white font-extrabold rounded-full text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 min-h-[48px]"
+                className="w-full sm:w-auto px-6 h-11 bg-[#5A3E7A] hover:bg-[#483162] text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>{lang === 'ar' ? 'تسوّقي الآن' : 'Shop Now'}</span>
                 {isRtl ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
@@ -204,7 +208,7 @@ export const AboutView: React.FC = () => {
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }, 100);
                 }}
-                className="w-full sm:w-auto px-8 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-full text-sm transition-all flex items-center justify-center min-h-[48px]"
+                className="w-full sm:w-auto px-6 h-11 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs sm:text-sm transition-all flex items-center justify-center cursor-pointer"
               >
                 <span>{lang === 'ar' ? 'بوكسات العناية' : 'Routine Bundles'}</span>
               </button>

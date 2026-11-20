@@ -26,6 +26,24 @@
   --font-body-ar-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body-en-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-line-height: 1.625;
+  /* Fluid Typography Scale (clamp: smooth continuous scaling from 360px mobile to 1440px+ desktop) */
+  --text-fluid-hero: clamp(1.5rem, 1.1rem + 1.8vw, 2.65rem);
+  --text-fluid-h2: clamp(1.25rem, 1.05rem + 0.85vw, 1.85rem);
+  --text-fluid-h3: clamp(1rem, 0.92rem + 0.35vw, 1.25rem);
+  --text-fluid-body: clamp(0.875rem, 0.84rem + 0.18vw, 1rem);
+}
+
+.text-fluid-hero {
+  font-size: var(--text-fluid-hero);
+}
+.text-fluid-h2 {
+  font-size: var(--text-fluid-h2);
+}
+.text-fluid-h3 {
+  font-size: var(--text-fluid-h3);
+}
+.text-fluid-body {
+  font-size: var(--text-fluid-body);
 }
 
 /* Dynamic Cohesive Theme Utility Classes */
@@ -165,13 +183,23 @@ body {
   animation: marquee-scroll-rtl 32s linear infinite;
 }
 
-.pause-on-hover:hover {
+.animate-payment-marquee {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: marquee-scroll-ltr 28s linear infinite;
+}
+
+.pause-on-hover:hover,
+.pause-on-hover:active,
+.pause-on-hover:focus-within {
   animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee-ltr,
-  .animate-marquee-rtl {
+  .animate-marquee-rtl,
+  .animate-payment-marquee {
     animation: none;
     transform: none;
   }

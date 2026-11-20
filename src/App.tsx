@@ -3,37 +3,46 @@ import { CommerceProvider, useCommerce } from './context/CommerceContext';
 import { Header } from './components/Header';
 import { MobileNavigationDrawer } from './components/MobileNavigationDrawer';
 import { StorefrontView } from './components/StorefrontView';
-import { AboutView } from './components/AboutView';
-import { PDPView } from './components/PDPView';
-import { WishlistView } from './components/WishlistView';
-import { CartPageView } from './components/CartPageView';
-import { OrderTrackerView } from './components/OrderTrackerView';
-import { LoginPageView } from './components/LoginPageView';
 import { Footer } from './components/Footer';
-import { ReviewModal } from './components/ReviewModal';
 import { FloatingActionDock } from './components/common/FloatingActionDock';
 import { Toast } from './components/Toast';
-import { CompareModal } from './components/CompareModal';
 import { hairStylingDevices } from './components/HairDevicesSpotlight';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
 
-// Lazy load heavy admin & developer tools to keep initial customer bundle featherlight for Vercel
+// Lazy load secondary routes, modals, and admin/developer tools to keep initial storefront load ultra-fast
+const AboutView = lazy(() => import('./components/AboutView').then(m => ({ default: m.AboutView })));
+const PDPView = lazy(() => import('./components/PDPView').then(m => ({ default: m.PDPView })));
+const WishlistView = lazy(() => import('./components/WishlistView').then(m => ({ default: m.WishlistView })));
+const CartPageView = lazy(() => import('./components/CartPageView').then(m => ({ default: m.CartPageView })));
+const OrderTrackerView = lazy(() => import('./components/OrderTrackerView').then(m => ({ default: m.OrderTrackerView })));
+const LoginPageView = lazy(() => import('./components/LoginPageView').then(m => ({ default: m.LoginPageView })));
+const ReviewModal = lazy(() => import('./components/ReviewModal').then(m => ({ default: m.ReviewModal })));
+const CompareModal = lazy(() => import('./components/CompareModal').then(m => ({ default: m.CompareModal })));
 const DeveloperPanel = lazy(() => import('./components/DeveloperPanel').then(m => ({ default: m.DeveloperPanel })));
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
 
+const RouteLoadingFallback: React.FC<{ lang: 'ar' | 'en' }> = ({ lang }) => (
+  <div className="min-h-[55vh] flex flex-col items-center justify-center p-8 gap-3 bg-slate-50 text-slate-700">
+    <div className="w-9 h-9 border-3 border-[#5A3E7A] border-t-transparent rounded-full animate-spin" />
+    <p className="text-xs sm:text-sm font-semibold text-slate-500">
+      {lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+    </p>
+  </div>
+);
+
 const AppContent: React.FC = () => {
-  const { 
-    currentRoute, 
-    setCurrentRoute, 
-    isDeveloperModeLocked, 
-    activeData, 
-    openProductPDP, 
+  const {
+    currentRoute,
+    setCurrentRoute,
+    activeData,
+    openProductPDP,
     returnFromPDPToStore,
-    sectionsControl,
     comparisonList,
+    isCompareModalOpen,
     setIsCompareModalOpen,
+    isReviewModalOpen,
     lang
   } = useCommerce();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
@@ -187,10 +196,26 @@ const AppContent: React.FC = () => {
 
         <main className="flex-1">
           {currentRoute === 'store' && <StorefrontView />}
-          {currentRoute === 'about' && <AboutView />}
-          {currentRoute === 'wishlist' && <WishlistView />}
-          {currentRoute === 'cart' && <CartPageView />}
-          {currentRoute === 'pdp' && <PDPView />}
+          {currentRoute === 'about' && (
+            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+              <AboutView />
+            </Suspense>
+          )}
+          {currentRoute === 'wishlist' && (
+            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+              <WishlistView />
+            </Suspense>
+          )}
+          {currentRoute === 'cart' && (
+            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+              <CartPageView />
+            </Suspense>
+          )}
+          {currentRoute === 'pdp' && (
+            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+              <PDPView />
+            </Suspense>
+          )}
           {currentRoute === 'admin' && (
             <Suspense fallback={
               <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 gap-4 bg-slate-50 text-slate-800">
@@ -224,8 +249,16 @@ const AppContent: React.FC = () => {
               </Suspense>
             </ErrorBoundary>
           )}
-          {currentRoute === 'tracker' && <OrderTrackerView />}
-          {currentRoute === 'login' && <LoginPageView />}
+          {currentRoute === 'tracker' && (
+            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+              <OrderTrackerView />
+            </Suspense>
+          )}
+          {currentRoute === 'login' && (
+            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+              <LoginPageView />
+            </Suspense>
+          )}
         </main>
       </div>
 
@@ -233,14 +266,18 @@ const AppContent: React.FC = () => {
       {!isControlPanelRoute && <Footer />}
 
       {/* Global Mobile Off-Canvas Navigation Drawer (100dvh Root Portal) */}
-      <MobileNavigationDrawer 
-        isOpen={isMobileDrawerOpen} 
-        onClose={() => setIsMobileDrawerOpen(false)} 
+      <MobileNavigationDrawer
+        isOpen={isMobileDrawerOpen}
+        onClose={() => setIsMobileDrawerOpen(false)}
       />
 
-      {/* Global Interactive Overlays & Controls */}
-      <ReviewModal />
-      
+      {/* Global Interactive Overlays & Controls (Mounted lazily only when opened) */}
+      {isReviewModalOpen && (
+        <Suspense fallback={null}>
+          <ReviewModal />
+        </Suspense>
+      )}
+
       {/* Unified Vertical Magnetic Floating Action Dock (WhatsApp on top + collapsible Scroll-to-Top below) */}
       {!isControlPanelRoute && <FloatingActionDock />}
 
@@ -262,8 +299,12 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
-      {/* Global Product Comparison Modal */}
-      <CompareModal />
+      {/* Global Product Comparison Modal (Mounted lazily only when opened) */}
+      {isCompareModalOpen && (
+        <Suspense fallback={null}>
+          <CompareModal />
+        </Suspense>
+      )}
 
       {/* PWA In-App Install Promotion & Offline Connectivity Indicator */}
       {!isControlPanelRoute && <PWAInstallBanner />}

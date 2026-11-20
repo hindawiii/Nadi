@@ -23,6 +23,7 @@ import {
   pickFreeShippingUpsellProduct,
   saveDeliveryProfile,
 } from '../lib/checkoutAssist';
+import { handleImageLoadError } from '../lib/imageResilience';
 
 const getDefaultCityForCurrency = (cur: string): string => {
   switch (cur) {
@@ -316,7 +317,7 @@ export const CartPageView: React.FC = () => {
             </p>
             <button
               onClick={() => navigateTo('store')}
-              className="px-8 py-3.5 bg-[#5A3E7A] hover:bg-[#483162] text-white text-sm font-extrabold rounded-full shadow-lg hover:shadow-xl transition-all inline-flex items-center gap-2 min-h-[48px] cursor-pointer"
+              className="px-6 h-11 bg-[#5A3E7A] hover:bg-[#483162] text-white text-xs sm:text-sm font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all inline-flex items-center gap-2 cursor-pointer"
             >
               <span>{lang === 'ar' ? 'تصفح المتجر' : 'Browse Store'}</span>
               {isRtl ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
@@ -358,6 +359,9 @@ export const CartPageView: React.FC = () => {
                         <img
                           src={quickUpsellProduct.images[0]}
                           alt={quickUpsellProduct.name[lang]}
+                          referrerPolicy="no-referrer"
+                          decoding="async"
+                          onError={(e) => handleImageLoadError(e.currentTarget)}
                           className="w-12 h-12 rounded-xl object-cover shrink-0 bg-slate-50 border border-slate-100"
                         />
                         <div className="min-w-0 text-start">
@@ -446,6 +450,9 @@ export const CartPageView: React.FC = () => {
                             <img 
                               src={item.product.images[0]} 
                               alt={item.product.name[lang]} 
+                              referrerPolicy="no-referrer"
+                              decoding="async"
+                              onError={(e) => handleImageLoadError(e.currentTarget)}
                               className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shrink-0 bg-slate-50 border border-slate-100"
                             />
                             <div className="space-y-1.5">
