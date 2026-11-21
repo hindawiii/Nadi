@@ -1,3 +1,5 @@
+import type { EditorialHeroSlideConfig } from '../data/storeContentDefaults';
+
 export type EditorialCollectionId = 'skin' | 'hair' | 'box';
 
 export interface EditorialHeroSlide {
@@ -19,6 +21,7 @@ export interface EditorialHeroAssets {
 export interface BuildEditorialHeroSlidesParams {
   activePresetId: string;
   customHeroImage?: string;
+  customSlides?: EditorialHeroSlideConfig[];
   storeTitle: { ar: string; en: string };
   assets: EditorialHeroAssets;
 }
@@ -67,12 +70,52 @@ export function resolveEditorialHeroCta(
   };
 }
 
+function resolveDefaultAssetForCollection(
+  collectionId: EditorialCollectionId | undefined,
+  index: number,
+  assets: EditorialHeroAssets
+): string {
+  if (collectionId === 'hair') return assets.haircare;
+  if (collectionId === 'box') return assets.bundles;
+  if (collectionId === 'skin') return assets.skincare;
+  if (index === 1) return assets.haircare;
+  if (index === 2) return assets.bundles;
+  return assets.skincare;
+}
+
 export function buildEditorialHeroSlides({
   activePresetId,
   customHeroImage,
+  customSlides,
   storeTitle,
   assets,
 }: BuildEditorialHeroSlidesParams): EditorialHeroSlide[] {
+  if (Array.isArray(customSlides) && customSlides.length > 0) {
+    return customSlides.map((slide, idx) => {
+      const trimmedImage = (slide.image || '').trim();
+      const image =
+        trimmedImage && trimmedImage !== LEGACY_DEFAULT_COSMETICS_HERO_IMAGE
+          ? trimmedImage
+          : resolveDefaultAssetForCollection(slide.collectionId, idx, assets);
+
+      return {
+        id: slide.id || `custom-hero-${idx + 1}`,
+        indexLabel: formatHeroSlideNumber(idx),
+        image,
+        collectionId: slide.collectionId,
+        sectionLabel: {
+          ar: (slide.sectionLabel?.ar || '').trim() || 'المجموعة المختارة',
+          en: (slide.sectionLabel?.en || '').trim() || 'Featured Collection',
+        },
+        alt: {
+          ar: (slide.alt?.ar || '').trim() || storeTitle.ar,
+          en: (slide.alt?.en || '').trim() || storeTitle.en,
+        },
+        objectPosition: slide.objectPosition || 'object-[50%_38%]',
+      };
+    });
+  }
+
   if (activePresetId !== 'cosmetics') {
     const fallbackSrc = (customHeroImage || '').trim() || assets.skincare;
     return [

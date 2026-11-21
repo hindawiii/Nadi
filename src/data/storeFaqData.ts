@@ -93,6 +93,9 @@ export const STORE_FAQ_ITEMS: StoreFaqItem[] = [
   },
 ];
 
-export function filterStoreFaqItems(category: FaqCategoryId): StoreFaqItem[] {
-  return STORE_FAQ_ITEMS.filter((item) => item.category === category);
+export function filterStoreFaqItems(
+  category: FaqCategoryId,
+  items: StoreFaqItem[] = STORE_FAQ_ITEMS
+): StoreFaqItem[] {
+  return items.filter((item) => item.category === category);
 }

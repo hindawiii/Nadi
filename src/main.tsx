@@ -4,6 +4,10 @@ import App from './App.tsx';
 import './index.css';
 import { registerSW } from 'virtual:pwa-register';
 import { purgeLegacyImageCaches } from './lib/imageResilience';
+import { installGlobalErrorHandlers } from './lib/errorGuard';
+
+// Capture uncaught runtime errors & unhandled rejections with pinpoint diagnostics
+installGlobalErrorHandlers();
 
 // Purge legacy poisoned opaque image caches so previously affected mobile devices recover automatically
 void purgeLegacyImageCaches();

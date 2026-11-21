@@ -9,6 +9,7 @@ import {
   formatHeroSlideNumber,
   resolveEditorialHeroCta,
 } from '../lib/editorialHeroSlides';
+import type { EditorialHeroSlideConfig } from '../data/storeContentDefaults';
 import { handleImageLoadError } from '../lib/imageResilience';
 
 export interface EditorialHeroProps {
@@ -20,6 +21,7 @@ export interface EditorialHeroProps {
   ctaPrimary: { ar: string; en: string };
   ctaSecondary: { ar: string; en: string };
   customHeroImage?: string;
+  customSlides?: EditorialHeroSlideConfig[];
   onPrimaryAction: () => void;
   onSecondaryAction: () => void;
   onSelectCollection?: (collectionId: EditorialCollectionId) => void;
@@ -36,6 +38,7 @@ export const EditorialHero: React.FC<EditorialHeroProps> = ({
   ctaPrimary,
   ctaSecondary,
   customHeroImage,
+  customSlides,
   onPrimaryAction,
   onSecondaryAction,
   onSelectCollection,
@@ -51,6 +54,7 @@ export const EditorialHero: React.FC<EditorialHeroProps> = ({
       buildEditorialHeroSlides({
         activePresetId,
         customHeroImage,
+        customSlides,
         storeTitle: title,
         assets: {
           skincare: heroSkincareImg,
@@ -58,7 +62,7 @@ export const EditorialHero: React.FC<EditorialHeroProps> = ({
           bundles: heroBundlesImg,
         },
       }),
-    [activePresetId, customHeroImage, title]
+    [activePresetId, customHeroImage, customSlides, title]
   );
 
   const primaryCta = useMemo(

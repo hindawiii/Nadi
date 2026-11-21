@@ -78,6 +78,22 @@ export default defineConfig(() => {
                 },
               },
             },
+            {
+              urlPattern: /^https:\/\/images\.unsplash\.com\/.*/i,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'nadi-media-v2',
+                expiration: {
+                  maxEntries: 80,
+                  maxAgeSeconds: 60 * 60 * 24 * 14, // 14 days
+                  purgeOnQuotaError: true,
+                },
+                cacheableResponse: {
+                  // Strictly 200 only — never cache opaque (status 0) responses to avoid mobile quota bloat
+                  statuses: [200],
+                },
+              },
+            },
           ],
         },
       }),

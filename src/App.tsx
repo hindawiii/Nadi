@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, Suspense, lazy } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, Suspense, lazy } from 'react';
 import { CommerceProvider, useCommerce } from './context/CommerceContext';
 import { Header } from './components/Header';
 import { MobileNavigationDrawer } from './components/MobileNavigationDrawer';
@@ -10,15 +10,25 @@ import { hairStylingDevices } from './components/HairDevicesSpotlight';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { safeExecuteAsync } from './lib/errorGuard';
+
+// Reusable dynamic importers so we can both lazy-load routes and prefetch hot chunks during browser idle time
+const loadPDPView = () => import('./components/PDPView');
+const loadCartPageView = () => import('./components/CartPageView');
+const loadWishlistView = () => import('./components/WishlistView');
+const loadOrderTrackerView = () => import('./components/OrderTrackerView');
+const loadAboutView = () => import('./components/AboutView');
+const loadPrivacyPolicyView = () => import('./components/PrivacyPolicyView');
+const loadLoginPageView = () => import('./components/LoginPageView');
 
 // Lazy load secondary routes, modals, and admin/developer tools to keep initial storefront load ultra-fast
-const AboutView = lazy(() => import('./components/AboutView').then(m => ({ default: m.AboutView })));
-const PrivacyPolicyView = lazy(() => import('./components/PrivacyPolicyView').then(m => ({ default: m.PrivacyPolicyView })));
-const PDPView = lazy(() => import('./components/PDPView').then(m => ({ default: m.PDPView })));
-const WishlistView = lazy(() => import('./components/WishlistView').then(m => ({ default: m.WishlistView })));
-const CartPageView = lazy(() => import('./components/CartPageView').then(m => ({ default: m.CartPageView })));
-const OrderTrackerView = lazy(() => import('./components/OrderTrackerView').then(m => ({ default: m.OrderTrackerView })));
-const LoginPageView = lazy(() => import('./components/LoginPageView').then(m => ({ default: m.LoginPageView })));
+const AboutView = lazy(() => loadAboutView().then(m => ({ default: m.AboutView })));
+const PrivacyPolicyView = lazy(() => loadPrivacyPolicyView().then(m => ({ default: m.PrivacyPolicyView })));
+const PDPView = lazy(() => loadPDPView().then(m => ({ default: m.PDPView })));
+const WishlistView = lazy(() => loadWishlistView().then(m => ({ default: m.WishlistView })));
+const CartPageView = lazy(() => loadCartPageView().then(m => ({ default: m.CartPageView })));
+const OrderTrackerView = lazy(() => loadOrderTrackerView().then(m => ({ default: m.OrderTrackerView })));
+const LoginPageView = lazy(() => loadLoginPageView().then(m => ({ default: m.LoginPageView })));
 const ReviewModal = lazy(() => import('./components/ReviewModal').then(m => ({ default: m.ReviewModal })));
 const CompareModal = lazy(() => import('./components/CompareModal').then(m => ({ default: m.CompareModal })));
 const DeveloperPanel = lazy(() => import('./components/DeveloperPanel').then(m => ({ default: m.DeveloperPanel })));
@@ -40,6 +50,7 @@ const AppContent: React.FC = () => {
     activeData,
     openProductPDP,
     returnFromPDPToStore,
+    getSavedStoreScrollY,
     comparisonList,
     isCompareModalOpen,
     setIsCompareModalOpen,
@@ -47,7 +58,10 @@ const AppContent: React.FC = () => {
     lang
   } = useCommerce();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const prevRouteRef = useRef<string>('');
+  // Keep-Alive flag: once the storefront mounts, keep it alive in the DOM while browsing sub-pages
+  // so returning to store is instantaneous (<16ms), preserves filters/batches, and restores exact scroll pixel
+  const [hasMountedStore, setHasMountedStore] = useState<boolean>(currentRoute === 'store');
+  const prevRouteRef = useRef<string>(currentRoute);
   const hasInitializedRef = useRef<boolean>(false);
   const isNavigatingRef = useRef<boolean>(false);
 
@@ -62,6 +76,55 @@ const AppContent: React.FC = () => {
   returnFromPDPToStoreRef.current = returnFromPDPToStore;
   const setCurrentRouteRef = useRef(setCurrentRoute);
   setCurrentRouteRef.current = setCurrentRoute;
+  const getSavedStoreScrollYRef = useRef(getSavedStoreScrollY);
+  getSavedStoreScrollYRef.current = getSavedStoreScrollY;
+
+  useEffect(() => {
+    if (currentRoute === 'store' && !hasMountedStore) {
+      setHasMountedStore(true);
+    }
+  }, [currentRoute, hasMountedStore]);
+
+  // Synchronous Pre-Paint Scroll Restoration when unhiding Keep-Alive StorefrontView (Zero Drag / Zero Flash)
+  useLayoutEffect(() => {
+    const previousRoute = prevRouteRef.current;
+    if (hasInitializedRef.current && currentRoute === 'store' && previousRoute !== 'store') {
+      const targetY = getSavedStoreScrollYRef.current();
+      window.scrollTo({ top: targetY, behavior: 'instant' });
+    }
+    prevRouteRef.current = currentRoute;
+  }, [currentRoute]);
+
+  // Quiet background prefetching of hot secondary routes (PDP + Cart) after initial paint settles
+  useEffect(() => {
+    let cancelled = false;
+    const prefetchHotRoutes = () => {
+      if (cancelled) return;
+      void safeExecuteAsync(async () => {
+        await Promise.all([loadPDPView(), loadCartPageView()]);
+        return true;
+      }, false, 'App.prefetchHotRoutes');
+    };
+
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    if (typeof win.requestIdleCallback === 'function') {
+      const idleId = win.requestIdleCallback(prefetchHotRoutes, { timeout: 2000 });
+      return () => {
+        cancelled = true;
+        win.cancelIdleCallback?.(idleId);
+      };
+    }
+
+    const timerId = window.setTimeout(prefetchHotRoutes, 1200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+    };
+  }, []);
 
   // Enforce manual scroll restoration so reloading starts at the top of the store
   useEffect(() => {
@@ -142,16 +205,15 @@ const AppContent: React.FC = () => {
         }
 
         if (route.startsWith('product/') || hash.startsWith('product-')) {
-          const prodId = route.startsWith('product/') 
-            ? route.replace('product/', '') 
+          const prodId = route.startsWith('product/')
+            ? route.replace('product/', '')
             : hash.replace('product-', '');
-          
+
           const allProducts = [...activeProductsRef.current, ...hairStylingDevices];
           const target = allProducts.find((p) => p.id === prodId);
           if (target) {
             // Skip pushing history when already handling a popstate navigation
             openProductPDPRef.current(target, false);
-            prevRouteRef.current = 'pdp';
             return;
           }
         }
@@ -180,7 +242,6 @@ const AppContent: React.FC = () => {
           // Returning to store cleanly via popstate without mutating history
           returnFromPDPToStoreRef.current(true);
         }
-        prevRouteRef.current = route || 'store';
       } finally {
         isNavigatingRef.current = false;
       }
@@ -200,46 +261,78 @@ const AppContent: React.FC = () => {
         {!isControlPanelRoute && <Header onOpenMobileMenu={() => setIsMobileDrawerOpen(true)} />}
 
         <main className="flex-1">
-          {currentRoute === 'store' && <StorefrontView />}
+          {/* Keep-Alive Storefront: Preserves exact scroll height, filters, loaded batches, and decoded images across route switches */}
+          {!isControlPanelRoute && (hasMountedStore || currentRoute === 'store') && (
+            <div
+              className={currentRoute === 'store' ? 'block' : 'hidden'}
+              aria-hidden={currentRoute !== 'store'}
+            >
+              <ErrorBoundary scope="StorefrontView">
+                <StorefrontView />
+              </ErrorBoundary>
+            </div>
+          )}
+
           {currentRoute === 'about' && (
-            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
-              <AboutView />
-            </Suspense>
+            <ErrorBoundary key="about" scope="AboutView">
+              <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+                <AboutView />
+              </Suspense>
+            </ErrorBoundary>
           )}
           {currentRoute === 'privacy' && (
-            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
-              <PrivacyPolicyView />
-            </Suspense>
+            <ErrorBoundary key="privacy" scope="PrivacyPolicyView">
+              <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+                <PrivacyPolicyView />
+              </Suspense>
+            </ErrorBoundary>
           )}
           {currentRoute === 'wishlist' && (
-            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
-              <WishlistView />
-            </Suspense>
+            <ErrorBoundary key="wishlist" scope="WishlistView">
+              <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+                <WishlistView />
+              </Suspense>
+            </ErrorBoundary>
           )}
           {currentRoute === 'cart' && (
-            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
-              <CartPageView />
-            </Suspense>
+            <ErrorBoundary key="cart" scope="CartPageView">
+              <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+                <CartPageView />
+              </Suspense>
+            </ErrorBoundary>
           )}
           {currentRoute === 'pdp' && (
-            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
-              <PDPView />
-            </Suspense>
+            <ErrorBoundary key="pdp" scope="PDPView">
+              <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+                <PDPView />
+              </Suspense>
+            </ErrorBoundary>
           )}
           {currentRoute === 'admin' && (
-            <Suspense fallback={
-              <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 gap-4 bg-slate-50 text-slate-800">
-                <div className="w-10 h-10 border-3 border-[#5A3E7A] border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-slate-600 font-semibold text-sm">
-                  {lang === 'ar' ? 'جاري تحميل لوحة التحكم الفاخرة...' : 'Loading Admin Suite...'}
-                </p>
-              </div>
-            }>
-              <AdminPanel />
-            </Suspense>
+            <ErrorBoundary
+              key="admin"
+              scope="AdminPanel"
+              fallbackTitle={{
+                ar: 'لوحة التحكم: تم تفعيل صمام الأمان',
+                en: 'Admin Suite: Safety Guard Active'
+              }}
+            >
+              <Suspense fallback={
+                <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 gap-4 bg-slate-50 text-slate-800">
+                  <div className="w-10 h-10 border-3 border-[#5A3E7A] border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-slate-600 font-semibold text-sm">
+                    {lang === 'ar' ? 'جاري تحميل لوحة التحكم الفاخرة...' : 'Loading Admin Suite...'}
+                  </p>
+                </div>
+              }>
+                <AdminPanel />
+              </Suspense>
+            </ErrorBoundary>
           )}
           {currentRoute === 'developer' && (
             <ErrorBoundary
+              key="developer"
+              scope="DeveloperPanel"
               fallbackTitle={{
                 ar: 'بوابة المطور البرمجية: تم تفعيل صمام الأمان',
                 en: 'Developer Console: Safety Guard Active'
@@ -260,14 +353,18 @@ const AppContent: React.FC = () => {
             </ErrorBoundary>
           )}
           {currentRoute === 'tracker' && (
-            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
-              <OrderTrackerView />
-            </Suspense>
+            <ErrorBoundary key="tracker" scope="OrderTrackerView">
+              <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+                <OrderTrackerView />
+              </Suspense>
+            </ErrorBoundary>
           )}
           {currentRoute === 'login' && (
-            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
-              <LoginPageView />
-            </Suspense>
+            <ErrorBoundary key="login" scope="LoginPageView">
+              <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+                <LoginPageView />
+              </Suspense>
+            </ErrorBoundary>
           )}
         </main>
       </div>
@@ -283,9 +380,11 @@ const AppContent: React.FC = () => {
 
       {/* Global Interactive Overlays & Controls (Mounted lazily only when opened) */}
       {isReviewModalOpen && (
-        <Suspense fallback={null}>
-          <ReviewModal />
-        </Suspense>
+        <ErrorBoundary scope="ReviewModal">
+          <Suspense fallback={null}>
+            <ReviewModal />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
       {/* Unified Vertical Magnetic Floating Action Dock (WhatsApp on top + collapsible Scroll-to-Top below) */}
@@ -311,9 +410,11 @@ const AppContent: React.FC = () => {
 
       {/* Global Product Comparison Modal (Mounted lazily only when opened) */}
       {isCompareModalOpen && (
-        <Suspense fallback={null}>
-          <CompareModal />
-        </Suspense>
+        <ErrorBoundary scope="CompareModal">
+          <Suspense fallback={null}>
+            <CompareModal />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
       {/* PWA In-App Install Promotion & Offline Connectivity Indicator */}
@@ -327,8 +428,10 @@ const AppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <CommerceProvider>
-      <AppContent />
-    </CommerceProvider>
+    <ErrorBoundary scope="AppRoot">
+      <CommerceProvider>
+        <AppContent />
+      </CommerceProvider>
+    </ErrorBoundary>
   );
 }

@@ -13,6 +13,8 @@ import {
   User,
   LogOut,
   Check,
+  HelpCircle,
+  ShieldCheck,
 } from 'lucide-react';
 import { StoreCartIcon } from './common/StoreCartIcon';
 import { useCommerce } from '../context/CommerceContext';
@@ -339,6 +341,34 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
             >
               <Leaf className="w-5 h-5 text-slate-500 shrink-0" />
               <span>{lang === 'ar' ? 'قصتنا وهوية المتجر' : 'Our Story'}</span>
+            </button>
+
+            {/* Frequently Asked Questions */}
+            <button
+              type="button"
+              onClick={() => navigateToSection('faq-section')}
+              className="w-full text-start px-3.5 py-2.5 rounded-full text-sm sm:text-base font-medium text-slate-800 hover:bg-slate-100/80 flex items-center gap-3.5 transition-colors min-h-[46px] cursor-pointer leading-relaxed"
+            >
+              <HelpCircle className="w-5 h-5 text-slate-500 shrink-0" />
+              <span>{lang === 'ar' ? 'الأسئلة الشائعة' : 'FAQ'}</span>
+            </button>
+
+            {/* Privacy Policy */}
+            <button
+              type="button"
+              onClick={() => {
+                navigateTo('privacy');
+                onClose();
+              }}
+              aria-current={currentRoute === 'privacy' ? 'page' : undefined}
+              className={`w-full text-start px-3.5 py-2.5 rounded-full text-sm sm:text-base flex items-center gap-3.5 transition-colors min-h-[46px] cursor-pointer leading-relaxed ${
+                currentRoute === 'privacy'
+                  ? 'bg-[#5A3E7A]/12 text-[#5A3E7A] font-bold'
+                  : 'text-slate-800 font-medium hover:bg-slate-100/80'
+              }`}
+            >
+              <ShieldCheck className="w-5 h-5 text-slate-500 shrink-0" />
+              <span>{lang === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}</span>
             </button>
           </div>
 
