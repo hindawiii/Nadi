@@ -56,7 +56,7 @@ service cloud.firestore {
         && data.customerName is string && data.customerName.size() > 0 && data.customerName.size() <= 120
         && data.phone is string && data.phone.size() > 0 && data.phone.size() <= 40
         && data.address is string && data.address.size() > 0 && data.address.size() <= 300
-        && (!('items' in data) || (data.items is list && data.items.size() <= 50))
+        && (!('items' in data) || (data.items is list && data.items.size() <= 50 && (data.items.size() == 0 || data.items[0] is map)))
         && data.totalFormatted is string && data.totalFormatted.size() > 0 && data.totalFormatted.size() <= 60
         && (!('totalUSD' in data) || (data.totalUSD is number && data.totalUSD >= 0 && data.totalUSD <= 1000000))
         && (!('discountAmountUSD' in data) || (data.discountAmountUSD is number && data.discountAmountUSD >= 0 && data.discountAmountUSD <= 1000000))
@@ -113,19 +113,49 @@ service cloud.firestore {
         && (!('updatedBy' in data) || (isSignedIn() && data.updatedBy is string && data.updatedBy == request.auth.uid && data.updatedBy.size() <= 128));
     }
 
+    function isValidUserCommerce(data) {
+      return data.keys().hasAll(['cart', 'wishlist', 'updatedAt'])
+        && data.keys().hasOnly(['cart', 'wishlist', 'updatedAt'])
+        && data.cart is list
+        && data.cart.size() <= 50
+        && (data.cart.size() == 0 || data.cart[0] is map)
+        && data.wishlist is list
+        && data.wishlist.size() <= 100
+        && (data.wishlist.size() == 0 || data.wishlist[0] is string)
+        && data.updatedAt is string && data.updatedAt.size() > 0 && data.updatedAt.size() <= 64;
+    }
+
+    function isValidInventoryItem(data) {
+      return data.keys().hasAll(['productId', 'stock', 'updatedAt'])
+        && data.keys().hasOnly(['productId', 'stock', 'updatedAt'])
+        && data.productId is string && data.productId.size() > 0 && data.productId.size() <= 64
+        && data.stock is int && data.stock >= 0 && data.stock <= 100000
+        && data.updatedAt is string && data.updatedAt.size() > 0 && data.updatedAt.size() <= 64;
+    }
+
+    function isValidCheckoutStockDecrement() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock', 'updatedAt'])
+        && existing().stock is int
+        && incoming().stock is int
+        && incoming().stock >= 0
+        && incoming().stock < existing().stock
+        && (existing().stock - incoming().stock) <= 20;
+    }
+
     // Connection testing probe (get only, no write or list)
     match /test/connection {
       allow get: if true;
       allow list, write: if false;
     }
 
-    // Private Customer Orders Collection (PII isolated to Admin or Order Owner)
+    // Private Customer Orders Collection (PII isolated to Admin or Authenticated Order Owner)
     match /orders/{orderId} {
       allow get: if isValidId(orderId) && (
         isAdmin()
         || (isSignedIn() && resource != null && 'ownerUid' in resource.data && resource.data.ownerUid == request.auth.uid)
       );
-      allow list: if isAdmin();
+      allow list: if isAdmin()
+        || (isSignedIn() && resource.data.ownerUid == request.auth.uid);
       allow create: if isValidId(orderId)
         && isValidOrder(incoming())
         && incoming().id == orderId
@@ -178,6 +208,34 @@ service cloud.firestore {
         && isValidId(docId)
         && isValidStorefrontConfig(incoming());
       allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    // Private Customer Cart & Wishlist State (Strictly Owner-Only under /users/{uid}/private/commerce)
+    match /users/{userId}/private/{docId} {
+      allow get: if isOwner(userId) && docId == 'commerce';
+      allow list: if false;
+      allow create: if isOwner(userId)
+        && docId == 'commerce'
+        && isValidUserCommerce(incoming());
+      allow update: if isOwner(userId)
+        && docId == 'commerce'
+        && isValidUserCommerce(incoming());
+      allow delete: if isOwner(userId) && docId == 'commerce';
+    }
+
+    // Live Public Product Inventory (Non-PII stock counts; Admin CRUD + Bounded Atomic Checkout Decrement)
+    match /inventory/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow create: if isAdmin()
+        && isValidId(productId)
+        && isValidInventoryItem(incoming())
+        && incoming().productId == productId;
+      allow update: if isValidId(productId)
+        && isValidInventoryItem(incoming())
+        && incoming().productId == existing().productId
+        && (isAdmin() || isValidCheckoutStockDecrement());
+      allow delete: if isAdmin() && isValidId(productId);
     }
 
     // Admin Roles Directory

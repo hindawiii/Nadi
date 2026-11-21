@@ -5,6 +5,7 @@ import {
   getDocs,
   writeBatch,
   query,
+  where,
   limit,
   onSnapshot,
   Unsubscribe
@@ -31,7 +32,7 @@ export interface PublicTrackingRecord {
  * Ensures strict conformity with firestore.rules and firebase-blueprint.json schema,
  * omitting undefined properties cleanly.
  */
-function sanitizeOrderPayload(order: OrderRecord): Record<string, unknown> {
+export function sanitizeOrderPayload(order: OrderRecord): Record<string, unknown> {
   const safeStatus: OrderRecord['status'] = ['received', 'processing', 'dispatched', 'delivered'].includes(order.status)
     ? order.status
     : 'received';
@@ -170,6 +171,79 @@ export function subscribeToCloudOrders(
         handleFirestoreError(error, OperationType.GET, path);
       }
       console.warn('Live orders subscription encountered an error:', error);
+      if (onError) onError(error);
+    }
+  );
+}
+
+/**
+ * Fetch orders belonging to a specific authenticated customer (enforces where('ownerUid', '==', uid)).
+ */
+export async function getCustomerOrdersFromCloud(uid: string): Promise<OrderRecord[]> {
+  const cleanUid = (uid || '').trim().slice(0, 128);
+  if (!cleanUid) return [];
+
+  const path = ORDERS_COLLECTION;
+  try {
+    const ordersRef = collection(db, path);
+    const q = query(ordersRef, where('ownerUid', '==', cleanUid), limit(50));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      return [];
+    }
+
+    const mine: OrderRecord[] = [];
+    snapshot.forEach((docSnap) => {
+      mine.push({
+        ...(docSnap.data() as OrderRecord),
+        id: docSnap.id,
+      });
+    });
+
+    mine.sort((a, b) => (b.date > a.date ? 1 : -1));
+    return mine;
+  } catch (error) {
+    if (error instanceof Error && (error.message.includes('permission') || error.message.includes('insufficient'))) {
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+    console.warn('Could not fetch customer orders from Firestore:', error);
+    return [];
+  }
+}
+
+/**
+ * Subscribe to real-time order status updates for the currently authenticated customer.
+ * Uses a Secure List Query (where ownerUid == uid) matched strictly by firestore.rules.
+ */
+export function subscribeToCustomerOrders(
+  uid: string,
+  onUpdate: (orders: OrderRecord[]) => void,
+  onError?: (err: unknown) => void
+): Unsubscribe {
+  const cleanUid = (uid || '').trim().slice(0, 128);
+  const path = ORDERS_COLLECTION;
+  const ordersRef = collection(db, path);
+  const q = query(ordersRef, where('ownerUid', '==', cleanUid), limit(50));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const mine: OrderRecord[] = [];
+      snapshot.forEach((docSnap) => {
+        mine.push({
+          ...(docSnap.data() as OrderRecord),
+          id: docSnap.id,
+        });
+      });
+      mine.sort((a, b) => (b.date > a.date ? 1 : -1));
+      onUpdate(mine);
+    },
+    (error) => {
+      if (error instanceof Error && (error.message.includes('permission') || error.message.includes('insufficient'))) {
+        handleFirestoreError(error, OperationType.LIST, path);
+      }
+      console.warn('Customer orders subscription encountered an error:', error);
       if (onError) onError(error);
     }
   );

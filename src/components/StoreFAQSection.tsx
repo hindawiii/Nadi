@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, HelpCircle, MessageCircle } from 'lucide-react';
+import { ChevronDown, HelpCircle } from 'lucide-react';
 import { useCommerce } from '../context/CommerceContext';
 import {
   FaqCategoryId,
@@ -10,7 +10,7 @@ import { openExternalUrl } from '../lib/navigation';
 
 export const StoreFAQSection: React.FC = () => {
   const { lang, activeData } = useCommerce();
-  const [activeCategory, setActiveCategory] = useState<FaqCategoryId>('all');
+  const [activeCategory, setActiveCategory] = useState<FaqCategoryId>('shipping');
   const [openFaqId, setOpenFaqId] = useState<string | null>('faq-cod-payment');
 
   const filteredItems = useMemo(
@@ -37,33 +37,28 @@ export const StoreFAQSection: React.FC = () => {
     <section
       id="faq-section"
       aria-labelledby="store-faq-heading"
-      className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6"
+      className="max-w-7xl mx-auto px-4 sm:px-6 space-y-3 sm:space-y-4 scroll-mt-20"
     >
-      {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200/80 pb-4">
-        <div className="space-y-1 text-start max-w-2xl">
+      {/* Section Header & Single-Row Mobile Capsule Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-200/80 pb-3">
+        <div className="space-y-0.5 text-start">
           <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#5A3E7A] tracking-wide">
             <HelpCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-            <span>{lang === 'ar' ? 'إجابات واضحة قبل الطلب' : 'Clear Answers Before You Order'}</span>
+            <span>{lang === 'ar' ? 'إجابات سريعة قبل الطلب' : 'Quick Answers'}</span>
           </span>
           <h2
             id="store-faq-heading"
-            className="text-fluid-h2 font-black text-slate-900 font-brand-ar leading-relaxed"
+            className="text-fluid-h2 font-black text-slate-900 font-brand-ar leading-tight"
           >
             {lang === 'ar' ? 'الأسئلة الشائعة' : 'Frequently Asked Questions'}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            {lang === 'ar'
-              ? 'كل ما تحتاجين معرفته عن التوصيل، الدفع عند الاستلام، ضمان السنتين، واختيار الروتين المناسب.'
-              : 'Everything you need to know about delivery, cash on delivery, 2-year warranty, and routine selection.'}
-          </p>
         </div>
 
-        {/* Category Filter Tabs (Unified Phase 1 Slim Squircle Architecture) */}
+        {/* Category Filter Tabs (Balanced 3-Pillar Capsule Bar) */}
         <div
           role="tablist"
           aria-label={lang === 'ar' ? 'تصنيفات الأسئلة الشائعة' : 'FAQ categories'}
-          className="inline-flex items-center gap-1 p-1 rounded-2xl bg-white border border-slate-200/90 shadow-2xs overflow-x-auto scrollbar-none max-w-full"
+          className="grid grid-cols-3 sm:inline-flex items-center gap-1 p-1 rounded-2xl bg-slate-100/85 border border-slate-200/90 shadow-2xs w-full sm:w-auto"
         >
           {STORE_FAQ_CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat.id;
@@ -74,10 +69,10 @@ export const StoreFAQSection: React.FC = () => {
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => handleSelectCategory(cat.id)}
-                className={`h-9 sm:h-10 px-3.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                className={`h-10 px-2.5 sm:px-4 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A3E7A]/40 ${
                   isActive
                     ? 'bg-[#5A3E7A] text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/90'
                 }`}
               >
                 {cat.label[lang]}
@@ -99,7 +94,7 @@ export const StoreFAQSection: React.FC = () => {
                 onClick={() => setOpenFaqId(isOpen ? null : item.id)}
                 aria-expanded={isOpen}
                 aria-controls={panelId}
-                className="w-full px-5 sm:px-6 py-4 sm:py-5 min-h-[56px] flex items-center justify-between gap-4 text-start hover:bg-slate-50/75 transition-colors cursor-pointer"
+                className="w-full px-4 sm:px-6 py-3.5 sm:py-4 min-h-[52px] flex items-center justify-between gap-3 text-start hover:bg-slate-50/75 transition-colors cursor-pointer"
               >
                 <span className="text-sm sm:text-base font-extrabold text-slate-900 leading-relaxed">
                   {item.question[lang]}
@@ -118,9 +113,9 @@ export const StoreFAQSection: React.FC = () => {
               {isOpen && (
                 <div
                   id={panelId}
-                  className="px-5 sm:px-6 pb-5 pt-0 animate-in fade-in duration-150"
+                  className="px-4 sm:px-6 pb-4 pt-0 animate-in fade-in duration-150"
                 >
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-3xl border-s-2 border-[#5A3E7A]/30 ps-3.5">
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-3xl">
                     {item.answer[lang]}
                   </p>
                 </div>
@@ -130,28 +125,17 @@ export const StoreFAQSection: React.FC = () => {
         })}
       </div>
 
-      {/* Concise WhatsApp Consultation Strip */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-purple-50/65 border border-purple-200/70">
-        <div className="text-start space-y-0.5">
-          <p className="text-xs sm:text-sm font-extrabold text-slate-900">
-            {lang === 'ar'
-              ? 'لديكِ استفسار آخر أو ترغبين في استشارة مجانية لاختيار روتينكِ؟'
-              : 'Have another question or want a free routine consultation?'}
-          </p>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            {lang === 'ar'
-              ? 'فريق خدمة العميلات جاهز لمساعدتكِ مباشرة عبر واتساب.'
-              : 'Our care specialists are ready to assist you directly on WhatsApp.'}
-          </p>
-        </div>
-
+      {/* Direct Single WhatsApp Inquiry Button (Option B — Zero Box-in-Box Clutter) */}
+      <div className="flex justify-center pt-0.5">
         <button
           type="button"
           onClick={handleOpenWhatsAppSupport}
-          className="h-10 sm:h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer shrink-0"
+          className="w-full sm:w-auto h-11 px-5 sm:px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm inline-flex items-center justify-center gap-2 shadow-sm hover:shadow transition-all active:scale-[0.98] cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
         >
-          <MessageCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
-          <span>{lang === 'ar' ? 'تحدثي معنا عبر واتساب' : 'Chat on WhatsApp'}</span>
+          <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current shrink-0" aria-hidden="true">
+            <path d="M12.031 2C6.502 2 2.004 6.498 2.004 12.027c0 1.768.462 3.494 1.339 5.016L1.92 22l5.083-1.333a9.983 9.983 0 0 0 5.028 1.36h.004c5.528 0 10.025-4.498 10.027-10.027A9.97 9.97 0 0 0 19.124 4.93 9.96 9.96 0 0 0 12.031 2Zm5.84 14.167c-.246.693-1.434 1.325-1.988 1.408-.506.076-1.163.107-1.878-.12-.433-.138-.988-.321-1.7-.629-2.99-1.292-4.943-4.307-5.092-4.506-.149-.199-1.216-1.617-1.216-3.084 0-1.468.77-2.189 1.043-2.487.274-.298.597-.373.796-.373.199 0 .398.002.572.01.184.009.43-.07.673.514.249.597.846 2.065.921 2.214.075.149.124.323.025.522-.1.199-.149.323-.298.498-.149.174-.314.389-.448.522-.149.149-.304.311-.131.609.174.298.774 1.276 1.662 2.068 1.142 1.018 2.104 1.334 2.403 1.483.298.149.473.124.647-.075.174-.199.746-.871.945-1.17.199-.298.398-.248.672-.149.274.1 1.741.821 2.04.97.298.149.497.224.572.348.075.125.075.722-.171 1.415Z" />
+          </svg>
+          <span>{lang === 'ar' ? 'للاستفسار تحدثي معنا' : 'Inquire & Chat With Us'}</span>
         </button>
       </div>
     </section>

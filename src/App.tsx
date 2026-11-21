@@ -13,6 +13,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 
 // Lazy load secondary routes, modals, and admin/developer tools to keep initial storefront load ultra-fast
 const AboutView = lazy(() => import('./components/AboutView').then(m => ({ default: m.AboutView })));
+const PrivacyPolicyView = lazy(() => import('./components/PrivacyPolicyView').then(m => ({ default: m.PrivacyPolicyView })));
 const PDPView = lazy(() => import('./components/PDPView').then(m => ({ default: m.PDPView })));
 const WishlistView = lazy(() => import('./components/WishlistView').then(m => ({ default: m.WishlistView })));
 const CartPageView = lazy(() => import('./components/CartPageView').then(m => ({ default: m.CartPageView })));
@@ -92,6 +93,8 @@ const AppContent: React.FC = () => {
       }
     } else if (normalizedRoute === 'about') {
       setCurrentRoute('about');
+    } else if (normalizedRoute === 'privacy') {
+      setCurrentRoute('privacy');
     } else if (normalizedRoute === 'wishlist') {
       setCurrentRoute('wishlist');
     } else if (normalizedRoute === 'cart') {
@@ -159,6 +162,8 @@ const AppContent: React.FC = () => {
           setCurrentRouteRef.current('developer');
         } else if (route === 'about') {
           setCurrentRouteRef.current('about');
+        } else if (route === 'privacy') {
+          setCurrentRouteRef.current('privacy');
         } else if (route === 'wishlist') {
           setCurrentRouteRef.current('wishlist');
         } else if (route === 'cart') {
@@ -199,6 +204,11 @@ const AppContent: React.FC = () => {
           {currentRoute === 'about' && (
             <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
               <AboutView />
+            </Suspense>
+          )}
+          {currentRoute === 'privacy' && (
+            <Suspense fallback={<RouteLoadingFallback lang={lang} />}>
+              <PrivacyPolicyView />
             </Suspense>
           )}
           {currentRoute === 'wishlist' && (

@@ -1,17 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, CheckCircle2, Clock, Truck, Package, MapPin, 
-  Phone, Calendar, AlertCircle, ArrowLeft, ArrowRight, MessageSquare, Copy, ShieldCheck, Loader2 
+  Phone, Calendar, AlertCircle, ArrowLeft, ArrowRight, MessageSquare, Copy, ShieldCheck, Loader2,
+  UserCheck, ChevronLeft, ChevronRight, ShoppingBag
 } from 'lucide-react';
-import { useCommerce } from '../context/CommerceContext';
+import { useCommerce, OrderRecord } from '../context/CommerceContext';
 import { getTrackingByCodeFromCloud, PublicTrackingRecord } from '../services/orderService';
 
 export const OrderTrackerView: React.FC = () => {
-  const { lang, orders, navigateTo, activeData, showToast } = useCommerce();
+  const { lang, orders, customerUser, customerOrders, isLoadingCustomerOrders, navigateTo, activeData, showToast } = useCommerce();
   const isRtl = lang === 'ar';
+
+  const combinedLocalOrders = useMemo(() => {
+    const map = new Map<string, OrderRecord>();
+    customerOrders.forEach((o) => map.set(o.id, o));
+    orders.forEach((o) => {
+      if (!map.has(o.id)) map.set(o.id, o);
+    });
+    return Array.from(map.values());
+  }, [customerOrders, orders]);
   
   const [searchCode, setSearchCode] = useState('');
-  const [selectedOrder, setSelectedOrder] = useState<typeof orders[0] | null>(() => {
+  const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(() => {
     // Check if customer placed an order in this browser session
     try {
       const myTracking = localStorage.getItem('luxe_my_last_tracking');
@@ -42,6 +52,15 @@ export const OrderTrackerView: React.FC = () => {
     }
   }, [myLastTracking, selectedOrder]);
 
+  // Keep currently inspected order synchronized with live status updates from Firestore
+  useEffect(() => {
+    if (!selectedOrder) return;
+    const fresher = combinedLocalOrders.find((o) => o.id === selectedOrder.id);
+    if (fresher && fresher.status !== selectedOrder.status) {
+      setSelectedOrder(fresher);
+    }
+  }, [combinedLocalOrders, selectedOrder]);
+
   const lookupTracking = async (rawQuery: string) => {
     setHasSearched(true);
     const query = rawQuery.trim().toLowerCase();
@@ -51,8 +70,8 @@ export const OrderTrackerView: React.FC = () => {
     const cleanDigits = query.replace(/\D/g, '');
     const queryCoreDigits = cleanDigits.length >= 7 ? cleanDigits.slice(-8) : cleanDigits;
 
-    // 1. Check current device session orders first
-    const found = orders.find((o) => {
+    // 1. Check authenticated customer's cloud orders & current device session orders first
+    const found = combinedLocalOrders.find((o) => {
       const matchTracking = o.trackingCode.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanQuery;
       const matchId = o.id.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanQuery;
       
@@ -195,9 +214,140 @@ export const OrderTrackerView: React.FC = () => {
                 setSearchCode(myLastTracking);
                 void lookupTracking(myLastTracking);
               }}
-              className="px-3 h-8 rounded-xl font-bold bg-purple-50 text-[#5A3E7A] border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer"
+              className="px-3 min-h-[36px] rounded-xl font-bold bg-purple-50 text-[#5A3E7A] border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer"
             >
               {myLastTracking}
+            </button>
+          </div>
+        )}
+
+        {/* Authenticated Customer Cloud Order History ("طلباتي" / "My Orders") */}
+        {customerUser ? (
+          <section className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#5A3E7A] flex items-center justify-center shrink-0 border border-purple-100">
+                  <UserCheck className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-slate-900 leading-relaxed truncate">
+                    {lang === 'ar' ? 'طلباتي المسجلة' : 'My Cloud Orders'}
+                  </h2>
+                  <p className="text-xs text-slate-500 leading-relaxed truncate">
+                    {lang === 'ar'
+                      ? `متزامنة تلقائياً مع حسابكِ (${customerUser.name})`
+                      : `Synced across your devices (${customerUser.name})`}
+                  </p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold tabular-nums shrink-0">
+                {customerOrders.length}
+              </span>
+            </div>
+
+            {isLoadingCustomerOrders ? (
+              <div className="divide-y divide-slate-100">
+                {[1, 2].map((skeleton) => (
+                  <div key={skeleton} className="px-5 py-4 flex items-center justify-between gap-4 animate-pulse">
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 w-32 bg-slate-200 rounded-lg" />
+                      <div className="h-3 w-48 bg-slate-100 rounded-lg" />
+                    </div>
+                    <div className="h-7 w-20 bg-slate-200 rounded-xl" />
+                  </div>
+                ))}
+              </div>
+            ) : customerOrders.length > 0 ? (
+              <div className="divide-y divide-slate-100">
+                {customerOrders.map((order) => {
+                  const isCurrentSelected = selectedOrder?.id === order.id;
+                  const statusLabel =
+                    steps.find((s) => s.key === order.status)?.label[lang] || order.status;
+                  const statusTone =
+                    order.status === 'delivered'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : order.status === 'dispatched'
+                      ? 'bg-sky-50 text-sky-700 border-sky-200'
+                      : order.status === 'processing'
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-purple-50 text-[#5A3E7A] border-purple-200';
+
+                  return (
+                    <button
+                      key={order.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setCloudTracking(null);
+                        setSearchCode(order.trackingCode);
+                        setSearchNotFound(false);
+                      }}
+                      className={`w-full text-start px-5 py-4 flex items-center justify-between gap-3 transition-colors min-h-[60px] cursor-pointer ${
+                        isCurrentSelected
+                          ? 'bg-purple-50/70'
+                          : 'hover:bg-slate-50/90'
+                      }`}
+                    >
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-extrabold text-slate-900 font-mono">
+                            {order.trackingCode}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-lg text-[11px] font-bold border ${statusTone}`}>
+                            {statusLabel}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500 leading-relaxed">
+                          <span>#{order.id}</span>
+                          <span>•</span>
+                          <span>{order.date}</span>
+                          <span>•</span>
+                          <span className="font-bold text-slate-700">{order.totalFormatted}</span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-slate-400">
+                        {isRtl ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="px-5 py-8 text-center space-y-3">
+                <div className="w-11 h-11 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
+                <p className="text-sm font-bold text-slate-700 leading-relaxed">
+                  {lang === 'ar' ? 'لا توجد طلبات مسجلة بحسابكِ بعد' : 'No cloud orders on your account yet'}
+                </p>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                  {lang === 'ar'
+                    ? 'أي طلب جديد تُتمّينه أثناء تسجيل الدخول سيظهر هنا تلقائياً لمتابعته من أي جهاز.'
+                    : 'Any order placed while signed in will appear here automatically for cross-device tracking.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigateTo('store')}
+                  className="inline-flex items-center justify-center px-5 h-10 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#5A3E7A] text-xs font-bold transition-colors cursor-pointer"
+                >
+                  {lang === 'ar' ? 'تصفحي المنتجات' : 'Browse Products'}
+                </button>
+              </div>
+            )}
+          </section>
+        ) : (
+          <div className="max-w-xl mx-auto bg-white/90 border border-slate-200/80 rounded-2xl px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-slate-600 leading-relaxed text-center sm:text-start">
+              {lang === 'ar'
+                ? 'سجّلي الدخول لعرض جميع طلباتكِ ومزامنة السلة والمفضلة تلقائياً بين أجهزتكِ.'
+                : 'Sign in to view all your orders and sync your cart & wishlist across devices.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => navigateTo('login')}
+              className="px-4 h-10 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#5A3E7A] border border-purple-200/80 text-xs font-bold transition-colors shrink-0 cursor-pointer"
+            >
+              {lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
             </button>
           </div>
         )}

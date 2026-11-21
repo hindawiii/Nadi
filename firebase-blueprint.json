@@ -250,12 +250,55 @@
         }
       },
       "required": ["activePresetId", "presets", "currencies", "updatedAt"]
+    },
+    "userCommerceState": {
+      "title": "UserCommerceState",
+      "description": "Private authenticated customer cart and wishlist synchronized across devices (strictly isolated under /users/{uid}/private/commerce)",
+      "type": "object",
+      "properties": {
+        "cart": {
+          "type": "array",
+          "description": "Compact array of up to 50 cart entries ({ productId, quantity, selectedVariant })"
+        },
+        "wishlist": {
+          "type": "array",
+          "description": "Deduplicated list of up to 100 wishlisted product IDs"
+        },
+        "updatedAt": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "ISO timestamp of last cart/wishlist sync"
+        }
+      },
+      "required": ["cart", "wishlist", "updatedAt"]
+    },
+    "inventoryItem": {
+      "title": "InventoryItem",
+      "description": "Public real-time product stock level supporting Admin updates and atomic non-negative checkout decrements",
+      "type": "object",
+      "properties": {
+        "productId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Product identifier matching document ID"
+        },
+        "stock": {
+          "type": "integer",
+          "description": "Current available inventory count (0 to 100000)"
+        },
+        "updatedAt": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "ISO timestamp of last stock mutation"
+        }
+      },
+      "required": ["productId", "stock", "updatedAt"]
     }
   },
   "firestore": {
     "/orders/{orderId}": {
       "schema": "order",
-      "description": "Private customer orders with PII — readable/listable/updatable only by verified Admin or matching ownerUid on get"
+      "description": "Private customer orders with PII — readable and securely listable only by verified Admin or authenticated owner (where ownerUid == request.auth.uid)"
     },
     "/tracking/{trackingCode}": {
       "schema": "tracking",
@@ -272,6 +315,14 @@
     "/storefront/{docId}": {
       "schema": "storefrontConfig",
       "description": "Public single-doc storefront catalog & theme sync (readable via exact ID get; writable exclusively by verified Admin)"
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": "userCommerceState",
+      "description": "Private customer cart & wishlist state (docId == 'commerce'), strictly readable and writable only by matching authenticated owner"
+    },
+    "/inventory/{productId}": {
+      "schema": "inventoryItem",
+      "description": "Live product stock counts — publicly readable; Admin has full CRUD; checkout updates restricted to bounded atomic decrement (<=20 units, >=0)"
     }
   }
 }

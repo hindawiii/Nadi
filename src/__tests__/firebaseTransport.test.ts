@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const mockGetDocFromServer = vi.fn();
+const mockSetLogLevel = vi.fn();
 
 vi.mock('firebase/app', () => ({
   initializeApp: vi.fn(() => ({ name: '[DEFAULT]' })),
@@ -19,6 +20,10 @@ vi.mock('firebase/storage', () => ({
 vi.mock('firebase/firestore', () => ({
   getFirestore: vi.fn(() => ({ __mock: 'getFirestore' })),
   initializeFirestore: vi.fn(() => ({ __mock: 'initializeFirestore' })),
+  persistentLocalCache: vi.fn((opts) => ({ kind: 'persistent', ...opts })),
+  persistentMultipleTabManager: vi.fn(() => ({ kind: 'multi-tab' })),
+  memoryLocalCache: vi.fn(() => ({ kind: 'memory' })),
+  setLogLevel: (...args: unknown[]) => mockSetLogLevel(...args),
   doc: vi.fn((_db, col, id) => ({ col, id })),
   getDocFromServer: (...args: unknown[]) => mockGetDocFromServer(...args),
   enableNetwork: vi.fn(() => Promise.resolve()),
@@ -37,10 +42,12 @@ describe('Firestore resilient transport & connectivity helpers', () => {
     vi.unstubAllGlobals();
   });
 
-  it('enables forced long-polling with proxy-safe 20s timeout and undefined-property safety', () => {
+  it('enables adaptive auto-detect long-polling with 30s timeout, localCache, and undefined-property safety', () => {
     const settings = buildFirestoreBrowserSettings();
-    expect(settings.experimentalForceLongPolling).toBe(true);
-    expect(settings.experimentalLongPollingOptions?.timeoutSeconds).toBe(20);
+    expect(settings.experimentalAutoDetectLongPolling).toBe(true);
+    expect(settings.experimentalForceLongPolling).toBeUndefined();
+    expect(settings.experimentalLongPollingOptions?.timeoutSeconds).toBe(30);
+    expect(settings.localCache).toBeDefined();
     expect(settings.ignoreUndefinedProperties).toBe(true);
   });
 

@@ -67,7 +67,7 @@ describe('Pricing, Currency & Exchange Rate Engine', () => {
     expect(resultBtcEn.symbol).toBe('BTC');
   });
 
-  it('should calculate discount percentage accurately and format clear localized labels', async () => {
+  it('should calculate discount percentage accurately and format natural Arabic/English discount badges', async () => {
     const { formatDiscountBadgeText } = await import('../components/common/SmartDiscountBadge');
     const originalPrice = 100;
     const basePrice = 64;
@@ -75,6 +75,6 @@ describe('Pricing, Currency & Exchange Rate Engine', () => {
 
     expect(discount).toBe(36);
     expect(formatDiscountBadgeText(discount, 'ar')).toBe('خصم 36%');
-    expect(formatDiscountBadgeText(discount, 'en')).toBe('-36%');
+    expect(formatDiscountBadgeText(discount, 'en')).toBe('36% OFF');
   });
 });

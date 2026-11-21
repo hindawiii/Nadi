@@ -328,7 +328,7 @@ export const StorefrontView: React.FC = () => {
 
     // LUXURY INFINITE BRAND & SLOGAN TICKER (Docked seamlessly under Editorial Hero)
     brandTicker: sectionsControl.brandTicker ? (
-      <InfiniteBrandTicker className="!mt-0 mb-6 sm:mb-8" />
+      <InfiniteBrandTicker className="!mt-0" />
     ) : null,
 
     // 2. VALUE PROPOSITIONS STRIP (Removed completely per user approval — Option 1)
@@ -336,8 +336,8 @@ export const StorefrontView: React.FC = () => {
 
       // 3. "اختاري بشرتك" / SKIN TYPE SOLUTIONS (Single-Row Smart Interactive 4-Card System)
       routineDiagnosis: (sectionsControl.routineDiagnosis && activePresetId === 'cosmetics') ? (
-        <section id="categories-section" className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-4">
+        <section id="categories-section" className="max-w-7xl mx-auto px-4 sm:px-6 space-y-3.5 sm:space-y-4 scroll-mt-20">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="space-y-1.5 text-start">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-200/80 text-purple-900 text-xs font-bold">
               <ScanFace className="w-3.5 h-3.5 text-purple-600" />
@@ -470,8 +470,8 @@ export const StorefrontView: React.FC = () => {
 
       // 4. PRODUCTS GRID (With Horizontal Pill Bar Collections & Product Cards)
       productsCatalog: sectionsControl.productsCatalog ? (
-        <section id="products-section" className="max-w-7xl mx-auto px-2.5 sm:px-6 space-y-5 sm:space-y-6">
-        <div className="space-y-3.5 border-b border-slate-100 pb-4">
+        <section id="products-section" className="max-w-7xl mx-auto px-2.5 sm:px-6 space-y-3 sm:space-y-4 scroll-mt-20">
+        <div className="space-y-2.5 border-b border-slate-100 pb-3">
           {/* Top Row: Section Heading + Compact Smart Sort Selector */}
           <div className="flex items-end justify-between gap-3">
             <div className="space-y-1 min-w-0">
@@ -653,11 +653,11 @@ export const StorefrontView: React.FC = () => {
 
         return (
           <section id="campaign-section" className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-purple-950 via-[#5A3E7A] to-pink-950 text-white p-6 sm:p-8 lg:p-10 shadow-2xl border border-purple-800/40">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-purple-950 via-[#5A3E7A] to-pink-950 text-white p-4 sm:p-8 lg:p-10 shadow-2xl border border-purple-800/40">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-center">
                 
                 {/* Copy & CTA Column */}
-                <div className="lg:col-span-6 space-y-4 text-start">
+                <div className="lg:col-span-6 space-y-3 sm:space-y-4 text-start">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider text-pink-200 border border-white/20">
                     <Gem className="w-3.5 h-3.5 text-amber-300" />
                     {activeData.promoBanner?.badge ? activeData.promoBanner.badge[lang] : (lang === 'ar' ? 'عرض خاص' : 'Special Offer')}
@@ -676,53 +676,55 @@ export const StorefrontView: React.FC = () => {
                       : 'Includes a velvet pouch, free samples & fast shipping.')}
                   </p>
 
+                  {/* Unified Single-Row Smart Glassmorphic Dual-CTA Capsule (Zero Truncation & Zero Wrapping) */}
+                  <div className="pt-0.5 w-full sm:w-auto sm:inline-block">
+                    <div className="grid grid-cols-2 items-center gap-1 p-1 rounded-2xl bg-white/12 backdrop-blur-md border border-white/20 shadow-lg w-full sm:w-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!targetBundle) {
+                            showToast(isRtl ? 'لا توجد باقات متاحة في الكتالوج حالياً' : 'No bundles are currently available in catalog');
+                            return;
+                          }
+                          setDiamondBundleQty(1);
+                          setIsDiamondBundleModalOpen(true);
+                        }}
+                        className="h-11 px-1.5 sm:px-4 bg-white text-[#5A3E7A] hover:bg-purple-50 font-extrabold rounded-xl text-[11px] sm:text-sm shadow-sm active:scale-[0.98] transition-all inline-flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#5A3E7A] shrink-0" aria-hidden="true" />
+                        <span>
+                          {lang === 'ar' ? 'اطلبي البوكس' : 'Order Box'}
+                        </span>
+                      </button>
 
-
-                  {/* CTA Buttons - Opens in-page Quick View Modal without leaving page */}
-                  <div className="pt-2 flex flex-wrap items-center gap-3">
-                    <button
-                      onClick={() => {
-                        if (!targetBundle) {
-                          showToast(isRtl ? 'لا توجد باقات متاحة في الكتالوج حالياً' : 'No bundles are currently available in catalog');
-                          return;
-                        }
-                        setDiamondBundleQty(1);
-                        setIsDiamondBundleModalOpen(true);
-                      }}
-                      className="h-10 sm:h-11 px-4 sm:px-5 bg-white text-[#5A3E7A] hover:bg-purple-50 font-extrabold rounded-xl text-xs sm:text-sm shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all inline-flex items-center gap-2 cursor-pointer"
-                    >
-                      <ShoppingBag className="w-4 h-4 text-[#5A3E7A] shrink-0" />
-                      <span>
-                        {activeData.promoBanner?.ctaText ? activeData.promoBanner.ctaText[lang] : (lang === 'ar' ? 'اطلبي البوكس الآن' : 'Order Routine Bundle')}
-                      </span>
-                      {isRtl ? <ArrowLeft className="w-4 h-4 shrink-0" /> : <ArrowRight className="w-4 h-4 shrink-0" />}
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        if (!targetBundle) {
-                          showToast(isRtl ? 'لا توجد باقات متاحة في الكتالوج حالياً' : 'No bundles are currently available in catalog');
-                          return;
-                        }
-                        addToCart(targetBundle, 1);
-                        showToast({
-                          message: isRtl ? 'تمت إضافة البوكس إلى السلة.' : 'Bundle added to bag.',
-                          type: 'cart_add'
-                        });
-                        setIsCartOpen(true);
-                      }}
-                      className="h-10 sm:h-11 px-4 bg-purple-900/60 hover:bg-purple-900/90 text-white border border-white/25 font-bold rounded-xl text-xs sm:text-sm backdrop-blur-sm transition-all inline-flex items-center gap-2 cursor-pointer"
-                    >
-                      <span>{isRtl ? 'إضافة سريعة للسلة' : 'Quick Add to Bag'}</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!targetBundle) {
+                            showToast(isRtl ? 'لا توجد باقات متاحة في الكتالوج حالياً' : 'No bundles are currently available in catalog');
+                            return;
+                          }
+                          addToCart(targetBundle, 1);
+                          showToast({
+                            message: isRtl ? 'تمت إضافة البوكس إلى السلة.' : 'Bundle added to bag.',
+                            type: 'cart_add'
+                          });
+                          setIsCartOpen(true);
+                        }}
+                        className="h-11 px-1.5 sm:px-4 bg-purple-950/35 hover:bg-purple-950/60 text-white font-extrabold rounded-xl text-[11px] sm:text-sm active:scale-[0.98] transition-all inline-flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      >
+                        <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-200 shrink-0" aria-hidden="true" />
+                        <span>{isRtl ? 'أضيفي للسلة' : 'Add to Bag'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* Enriched & Clean Hero Showcase Column */}
-                <div className="lg:col-span-6 space-y-3.5">
-                  {/* Clean & Expansive Hero Frame (Grand Showcase: No accidental lightbox popups, strictly via expansion button) */}
+                <div className="lg:col-span-6 space-y-2.5 sm:space-y-3.5">
+                  {/* Balanced Showcase Frame (Sweet-spot height on mobile so photo feels luxurious while controls stay visible) */}
                   <div 
-                    className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20 w-full aspect-[4/5] sm:aspect-[4/4.6] min-h-[400px] sm:min-h-[480px] lg:min-h-[520px] group bg-purple-950/70 transition-all duration-300 select-none"
+                    className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20 w-full h-[290px] sm:h-[370px] lg:h-[460px] group bg-purple-950/70 transition-all duration-300 select-none"
                   >
                     <img
                       src={promoSlides[activePromoSlide].image}
@@ -829,7 +831,7 @@ export const StorefrontView: React.FC = () => {
       beforeAfter: (sectionsControl.beforeAfter && activePresetId === 'cosmetics') ? (() => {
         const baCopy = resolveBeforeAfterCopy(activeData.beforeAfterMedia, lang);
         return (
-          <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-5 sm:space-y-6">
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-3.5 sm:space-y-4">
             <div className="text-start space-y-1 max-w-2xl">
               <span className="text-xs font-black text-[#5A3E7A] uppercase tracking-widest block">
                 {baCopy.badge}
@@ -856,8 +858,8 @@ export const StorefrontView: React.FC = () => {
       // 7. VERIFIED CUSTOMER REVIEWS (Smart Luxury Testimonial Cards)
       testimonials: sectionsControl.testimonials ? (
         <>
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-        <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 sm:pb-4">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-3.5 sm:space-y-4">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2.5 sm:pb-3">
           <div className="space-y-0.5 sm:space-y-1 text-start">
             <h2 className="text-fluid-h2 font-black text-slate-900 font-brand-ar tracking-tight">
               {lang === 'ar' ? 'آراء عميلاتنا' : 'Customer Reviews'}
@@ -994,7 +996,7 @@ export const StorefrontView: React.FC = () => {
           </div>
 
           {/* Carousel Controls with Safe Distance */}
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-4 sm:mt-5 flex items-center justify-between">
             {/* Dots Pagination */}
             <div className="flex items-center gap-1.5">
               {effectiveTestimonials.map((_, i) => (
@@ -1034,7 +1036,7 @@ export const StorefrontView: React.FC = () => {
 
       {/* 7.B CLONED CUSTOMER REVIEWS (When cloned by merchant/developer) */}
       {clonedSections?.testimonials?.isCloned && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6 pt-4">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 space-y-3.5 sm:space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-purple-200/60 pb-4">
             <div className="space-y-1.5 text-start">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 border border-purple-300 text-purple-900 text-xs font-bold">
@@ -1116,7 +1118,7 @@ export const StorefrontView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-12 sm:space-y-20 pb-16">
+    <div className="space-y-8 sm:space-y-14 pb-6 sm:pb-10">
       {sectionsOrder.map((sectionId) => (
         <React.Fragment key={sectionId}>
           {sectionsContent[sectionId]}

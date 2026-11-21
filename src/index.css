@@ -199,10 +199,31 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee-ltr,
   .animate-marquee-rtl,
-  .animate-payment-marquee {
+  .animate-payment-marquee,
+  .animate-discount-pendant {
     animation: none;
     transform: none;
   }
+}
+
+/* Luxury Horizontal Pointed Price Tag - Subtle 60fps GPU Swing around Eyelet Pinhole */
+@keyframes discount-pendant-swing {
+  0%, 100% {
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    transform: rotate(1.6deg);
+  }
+}
+
+.animate-discount-pendant {
+  transform-origin: 90% 50%;
+  will-change: transform;
+  animation: discount-pendant-swing 3.4s ease-in-out infinite;
+}
+
+[dir="ltr"] .animate-discount-pendant {
+  transform-origin: 10% 50%;
 }
 
 /* Luxury mask fade at edges */

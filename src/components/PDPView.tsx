@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft, ArrowRight, BadgeCheck, Heart, MessageCircle,
   ShieldCheck, Truck, RotateCcw,
-  Plus, Check, Share2, Layers, Maximize2, ZoomIn, ZoomOut, X,
+  Plus, Check, Share2, Layers, Maximize2, X,
   ChevronLeft, ChevronRight, ArrowLeftRight, ChevronDown,
   FileText, CheckCircle2, Award, HelpCircle, SlidersHorizontal,
   FlaskConical, PenLine, Droplets, Ruler, Package,
@@ -56,16 +56,8 @@ export const PDPView: React.FC = () => {
     }));
   };
 
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
-
-  // Touch swipe gesture tracker
+  // Touch swipe gesture tracker for PDP gallery (inline zoom disabled — zoom lives exclusively in Fullscreen Lightbox)
   const touchSwipeRef = useRef<{ startX: number; startY: number; time: number }>({ startX: 0, startY: 0, time: 0 });
-
-  // Touch gesture & pinch-to-zoom state
-  const [touchScale, setTouchScale] = useState(1);
-  const [initialDistance, setInitialDistance] = useState<number | null>(null);
-  const [lastTap, setLastTap] = useState<number>(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxScale, setLightboxScale] = useState(1);
   const [lightboxPan, setLightboxPan] = useState({ x: 0, y: 0 });
@@ -73,6 +65,13 @@ export const PDPView: React.FC = () => {
   const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const lightboxTouchDistRef = useRef<number | null>(null);
   const initialLightboxScaleRef = useRef<number>(1);
+  const lightboxSwipeRef = useRef<{ startX: number; startY: number; time: number; didMultiTouch: boolean }>({
+    startX: 0,
+    startY: 0,
+    time: 0,
+    didMultiTouch: false,
+  });
+  const lightboxDidGestureRef = useRef(false);
 
   // Defensive image normalization & guaranteed local fallback
   const fallbackImage = NADI_LOCAL_IMAGE_FALLBACK;
@@ -101,9 +100,12 @@ export const PDPView: React.FC = () => {
     }
   }, [product?.id, finalImages.length, selectedImgIndex]);
 
-  // Keyboard navigation for fullscreen lightbox
+  // Keyboard navigation + body scroll lock for fullscreen lightbox
   useEffect(() => {
     if (!isLightboxOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsLightboxOpen(false);
@@ -120,7 +122,10 @@ export const PDPView: React.FC = () => {
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isLightboxOpen, finalImages.length]);
 
   if (!product) {
@@ -181,34 +186,95 @@ export const PDPView: React.FC = () => {
 
   const activeImage = finalImages[selectedImgIndex] || finalImages[0] || fallbackImage;
 
-  // Smooth mouse wheel zoom for fullscreen lightbox
+  const closeLightbox = () => {
+    setIsLightboxOpen(false);
+    setLightboxScale(1);
+    setLightboxPan({ x: 0, y: 0 });
+    setIsPanning(false);
+    lightboxTouchDistRef.current = null;
+  };
+
+  // Clamp pan smoothly relative to viewport so the zoomed image expands freely without getting lost off-screen
+  const clampLightboxPan = (nextX: number, nextY: number, scale: number) => {
+    if (scale <= 1) return { x: 0, y: 0 };
+    const maxOffsetX = (window.innerWidth * (scale - 1)) * 0.65;
+    const maxOffsetY = (window.innerHeight * (scale - 1)) * 0.65;
+    return {
+      x: Math.min(Math.max(nextX, -maxOffsetX), maxOffsetX),
+      y: Math.min(Math.max(nextY, -maxOffsetY), maxOffsetY),
+    };
+  };
+
+  // Smooth mouse wheel zoom for desktop fullscreen lightbox (zero click/tap zoom; body scroll is already locked)
   const handleWheelZoom = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
     setLightboxScale(prev => {
-      const delta = e.deltaY < 0 ? 0.25 : -0.25;
-      const next = Math.min(Math.max(prev + delta, 1), 4);
-      if (next === 1) setLightboxPan({ x: 0, y: 0 });
+      const delta = e.deltaY < 0 ? 0.22 : -0.22;
+      const next = Math.min(Math.max(Number((prev + delta).toFixed(3)), 1), 4);
+      if (next <= 1.01) {
+        setLightboxPan({ x: 0, y: 0 });
+        return 1;
+      }
+      setLightboxPan(currentPan => clampLightboxPan(currentPan.x, currentPan.y, next));
       return next;
     });
   };
 
-  // Lightbox touch handlers for smooth multi-touch pinch zoom
+  // Desktop mouse drag pan when zoomed
+  const handleLightboxMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (lightboxScale <= 1) return;
+    e.preventDefault();
+    setIsPanning(true);
+    lightboxDidGestureRef.current = false;
+    panStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      panX: lightboxPan.x,
+      panY: lightboxPan.y,
+    };
+  };
+
+  const handleLightboxMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isPanning || lightboxScale <= 1) return;
+    const dx = e.clientX - panStartRef.current.x;
+    const dy = e.clientY - panStartRef.current.y;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      lightboxDidGestureRef.current = true;
+    }
+    setLightboxPan(clampLightboxPan(panStartRef.current.panX + dx, panStartRef.current.panY + dy, lightboxScale));
+  };
+
+  const handleLightboxMouseUp = () => {
+    setIsPanning(false);
+  };
+
+  // Pure Touch Pinch-to-Zoom & Free Pan (Zero tap/click zoom)
   const handleLightboxTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2) {
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      lightboxTouchDistRef.current = dist;
+      lightboxTouchDistRef.current = Math.max(dist, 1);
       initialLightboxScaleRef.current = lightboxScale;
-    } else if (e.touches.length === 1 && lightboxScale > 1) {
-      setIsPanning(true);
-      panStartRef.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-        panX: lightboxPan.x,
-        panY: lightboxPan.y
+      lightboxSwipeRef.current.didMultiTouch = true;
+      lightboxDidGestureRef.current = true;
+      setIsPanning(false);
+    } else if (e.touches.length === 1) {
+      lightboxSwipeRef.current = {
+        startX: e.touches[0].clientX,
+        startY: e.touches[0].clientY,
+        time: Date.now(),
+        didMultiTouch: false,
       };
+      if (lightboxScale > 1) {
+        setIsPanning(true);
+        panStartRef.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          panX: lightboxPan.x,
+          panY: lightboxPan.y,
+        };
+      }
     }
   };
 
@@ -221,91 +287,80 @@ export const PDPView: React.FC = () => {
       const ratio = dist / lightboxTouchDistRef.current;
       const nextScale = Math.min(Math.max(initialLightboxScaleRef.current * ratio, 1), 4);
       setLightboxScale(nextScale);
-      if (nextScale <= 1) setLightboxPan({ x: 0, y: 0 });
+      if (nextScale <= 1.02) {
+        setLightboxPan({ x: 0, y: 0 });
+      } else {
+        setLightboxPan(currentPan => clampLightboxPan(currentPan.x, currentPan.y, nextScale));
+      }
     } else if (e.touches.length === 1 && isPanning && lightboxScale > 1) {
       const dx = e.touches[0].clientX - panStartRef.current.x;
       const dy = e.touches[0].clientY - panStartRef.current.y;
-      setLightboxPan({
-        x: panStartRef.current.panX + dx,
-        y: panStartRef.current.panY + dy
-      });
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        lightboxDidGestureRef.current = true;
+      }
+      setLightboxPan(clampLightboxPan(panStartRef.current.panX + dx, panStartRef.current.panY + dy, lightboxScale));
     }
   };
 
-  const handleLightboxTouchEnd = () => {
-    lightboxTouchDistRef.current = null;
-    setIsPanning(false);
+  const handleLightboxTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length < 2) {
+      lightboxTouchDistRef.current = null;
+    }
+
+    // Snap cleanly back to exact 1x if pinched nearly all the way down
+    if (lightboxScale < 1.04) {
+      setLightboxScale(1);
+      setLightboxPan({ x: 0, y: 0 });
+    }
+
+    // Smooth single-finger horizontal swipe between images only when unzoomed
+    if (
+      lightboxScale <= 1.04 &&
+      !lightboxSwipeRef.current.didMultiTouch &&
+      finalImages.length > 1 &&
+      e.touches.length === 0 &&
+      e.changedTouches.length === 1
+    ) {
+      const diffX = e.changedTouches[0].clientX - lightboxSwipeRef.current.startX;
+      const diffY = e.changedTouches[0].clientY - lightboxSwipeRef.current.startY;
+      const timeTaken = Date.now() - lightboxSwipeRef.current.time;
+      if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) && timeTaken < 700) {
+        if (diffX < 0) {
+          setSelectedImgIndex(prev => (prev === finalImages.length - 1 ? 0 : prev + 1));
+        } else {
+          setSelectedImgIndex(prev => (prev === 0 ? finalImages.length - 1 : prev - 1));
+        }
+        setLightboxScale(1);
+        setLightboxPan({ x: 0, y: 0 });
+      }
+    }
+
+    if (e.touches.length === 0) {
+      setIsPanning(false);
+    }
   };
 
-  // Mouse move handler for lens magnifier simulation
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-    setZoomPos({ x, y });
-  };
-
-  // Touch handlers for mobile pinch-to-zoom, double tap & swipe gestures
+  // Pure horizontal swipe handlers for PDP gallery (inline zoom intentionally removed; zoom works only in Lightbox)
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      setInitialDistance(dist);
-    } else if (e.touches.length === 1) {
+    if (e.touches.length === 1) {
       touchSwipeRef.current = {
         startX: e.touches[0].clientX,
         startY: e.touches[0].clientY,
         time: Date.now()
       };
-
-      const now = Date.now();
-      if (now - lastTap < 300) {
-        // Double tap toggles zoom
-        setTouchScale(prev => (prev > 1 ? 1 : 2));
-      }
-      setLastTap(now);
-      
-      const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-      const x = ((e.touches[0].clientX - left) / width) * 100;
-      const y = ((e.touches[0].clientY - top) / height) * 100;
-      setZoomPos({ x, y });
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length === 2 && initialDistance !== null) {
-      const currentDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const scaleFactor = currentDist / initialDistance;
-      const newScale = Math.min(Math.max(scaleFactor, 1), 3);
-      setTouchScale(newScale);
-    } else if (e.touches.length === 1 && touchScale > 1) {
-      const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-      const x = Math.min(Math.max(((e.touches[0].clientX - left) / width) * 100, 0), 100);
-      const y = Math.min(Math.max(((e.touches[0].clientY - top) / height) * 100, 0), 100);
-      setZoomPos({ x, y });
     }
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    setInitialDistance(null);
-
-    // If not zoomed in, detect natural horizontal swipe across multiple images
-    if (touchScale <= 1 && finalImages.length > 1 && e.changedTouches.length === 1) {
+    if (finalImages.length > 1 && e.changedTouches.length === 1) {
       const diffX = e.changedTouches[0].clientX - touchSwipeRef.current.startX;
       const diffY = e.changedTouches[0].clientY - touchSwipeRef.current.startY;
       const timeTaken = Date.now() - touchSwipeRef.current.time;
 
       if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY) && timeTaken < 800) {
         if (diffX < 0) {
-          // Swipe Left -> Next Image
           setSelectedImgIndex(prev => (prev === finalImages.length - 1 ? 0 : prev + 1));
         } else {
-          // Swipe Right -> Previous Image
           setSelectedImgIndex(prev => (prev === 0 ? finalImages.length - 1 : prev - 1));
         }
       }
@@ -400,11 +455,11 @@ export const PDPView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-6 sm:py-10 pb-28 sm:pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="min-h-screen bg-slate-50 pt-2 sm:pt-6 lg:pt-8 pb-28 sm:pb-16">
+      <div className="max-w-7xl mx-auto px-0 sm:px-4 lg:px-6">
         
         {/* Breadcrumb & Navigation */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="px-3 sm:px-0 mb-2.5 sm:mb-5 flex items-center justify-between">
           <button
             type="button"
             onClick={(e) => {
@@ -412,7 +467,7 @@ export const PDPView: React.FC = () => {
               e.stopPropagation();
               returnFromPDPToStore();
             }}
-            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#5A3E7A] active:scale-95 transition-all h-10 sm:h-11 px-4 rounded-xl bg-white border border-slate-200 shadow-xs hover:border-purple-200 cursor-pointer"
+            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#5A3E7A] active:scale-95 transition-all h-10 sm:h-11 px-3.5 sm:px-4 rounded-xl bg-white border border-slate-200 shadow-xs hover:border-purple-200 cursor-pointer"
           >
             {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
             <span>{lang === 'ar' ? 'العودة لجميع المنتجات' : 'Back to Store'}</span>
@@ -440,14 +495,14 @@ export const PDPView: React.FC = () => {
                   showToast(lang === 'ar' ? 'رابط المنتج جاهز للمشاركة' : 'Product link ready to share');
                 }
               }}
-              className="p-2.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors shadow-sm"
+              className="w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors shadow-xs flex items-center justify-center cursor-pointer"
               title={lang === 'ar' ? 'مشاركة المنتج' : 'Share Product'}
             >
               <Share2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => toggleCompare(product.id)}
-              className={`p-2.5 rounded-full border shadow-sm transition-all flex items-center justify-center ${
+              className={`w-10 h-10 rounded-full border shadow-xs transition-all flex items-center justify-center cursor-pointer ${
                 comparisonList.includes(product.id)
                   ? 'bg-[#5A3E7A] border-[#5A3E7A] text-white'
                   : 'bg-white border-slate-200 text-slate-600 hover:text-[#5A3E7A]'
@@ -458,33 +513,26 @@ export const PDPView: React.FC = () => {
             </button>
             <button
               onClick={() => toggleWishlist(product.id)}
-              className={`p-2.5 rounded-full border shadow-sm transition-all ${
+              className={`w-10 h-10 rounded-full border shadow-xs transition-all flex items-center justify-center cursor-pointer ${
                 isWishlisted
                   ? 'bg-rose-500 border-rose-500 text-white'
                   : 'bg-white border-slate-200 text-slate-600 hover:text-rose-500'
               }`}
-              title="Wishlist"
+              title={lang === 'ar' ? 'المفضلة' : 'Wishlist'}
             >
               <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
             </button>
           </div>
         </div>
 
-        {/* Main PDP Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm">
+        {/* Main PDP Grid (Full-Bleed Cinematic on Mobile; Balanced 2-Column Split on Tablet/Desktop to Prevent Any Top Cropping) */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-0 md:gap-6 lg:gap-10 bg-white sm:rounded-3xl border-y sm:border border-slate-200/90 shadow-xs overflow-hidden">
           
-          {/* LEFT COLUMN: Multi-Image Gallery with Pinch/Hover Lens */}
-          <div className="lg:col-span-6 space-y-4">
+          {/* LEFT COLUMN: Multi-Image Gallery (Zero Inline Zoom; Uncropped Natural Aspect Ratio on All Screens) */}
+          <div className="md:col-span-6 sm:p-4 md:p-5 space-y-2.5 sm:space-y-3">
             <div 
-              className="relative aspect-[4/4.8] sm:aspect-[4/4.5] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-100 border border-slate-200/80 group touch-pan-y select-none"
-              onMouseEnter={() => setIsZoomed(true)}
-              onMouseLeave={() => {
-                setIsZoomed(false);
-                setTouchScale(1);
-              }}
-              onMouseMove={handleMouseMove}
+              className="relative aspect-[4/4.2] sm:max-w-[460px] sm:mx-auto md:max-w-none md:aspect-[4/4.3] w-full rounded-none sm:rounded-2xl overflow-hidden bg-slate-100 touch-pan-y select-none"
               onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
               <img
@@ -492,33 +540,29 @@ export const PDPView: React.FC = () => {
                 alt={product.name[lang]}
                 referrerPolicy="no-referrer"
                 decoding="async"
-                className="w-full h-full object-cover object-center transition-transform duration-150 ease-out"
-                style={{
-                  transform: `scale(${isZoomed ? 1.4 : touchScale})`,
-                  transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
-                }}
+                className="w-full h-full object-cover object-center select-none"
                 onError={(e) => handleImageLoadError(e.currentTarget)}
               />
             </div>
 
-            {/* Controls Below Main Image: Thumbnails & Dedicated White 4-Arrow Expand Button (Matching Reference Image) */}
-            <div className="flex items-center justify-between gap-3 pt-1">
-              {/* Thumbnail Ribbons */}
+            {/* Compact Thumbnail Strip + Original Fullscreen Expand Row (Matched 44px Height on Mobile, 52px on Larger Screens) */}
+            <div className="px-3 sm:px-0 sm:max-w-[460px] sm:mx-auto md:max-w-none pb-1 flex items-center justify-between gap-3">
               {finalImages.length > 1 ? (
-                <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none flex-1">
+                <div className="flex items-center gap-2 overflow-x-auto py-0.5 scrollbar-none min-w-0">
                   {finalImages.map((img, idx) => (
                     <button
                       key={idx}
+                      type="button"
                       onClick={() => setSelectedImgIndex(idx)}
-                      className={`relative w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
+                      className={`relative w-11 h-11 sm:w-[52px] sm:h-[52px] rounded-lg overflow-hidden border-[1.5px] shrink-0 transition-all cursor-pointer ${
                         selectedImgIndex === idx
-                          ? 'border-[#5A3E7A] ring-2 ring-purple-200 scale-105'
-                          : 'border-slate-200 opacity-70 hover:opacity-100'
+                          ? 'border-[#5A3E7A] ring-2 ring-purple-200/90'
+                          : 'border-slate-200 opacity-75 hover:opacity-100'
                       }`}
                     >
                       <img 
                         src={img} 
-                        alt="thumb" 
+                        alt={`${product.name[lang]} ${idx + 1}`}
                         referrerPolicy="no-referrer"
                         decoding="async"
                         className="w-full h-full object-cover" 
@@ -528,24 +572,29 @@ export const PDPView: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="flex-1" />
+                <div />
               )}
 
-              {/* Pure White Circular 4-Arrow Expand Button (Exactly Matching Reference Screenshot) */}
+              {/* Fullscreen Expand Button Restored to Its Original Row Below the Image */}
               <button
                 type="button"
-                onClick={() => setIsLightboxOpen(true)}
-                className="w-11 h-11 rounded-full bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-950 border border-slate-200 shadow-xs hover:shadow-md flex items-center justify-center shrink-0 transition-all active:scale-95 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]/25"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxScale(1);
+                  setLightboxPan({ x: 0, y: 0 });
+                  setIsLightboxOpen(true);
+                }}
+                className="w-11 h-11 rounded-full bg-white hover:bg-purple-50 text-slate-700 hover:text-[#5A3E7A] border border-slate-200 hover:border-purple-200 shadow-xs flex items-center justify-center shrink-0 transition-all active:scale-95 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#5A3E7A]/25"
                 aria-label={lang === 'ar' ? 'تكبير وعرض بملء الشاشة' : 'Full screen expand'}
                 title={lang === 'ar' ? 'عرض بملء الشاشة' : 'Expand full screen'}
               >
-                <Maximize2 className="w-5 h-5 stroke-[1.8]" />
+                <Maximize2 className="w-4.5 h-4.5 stroke-[2]" />
               </button>
             </div>
           </div>
 
           {/* RIGHT COLUMN: Product Specifications & Actions */}
-          <div className="lg:col-span-6 flex flex-col justify-between space-y-6">
+          <div className="md:col-span-6 p-4 sm:p-6 md:py-5 md:pe-5 md:ps-0 lg:py-6 lg:pe-6 flex flex-col justify-between space-y-6">
             <div className="space-y-4">
               
               {/* Category and Rating */}
@@ -1476,135 +1525,120 @@ export const PDPView: React.FC = () => {
 
       </div>
 
-      {/* FULL-SCREEN IMMERSIVE LIGHTBOX MODAL */}
+      {/* FULL-SCREEN IMMERSIVE LIGHTBOX MODAL (Unconstrained Whole-Viewport Pinch-to-Zoom, Zero Tap Zoom, Above Floating Dock) */}
       {isLightboxOpen && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-3 sm:p-6 select-none animate-in fade-in duration-200"
-          onClick={() => {
-            setIsLightboxOpen(false);
-            setLightboxScale(1);
-          }}
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md select-none overflow-hidden animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-label={product.name[lang]}
         >
-          {/* Top Controls Bar - Mobile-Optimized Safe Area with Isolated Close Button */}
-          <div 
-            className="relative w-full max-w-7xl mx-auto z-20 flex items-center justify-between gap-3 pt-1 sm:pt-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Product Meta Pill: Independent with Safe Truncation */}
-            <div className="flex-1 min-w-0 me-3">
-              <div className="inline-flex items-center gap-2 max-w-full bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15">
-                <span className="text-xs sm:text-sm font-bold text-white truncate block max-w-[140px] xs:max-w-[200px] sm:max-w-md">
-                  {product.name[lang]}
-                </span>
-                <span className="text-[10px] sm:text-xs font-mono font-extrabold text-amber-300 bg-black/40 px-2 py-0.5 rounded-full border border-white/10 shrink-0">
-                  {selectedImgIndex + 1} / {product.images.length}
-                </span>
-              </div>
-            </div>
-
-            {/* Action Group: Zoom Controls + Fully Isolated Safe Close Button */}
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setLightboxScale(prev => (prev > 1 ? 1 : 2.2))}
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all border border-white/15 flex items-center justify-center shrink-0 cursor-pointer active:scale-95"
-                title={lightboxScale > 1 ? (lang === 'ar' ? 'تصغير الحجم' : 'Zoom Out') : (lang === 'ar' ? 'تكبير 2X' : 'Zoom In 2X')}
-              >
-                {lightboxScale > 1 ? <ZoomOut className="w-4 h-4 sm:w-5 sm:h-5" /> : <ZoomIn className="w-4 h-4 sm:w-5 sm:h-5" />}
-              </button>
-
-              {/* Isolated Close Button X with Safe 48px Touch Target */}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLightboxOpen(false);
-                  setLightboxScale(1);
-                }}
-                className="min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] rounded-full bg-red-500/20 hover:bg-red-500/35 border border-red-400/40 text-white flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-90 cursor-pointer shadow-lg shadow-black/40"
-                aria-label={lang === 'ar' ? 'إغلاق نافذة تكبير الصور' : 'Close full screen preview'}
-                title={lang === 'ar' ? 'إغلاق (ESC)' : 'Close (ESC)'}
-              >
-                <X className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
-              </button>
-            </div>
-          </div>
-
-          {/* Center Stage: High-Resolution Photo + Navigation Arrows */}
-          <div 
-            className="relative flex-1 flex items-center justify-center overflow-hidden my-3 touch-none"
-            onClick={(e) => e.stopPropagation()}
+          {/* Full-Viewport Unconstrained Interactive Stage: Image Scales as a Whole Across Entire Screen */}
+          <div
+            className={`absolute inset-0 flex items-center justify-center touch-none ${
+              lightboxScale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+            }`}
             onWheel={handleWheelZoom}
+            onMouseDown={handleLightboxMouseDown}
+            onMouseMove={handleLightboxMouseMove}
+            onMouseUp={handleLightboxMouseUp}
+            onMouseLeave={handleLightboxMouseUp}
             onTouchStart={handleLightboxTouchStart}
             onTouchMove={handleLightboxTouchMove}
             onTouchEnd={handleLightboxTouchEnd}
+            onClick={(e) => {
+              // Backdrop click closes only when not zoomed and not finishing a drag/pinch gesture
+              if (e.target === e.currentTarget && lightboxScale <= 1.02 && !lightboxDidGestureRef.current) {
+                closeLightbox();
+              }
+              lightboxDidGestureRef.current = false;
+            }}
           >
-            {/* Previous Arrow */}
-            {finalImages.length > 1 && (
+            <img
+              src={activeImage}
+              alt={product.name[lang]}
+              referrerPolicy="no-referrer"
+              decoding="async"
+              draggable={false}
+              className="max-h-[82vh] sm:max-h-[86vh] max-w-[96vw] sm:max-w-[92vw] object-contain drop-shadow-2xl select-none pointer-events-none will-change-transform"
+              style={{
+                transform: `translate3d(${lightboxPan.x}px, ${lightboxPan.y}px, 0) scale(${lightboxScale})`,
+                transition: isPanning || lightboxTouchDistRef.current !== null ? 'none' : 'transform 140ms cubic-bezier(0.22, 1, 0.36, 1)',
+              }}
+              onError={(e) => handleImageLoadError(e.currentTarget)}
+            />
+          </div>
+
+          {/* Top Controls Bar: Product Title Pill + Clean Isolated Close Button (No Manual Zoom Buttons) */}
+          <div
+            className="fixed top-0 inset-x-0 z-20 p-3 sm:p-5 flex items-center justify-between gap-3 pointer-events-none"
+          >
+            <div className="flex-1 min-w-0 pointer-events-auto">
+              <div className="inline-flex items-center gap-2 max-w-full bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15">
+                <span className="text-xs sm:text-sm font-bold text-white truncate block max-w-[170px] sm:max-w-md">
+                  {product.name[lang]}
+                </span>
+                {finalImages.length > 1 && (
+                  <span dir="ltr" className="text-[10px] sm:text-xs font-mono font-extrabold text-amber-300 bg-black/45 px-2 py-0.5 rounded-full border border-white/10 shrink-0">
+                    {selectedImgIndex + 1} / {finalImages.length}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={closeLightbox}
+              className="pointer-events-auto min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] rounded-full bg-red-500/25 hover:bg-red-500/40 backdrop-blur-md border border-red-400/45 text-white flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-90 cursor-pointer shadow-lg shadow-black/40 shrink-0"
+              aria-label={lang === 'ar' ? 'إغلاق نافذة عرض الصور' : 'Close full screen preview'}
+              title={lang === 'ar' ? 'إغلاق (ESC)' : 'Close (ESC)'}
+            >
+              <X className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+            </button>
+          </div>
+
+          {/* Previous / Next Arrows (Automatically Fade Out While Zoomed So They Never Obstruct Inspection) */}
+          {finalImages.length > 1 && lightboxScale <= 1.05 && (
+            <>
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setSelectedImgIndex(prev => (prev === 0 ? finalImages.length - 1 : prev - 1));
                   setLightboxScale(1);
                   setLightboxPan({ x: 0, y: 0 });
                 }}
-                className="absolute start-2 sm:start-6 z-20 w-12 h-12 rounded-full bg-white/15 hover:bg-white/30 text-white backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-white/20 shadow-lg"
-                aria-label="Previous image"
+                className="fixed top-1/2 -translate-y-1/2 start-2.5 sm:start-6 z-20 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-white/20 shadow-lg cursor-pointer"
+                aria-label={lang === 'ar' ? 'الصورة السابقة' : 'Previous image'}
               >
                 {isRtl ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
               </button>
-            )}
 
-            {/* Immersive Image Display with Smooth Dynamic Scale & Pan */}
-            <div 
-              className={`overflow-hidden max-h-[78vh] max-w-[92vw] flex items-center justify-center select-none ${
-                lightboxScale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'
-              }`}
-              onDoubleClick={() => {
-                setLightboxScale(prev => {
-                  const next = prev > 1 ? 1 : 2.5;
-                  if (next === 1) setLightboxPan({ x: 0, y: 0 });
-                  return next;
-                });
-              }}
-            >
-              <img
-                src={activeImage}
-                alt={product.name[lang]}
-                referrerPolicy="no-referrer"
-                decoding="async"
-                draggable={false}
-                className="max-h-[76vh] sm:max-h-[80vh] max-w-[90vw] object-contain drop-shadow-2xl transition-transform duration-100 ease-out select-none pointer-events-none"
-                style={{
-                  transform: `scale(${lightboxScale}) translate(${lightboxPan.x / lightboxScale}px, ${lightboxPan.y / lightboxScale}px)`,
-                }}
-                onError={(e) => handleImageLoadError(e.currentTarget)}
-              />
-            </div>
-
-            {/* Next Arrow */}
-            {finalImages.length > 1 && (
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setSelectedImgIndex(prev => (prev === finalImages.length - 1 ? 0 : prev + 1));
                   setLightboxScale(1);
                   setLightboxPan({ x: 0, y: 0 });
                 }}
-                className="absolute end-2 sm:end-6 z-20 w-12 h-12 rounded-full bg-white/15 hover:bg-white/30 text-white backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-white/20 shadow-lg"
-                aria-label="Next image"
+                className="fixed top-1/2 -translate-y-1/2 end-2.5 sm:end-6 z-20 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-white/20 shadow-lg cursor-pointer"
+                aria-label={lang === 'ar' ? 'الصورة التالية' : 'Next image'}
               >
                 {isRtl ? <ChevronLeft className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
               </button>
-            )}
-          </div>
+            </>
+          )}
 
-          {/* Bottom Thumbnail Strip (Clutter-Free, Unnecessary Note Removed) */}
-          <div 
-            className="w-full max-w-xl mx-auto flex flex-col items-center gap-2 z-10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {finalImages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto p-1.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/15 max-w-full">
+          {/* Bottom Thumbnail Switcher (Hidden While Zoomed for 100% Unobstructed Full-Screen Inspection) */}
+          {finalImages.length > 1 && lightboxScale <= 1.15 && (
+            <div
+              className="fixed bottom-4 sm:bottom-6 inset-x-0 z-20 flex justify-center px-4 pointer-events-none"
+            >
+              <div
+                className="pointer-events-auto flex gap-2 overflow-x-auto p-1.5 bg-black/50 backdrop-blur-md rounded-2xl border border-white/15 max-w-full"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {finalImages.map((img, idx) => (
                   <button
                     key={idx}
@@ -1614,25 +1648,25 @@ export const PDPView: React.FC = () => {
                       setLightboxScale(1);
                       setLightboxPan({ x: 0, y: 0 });
                     }}
-                    className={`w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
+                    className={`w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
                       selectedImgIndex === idx
                         ? 'border-white ring-2 ring-white/50 scale-105'
-                        : 'border-transparent opacity-50 hover:opacity-100'
+                        : 'border-transparent opacity-55 hover:opacity-100'
                     }`}
                   >
-                    <img 
-                      src={img} 
-                      alt="thumb" 
+                    <img
+                      src={img}
+                      alt={`${product.name[lang]} ${idx + 1}`}
                       referrerPolicy="no-referrer"
                       decoding="async"
-                      className="w-full h-full object-cover" 
+                      className="w-full h-full object-cover"
                       onError={(e) => handleImageLoadError(e.currentTarget)}
                     />
                   </button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
     </div>

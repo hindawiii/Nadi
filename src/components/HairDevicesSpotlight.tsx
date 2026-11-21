@@ -395,11 +395,11 @@ export const HairDevicesSpotlight: React.FC = () => {
   return (
     <section 
       id="hair-devices-section"
-      className="max-w-7xl mx-auto px-2.5 sm:px-6 my-10 sm:my-16 space-y-8 select-none relative"
+      className="max-w-7xl mx-auto px-2.5 sm:px-6 space-y-4 sm:space-y-6 select-none relative"
       aria-label={lang === 'ar' ? 'قسم أجهزة الشعر' : 'Hair Styling Devices Section'}
     >
-      {/* 1. TOP TRIO BRAND BANNERS (Matching Photo 1: Siltek, Okema, Clara) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+      {/* 1. TOP TRIO BRAND BANNERS (Tight cohesive mobile rhythm: Siltek, Okema, Clara) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-4">
         {trioBanners.map((banner) => {
           const isActive = activeSubCategory === banner.targetTab;
           const isLightBg = banner.id === 'okema-banner' || banner.id === 'clara-banner' || banner.bgGradient?.includes('#f') || Boolean((banner as any).isDarkText);
@@ -429,13 +429,13 @@ export const HairDevicesSpotlight: React.FC = () => {
                   }
                 }, 40);
               }}
-              className={`relative overflow-hidden rounded-3xl p-5 sm:p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br ${banner.bgGradient} border ${
+              className={`relative overflow-hidden rounded-3xl p-4 sm:p-5 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br ${banner.bgGradient} border ${
                 isActive 
                   ? 'ring-2 ring-amber-400 shadow-lg border-amber-400/80 scale-[1.01]' 
                   : isLightBg 
                   ? 'border-slate-200/90 shadow-xs hover:border-slate-300' 
                   : 'border-white/10 shadow-sm hover:border-white/20'
-              } min-h-[190px] flex flex-col justify-between group`}
+              } min-h-[152px] sm:min-h-[180px] flex flex-col justify-between group`}
             >
               {/* Brand Logo Watermark / Top Header */}
               <div className="flex items-center justify-between z-10">
@@ -465,7 +465,7 @@ export const HairDevicesSpotlight: React.FC = () => {
               </div>
 
               {/* Banner Text Content with Safe Breathing Room */}
-              <div className="relative z-10 max-w-[58%] sm:max-w-[60%] space-y-1.5 pt-3 sm:pt-5 text-start">
+              <div className="relative z-10 max-w-[58%] sm:max-w-[60%] space-y-1 pt-2 sm:pt-4 text-start">
                 <h3 
                   className={`font-black text-sm sm:text-base leading-snug tracking-tight ${
                     isLightBg ? 'text-[#0f172a]' : 'text-white'
@@ -492,155 +492,158 @@ export const HairDevicesSpotlight: React.FC = () => {
         })}
       </div>
 
-      {/* 2. SECTION HEADER WITH UNIFIED NADI ACCENT LINES (—— أجهزة الشعر ——) */}
-      <div id="hair-devices-carousel" className="flex items-center justify-center gap-3 sm:gap-4 pt-3 scroll-mt-20">
-        <div className="w-10 sm:w-16 h-0.5 bg-[#5A3E7A]/70 rounded-full" />
-        <h2 className="text-fluid-h2 font-black text-slate-900 tracking-tight font-brand-ar leading-tight">
-          {lang === 'ar' ? 'أجهزة الشعر' : 'Hair Styling Devices'}
-        </h2>
-        <div className="w-10 sm:w-16 h-0.5 bg-[#5A3E7A]/70 rounded-full" />
-      </div>
+      {/* 2. UNIFIED PROXIMITY GROUP: Header -> Smart Capsule Dock -> Products */}
+      <div className="space-y-3 sm:space-y-4">
+        {/* SECTION HEADER WITH UNIFIED NADI ACCENT LINES (—— أجهزة الشعر ——) */}
+        <div id="hair-devices-carousel" className="flex items-center justify-center gap-3 sm:gap-4 scroll-mt-20">
+          <div className="w-10 sm:w-16 h-0.5 bg-[#5A3E7A]/70 rounded-full" />
+          <h2 className="text-fluid-h2 font-black text-slate-900 tracking-tight font-brand-ar leading-tight">
+            {lang === 'ar' ? 'أجهزة الشعر' : 'Hair Styling Devices'}
+          </h2>
+          <div className="w-10 sm:w-16 h-0.5 bg-[#5A3E7A]/70 rounded-full" />
+        </div>
 
-      {/* 3. UNIFIED SMART CAPSULE DOCK (Exact match to "Our Collections" rounded-2xl / rounded-xl architecture) */}
-      <div className="w-full overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden flex justify-start sm:justify-center">
-        <div
-          role="tablist"
-          aria-label={lang === 'ar' ? 'تصنيفات أجهزة الشعر' : 'Hair device categories'}
-          className="inline-flex items-center gap-1 p-1 bg-slate-100/85 border border-slate-200/85 rounded-2xl shadow-2xs backdrop-blur-xs snap-x snap-mandatory mx-auto"
-        >
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeSubCategory === tab.id;
-            const count = effectiveDevices.filter((item) => matchesSubCategory(item, tab.id)).length;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => handleTabChange(tab.id)}
-                className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 rounded-xl text-[11.5px] sm:text-[13px] font-bold transition-all whitespace-nowrap min-h-[42px] sm:min-h-[44px] cursor-pointer active:scale-[0.98] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A3E7A]/40 ${
-                  isActive
-                    ? 'bg-theme-primary text-white shadow-sm shadow-purple-900/15'
-                    : 'text-slate-700 hover:text-[#5A3E7A] hover:bg-white/90'
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-purple-100' : 'text-[#5A3E7A]/80'}`} />
-                <span>{tab.label[lang]}</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold tabular-nums leading-none ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-500 border border-slate-200/70'
+        {/* UNIFIED SMART CAPSULE DOCK (Exact match to "Our Collections" rounded-2xl / rounded-xl architecture) */}
+        <div className="w-full overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden flex justify-start sm:justify-center">
+          <div
+            role="tablist"
+            aria-label={lang === 'ar' ? 'تصنيفات أجهزة الشعر' : 'Hair device categories'}
+            className="inline-flex items-center gap-1 p-1 bg-slate-100/85 border border-slate-200/85 rounded-2xl shadow-2xs backdrop-blur-xs snap-x snap-mandatory mx-auto"
+          >
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeSubCategory === tab.id;
+              const count = effectiveDevices.filter((item) => matchesSubCategory(item, tab.id)).length;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 rounded-xl text-[11.5px] sm:text-[13px] font-bold transition-all whitespace-nowrap min-h-[42px] sm:min-h-[44px] cursor-pointer active:scale-[0.98] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A3E7A]/40 ${
+                    isActive
+                      ? 'bg-theme-primary text-white shadow-sm shadow-purple-900/15'
+                      : 'text-slate-700 hover:text-[#5A3E7A] hover:bg-white/90'
                   }`}
                 >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 4. PRODUCTS DISPLAY: EITHER HORIZONTAL CAROUSEL OR FULL RESPONSIVE GRID */}
-      {!isGridView ? (
-        <div className="relative group/carousel">
-          {/* Previous Button (Desktop / Tablet) */}
-          <button
-            type="button"
-            onClick={() => scrollCarousel('prev')}
-            aria-label={lang === 'ar' ? 'السابق' : 'Previous devices'}
-            className="hidden md:flex absolute -start-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#5A3E7A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
-          >
-            {isRtl ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-          </button>
-
-          {/* Carousel Scroll Container (With fluid vertical page scroll and horizontal device swipe) */}
-          <div
-            ref={scrollContainerRef}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseLeave}
-            className="flex gap-2 lg:gap-3 overflow-x-auto pb-2 sm:pb-3 pt-2 px-1 scroll-smooth snap-x snap-mandatory scrollbar-none cursor-grab active:cursor-grabbing touch-manipulation"
-            style={{ 
-              scrollbarWidth: 'none', 
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch',
-              overscrollBehaviorX: 'contain',
-              touchAction: 'pan-x pan-y'
-            }}
-          >
-            {filteredProducts.map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                isCarouselItem={true} 
-              />
-            ))}
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-purple-100' : 'text-[#5A3E7A]/80'}`} />
+                  <span>{tab.label[lang]}</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold tabular-nums leading-none ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-500 border border-slate-200/70'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+        </div>
 
-          {/* Next Button (Desktop / Tablet) */}
-          <button
-            type="button"
-            onClick={() => scrollCarousel('next')}
-            aria-label={lang === 'ar' ? 'التالي' : 'Next devices'}
-            className="hidden md:flex absolute -end-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#5A3E7A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
-          >
-            {isRtl ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-          </button>
-
-          {/* Unified Bottom Footer: Swipe Hint + Switch to Grid Button */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 pt-3">
-            <span className="text-[11px] sm:text-xs text-slate-400 font-medium">
-              {lang === 'ar' ? 'اسحبي لتصفح المزيد' : 'Swipe to explore'}
-            </span>
-            <span className="hidden sm:inline text-slate-300">•</span>
+        {/* PRODUCTS DISPLAY: EITHER HORIZONTAL CAROUSEL OR FULL RESPONSIVE GRID */}
+        {!isGridView ? (
+          <div className="relative group/carousel">
+            {/* Previous Button (Desktop / Tablet) */}
             <button
               type="button"
-              onClick={() => {
-                setIsGridView(true);
-                handleTabChange('all');
-                showToast(lang === 'ar' ? 'تم فتح شبكة عرض كافة الأجهزة' : 'Switched to full grid view');
-              }}
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#5A3E7A] bg-white hover:bg-purple-50/50 border border-slate-200/90 hover:border-[#5A3E7A]/40 transition-all h-10 px-4 sm:px-5 rounded-xl shadow-xs hover:shadow active:scale-95 cursor-pointer"
+              onClick={() => scrollCarousel('prev')}
+              aria-label={lang === 'ar' ? 'السابق' : 'Previous devices'}
+              className="hidden md:flex absolute -start-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#5A3E7A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
             >
-              <LayoutGrid className="w-4 h-4 text-[#5A3E7A]" />
-              <span>
-                {lang === 'ar' ? 'عرض كافة الأجهزة' : 'View All Devices'}
+              {isRtl ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            </button>
+
+            {/* Carousel Scroll Container (With fluid vertical page scroll and horizontal device swipe) */}
+            <div
+              ref={scrollContainerRef}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              className="flex gap-2 lg:gap-3 overflow-x-auto pb-2 sm:pb-3 pt-0.5 px-1 scroll-smooth snap-x snap-mandatory scrollbar-none cursor-grab active:cursor-grabbing touch-manipulation"
+              style={{ 
+                scrollbarWidth: 'none', 
+                msOverflowStyle: 'none',
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehaviorX: 'contain',
+                touchAction: 'pan-x pan-y'
+              }}
+            >
+              {filteredProducts.map((product) => (
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  isCarouselItem={true} 
+                />
+              ))}
+            </div>
+
+            {/* Next Button (Desktop / Tablet) */}
+            <button
+              type="button"
+              onClick={() => scrollCarousel('next')}
+              aria-label={lang === 'ar' ? 'التالي' : 'Next devices'}
+              className="hidden md:flex absolute -end-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg items-center justify-center text-slate-700 hover:text-[#5A3E7A] hover:scale-105 active:scale-95 transition-all opacity-0 group-hover/carousel:opacity-100 focus:opacity-100"
+            >
+              {isRtl ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+            </button>
+
+            {/* Unified Bottom Footer: Swipe Hint + Switch to Grid Button */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 pt-2">
+              <span className="text-[11px] sm:text-xs text-slate-400 font-medium">
+                {lang === 'ar' ? 'اسحبي لتصفح المزيد' : 'Swipe to explore'}
               </span>
-              <ChevronDown className="w-4 h-4 text-slate-500" />
-            </button>
+              <span className="hidden sm:inline text-slate-300">•</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsGridView(true);
+                  handleTabChange('all');
+                  showToast(lang === 'ar' ? 'تم فتح شبكة عرض كافة الأجهزة' : 'Switched to full grid view');
+                }}
+                className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#5A3E7A] bg-white hover:bg-purple-50/50 border border-slate-200/90 hover:border-[#5A3E7A]/40 transition-all h-10 px-4 sm:px-5 rounded-xl shadow-xs hover:shadow active:scale-95 cursor-pointer"
+              >
+                <LayoutGrid className="w-4 h-4 text-[#5A3E7A]" />
+                <span>
+                  {lang === 'ar' ? 'عرض كافة الأجهزة' : 'View All Devices'}
+                </span>
+                <ChevronDown className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="space-y-4 pt-2">
-          {/* Autonomous Adaptive Grid: Balanced gap-2 on mobile/tablet, lg:gap-3 on large desktop */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-2 lg:gap-3 animate-in fade-in duration-300">
-            {filteredProducts.map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                isCarouselItem={false} 
-              />
-            ))}
-          </div>
+        ) : (
+          <div className="space-y-3 pt-0.5">
+            {/* Autonomous Adaptive Grid: Balanced gap-2 on mobile/tablet, lg:gap-3 on large desktop */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-2 lg:gap-3 animate-in fade-in duration-300">
+              {filteredProducts.map((product) => (
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  isCarouselItem={false} 
+                />
+              ))}
+            </div>
 
-          {/* Back to Carousel (Show Less) Button */}
-          <div className="flex items-center justify-center pt-3">
-            <button
-              type="button"
-              onClick={() => {
-                setIsGridView(false);
-                document.getElementById('hair-devices-carousel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                showToast(lang === 'ar' ? 'تمت العودة للعرض كشريط أفقي' : 'Returned to carousel view');
-              }}
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#5A3E7A] bg-white hover:bg-purple-50/50 border border-slate-200/90 hover:border-[#5A3E7A]/40 transition-all h-10 px-5 rounded-xl shadow-xs hover:shadow active:scale-95 cursor-pointer"
-            >
-              <span>{lang === 'ar' ? 'عرض أقل' : 'Show Less'}</span>
-              <ChevronUp className="w-4 h-4 text-slate-500" />
-            </button>
+            {/* Back to Carousel (Show Less) Button */}
+            <div className="flex items-center justify-center pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsGridView(false);
+                  document.getElementById('hair-devices-carousel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  showToast(lang === 'ar' ? 'تمت العودة للعرض كشريط أفقي' : 'Returned to carousel view');
+                }}
+                className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 hover:text-[#5A3E7A] bg-white hover:bg-purple-50/50 border border-slate-200/90 hover:border-[#5A3E7A]/40 transition-all h-10 px-5 rounded-xl shadow-xs hover:shadow active:scale-95 cursor-pointer"
+              >
+                <span>{lang === 'ar' ? 'عرض أقل' : 'Show Less'}</span>
+                <ChevronUp className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 };

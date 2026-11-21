@@ -17,7 +17,8 @@ import {
   persistOrderToCloud, 
   updateOrderStatusInCloud, 
   clearAllOrdersFromCloud,
-  subscribeToCloudOrders
+  subscribeToCloudOrders,
+  subscribeToCustomerOrders
 } from '../services/orderService';
 import { persistReviewToCloud, subscribeToCloudReviews } from '../services/reviewService';
 import {
@@ -25,6 +26,20 @@ import {
   saveStorefrontConfigToCloud,
   subscribeToStorefrontConfig,
 } from '../services/storeConfigService';
+import {
+  computeCommerceFingerprint,
+  fetchUserCommerceState,
+  hydrateCloudCart,
+  mergeCartItems,
+  mergeWishlistIds,
+  saveUserCommerceState,
+  subscribeToUserCommerceState,
+} from '../services/userCommerceService';
+import {
+  deductInventoryAtomically,
+  subscribeToCloudInventory,
+  syncCatalogInventoryToCloud,
+} from '../services/inventoryService';
 import { computeAuthoritativeOrderSummary } from '../lib/checkoutIntegrity';
 import { testConnection, auth } from '../lib/firebase';
 import {
@@ -97,7 +112,7 @@ export interface CustomerSessionUser {
   provider?: string;
 }
 
-export type RouteName = 'store' | 'admin' | 'developer' | 'pdp' | 'tracker' | 'about' | 'wishlist' | 'cart' | 'login';
+export type RouteName = 'store' | 'admin' | 'developer' | 'pdp' | 'tracker' | 'about' | 'privacy' | 'wishlist' | 'cart' | 'login';
 
 interface CommerceContextType {
   lang: 'ar' | 'en';
@@ -180,6 +195,8 @@ interface CommerceContextType {
   
   // Orders
   orders: OrderRecord[];
+  customerOrders: OrderRecord[];
+  isLoadingCustomerOrders: boolean;
   placeOrder: (customer: PlaceOrderParams) => OrderRecord;
   updateOrderStatus: (orderId: string, status: OrderRecord['status']) => void;
   clearAllOrders: () => void;
@@ -555,9 +572,46 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [firebaseAdminEmail, setFirebaseAdminEmail] = useState<string | null>(null);
   const [cloudConfigStatus, setCloudConfigStatus] = useState<'local' | 'syncing' | 'synced' | 'error'>('local');
   const [lastCloudSyncAt, setLastCloudSyncAt] = useState<string | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<OrderRecord[]>([]);
+  const [isLoadingCustomerOrders, setIsLoadingCustomerOrders] = useState<boolean>(false);
+
   const isApplyingCloudConfigRef = useRef(false);
   const lastCloudFingerprintRef = useRef('');
   const wasCloudAdminVerifiedRef = useRef(false);
+
+  // Refs for fresh closures inside async Firebase listeners & echo-loop guards
+  const cartRef = useRef(cart);
+  cartRef.current = cart;
+  const rawWishlistRef = useRef(rawWishlist);
+  rawWishlistRef.current = rawWishlist;
+  const dynamicConfigRef = useRef(dynamicConfig);
+  dynamicConfigRef.current = dynamicConfig;
+  const hydratedCommerceUidRef = useRef<string | null>(null);
+  const isApplyingCloudCommerceRef = useRef(false);
+  const lastSyncedCommerceFingerprintRef = useRef('');
+  const liveInventoryMapRef = useRef<Record<string, number>>({});
+  const hasSeededInventoryRef = useRef(false);
+
+  const getAllCatalogProductsFromConfig = (cfg: SiteConfig): Product[] => {
+    const seen = new Set<string>();
+    const all: Product[] = [];
+    (Object.keys(cfg.presets) as Array<keyof typeof cfg.presets>).forEach((pk) => {
+      const list = cfg.presets[pk]?.products || [];
+      list.forEach((p) => {
+        if (p?.id && !seen.has(p.id)) {
+          seen.add(p.id);
+          all.push(p);
+        }
+      });
+    });
+    hairStylingDevices.forEach((hd) => {
+      if (hd?.id && !seen.has(hd.id)) {
+        seen.add(hd.id);
+        all.push(hd);
+      }
+    });
+    return all;
+  };
 
   const activePresetProductsForWishlist = dynamicConfig.presets[activePresetId]?.products || [];
   const wishlist = rawWishlist.filter(
@@ -649,12 +703,16 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (err) {
       console.warn('Firebase sign-out warning:', err);
     }
+    hydratedCommerceUidRef.current = null;
+    lastSyncedCommerceFingerprintRef.current = '';
+    setCustomerOrders([]);
+    setIsLoadingCustomerOrders(false);
     setCustomerUser(null);
     clearCustomerSessionCache();
     showToast(lang === 'ar' ? 'تم تسجيل الخروج بنجاح' : 'Signed out successfully');
   };
 
-  // Sync cart to storage
+  // Sync cart to local storage cache
   useEffect(() => {
     try {
       safeStorage.setItem(STORAGE_KEY_CART, JSON.stringify(cart));
@@ -663,7 +721,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [cart]);
 
-  // Sync raw wishlist to storage
+  // Sync raw wishlist to local storage cache
   useEffect(() => {
     try {
       safeStorage.setItem(STORAGE_KEY_WISHLIST, JSON.stringify(rawWishlist));
@@ -671,6 +729,27 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error(e);
     }
   }, [rawWishlist]);
+
+  // Debounced Cloud Firestore sync for authenticated customer cart & wishlist (/users/{uid}/private/commerce)
+  useEffect(() => {
+    const uid = customerUser?.uid;
+    if (!uid || hydratedCommerceUidRef.current !== uid || isApplyingCloudCommerceRef.current) {
+      return;
+    }
+
+    const nextFingerprint = computeCommerceFingerprint(cart, rawWishlist);
+    if (nextFingerprint === lastSyncedCommerceFingerprintRef.current) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (!auth.currentUser || auth.currentUser.uid !== uid) return;
+      lastSyncedCommerceFingerprintRef.current = nextFingerprint;
+      void saveUserCommerceState(uid, cart, rawWishlist);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [customerUser?.uid, cart, rawWishlist]);
 
   // Section Visibility Management (Single Source of Truth for Developer Panel)
   const defaultSections: SectionVisibilityMap = {
@@ -1265,6 +1344,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     let isMounted = true;
     let unsubOrders: (() => void) | undefined;
     let unsubReviews: (() => void) | undefined;
+    let unsubCustomerOrders: (() => void) | undefined;
+    let unsubUserCommerce: (() => void) | undefined;
 
     // Purge any legacy client-side auth bypass or cached PIN keys from earlier versions
     [
@@ -1289,6 +1370,14 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (unsubReviews) {
         unsubReviews();
         unsubReviews = undefined;
+      }
+      if (unsubCustomerOrders) {
+        unsubCustomerOrders();
+        unsubCustomerOrders = undefined;
+      }
+      if (unsubUserCommerce) {
+        unsubUserCommerce();
+        unsubUserCommerce = undefined;
       }
 
       const verifiedAdmin = Boolean(
@@ -1317,7 +1406,86 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         };
         setCustomerUser(nextUser);
         saveCustomerSessionCache(nextUser, getRememberMePreference());
+
+        // 1. Subscribe to authenticated customer's own cloud orders (Secure List Query: ownerUid == uid)
+        setIsLoadingCustomerOrders(true);
+        unsubCustomerOrders = subscribeToCustomerOrders(
+          fbUser.uid,
+          (mine) => {
+            if (!isMounted) return;
+            setCustomerOrders(mine);
+            setIsLoadingCustomerOrders(false);
+          },
+          () => {
+            if (isMounted) setIsLoadingCustomerOrders(false);
+          }
+        );
+
+        // 2. Hydrate & smart-merge guest local cart/wishlist with private cloud state (/users/{uid}/private/commerce)
+        try {
+          const cloudCommerce = await fetchUserCommerceState(fbUser.uid);
+          if (!isMounted || auth.currentUser?.uid !== fbUser.uid) return;
+
+          const catalogPool = getAllCatalogProductsFromConfig(dynamicConfigRef.current);
+          const mergedCart = mergeCartItems(
+            cartRef.current,
+            cloudCommerce?.cart || [],
+            catalogPool
+          );
+          const mergedWishlist = mergeWishlistIds(
+            rawWishlistRef.current,
+            cloudCommerce?.wishlist || []
+          );
+
+          const mergedFp = computeCommerceFingerprint(mergedCart, mergedWishlist);
+          const cloudHydratedCart = cloudCommerce
+            ? hydrateCloudCart(cloudCommerce.cart, catalogPool)
+            : [];
+          const cloudFp = cloudCommerce
+            ? computeCommerceFingerprint(cloudHydratedCart, cloudCommerce.wishlist)
+            : '';
+
+          isApplyingCloudCommerceRef.current = true;
+          lastSyncedCommerceFingerprintRef.current = mergedFp;
+          hydratedCommerceUidRef.current = fbUser.uid;
+          setCart(mergedCart);
+          setWishlist(mergedWishlist);
+          setTimeout(() => {
+            isApplyingCloudCommerceRef.current = false;
+          }, 0);
+
+          if ((!cloudCommerce && (mergedCart.length > 0 || mergedWishlist.length > 0)) || (cloudCommerce && mergedFp !== cloudFp)) {
+            void saveUserCommerceState(fbUser.uid, mergedCart, mergedWishlist);
+          }
+
+          unsubUserCommerce = subscribeToUserCommerceState(fbUser.uid, (liveDoc) => {
+            if (!isMounted) return;
+            const livePool = getAllCatalogProductsFromConfig(dynamicConfigRef.current);
+            const liveCart = hydrateCloudCart(liveDoc.cart, livePool);
+            const liveWishlist = liveDoc.wishlist;
+            const incomingFp = computeCommerceFingerprint(liveCart, liveWishlist);
+
+            if (incomingFp === lastSyncedCommerceFingerprintRef.current) {
+              return;
+            }
+
+            isApplyingCloudCommerceRef.current = true;
+            lastSyncedCommerceFingerprintRef.current = incomingFp;
+            setCart(liveCart);
+            setWishlist(liveWishlist);
+            setTimeout(() => {
+              isApplyingCloudCommerceRef.current = false;
+            }, 0);
+          });
+        } catch (err) {
+          console.warn('Could not hydrate customer cloud commerce state:', err);
+          hydratedCommerceUidRef.current = fbUser.uid;
+        }
       } else {
+        hydratedCommerceUidRef.current = null;
+        lastSyncedCommerceFingerprintRef.current = '';
+        setCustomerOrders([]);
+        setIsLoadingCustomerOrders(false);
         setCustomerUser(null);
         clearCustomerSessionCache();
       }
@@ -1389,6 +1557,13 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         } catch (err) {
           console.warn('Could not sync admin cloud orders:', err);
         }
+
+        // Seed /inventory/{productId} once when Admin verifies and cloud inventory is still empty
+        if (!hasSeededInventoryRef.current && Object.keys(liveInventoryMapRef.current).length === 0) {
+          hasSeededInventoryRef.current = true;
+          const allProducts = getAllCatalogProductsFromConfig(dynamicConfigRef.current);
+          void syncCatalogInventoryToCloud(allProducts);
+        }
       }
     });
 
@@ -1417,11 +1592,17 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         setDynamicConfig((prev) => {
           const mergedPresets = { ...prev.presets, ...cloudPayload.presets };
-          // Sanitize product fields defensively on hydrated cloud presets
+          const liveInv = liveInventoryMapRef.current;
+          // Sanitize product fields defensively and preserve freshest atomic cloud inventory counts
           (Object.keys(mergedPresets) as Array<keyof typeof mergedPresets>).forEach((pk) => {
             const target = mergedPresets[pk];
             if (target && Array.isArray(target.products)) {
-              target.products = target.products.map((p: Product) => sanitizeProductDefensively(p));
+              target.products = target.products.map((p: Product) => {
+                const clean = sanitizeProductDefensively(p);
+                return typeof liveInv[clean.id] === 'number'
+                  ? { ...clean, stock: liveInv[clean.id] }
+                  : clean;
+              });
             }
           });
           const nextConfig: SiteConfig = {
@@ -1488,12 +1669,59 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     });
 
+    // Attach live cross-device product inventory listener (/inventory/{productId})
+    const unsubInventory = subscribeToCloudInventory((stockMap) => {
+      if (!isMounted) return;
+      liveInventoryMapRef.current = stockMap;
+      if (Object.keys(stockMap).length === 0) return;
+
+      isApplyingCloudConfigRef.current = true;
+      try {
+        setDynamicConfig((prev) => {
+          let anyChanged = false;
+          const nextPresets = { ...prev.presets };
+          (Object.keys(nextPresets) as Array<keyof typeof nextPresets>).forEach((pk) => {
+            const preset = nextPresets[pk];
+            if (preset && Array.isArray(preset.products)) {
+              let presetChanged = false;
+              const updatedProducts = preset.products.map((p: Product) => {
+                const liveStock = stockMap[p.id];
+                if (typeof liveStock === 'number' && p.stock !== liveStock) {
+                  presetChanged = true;
+                  anyChanged = true;
+                  return { ...p, stock: liveStock };
+                }
+                return p;
+              });
+              if (presetChanged) {
+                nextPresets[pk] = { ...preset, products: updatedProducts };
+              }
+            }
+          });
+
+          if (!anyChanged) return prev;
+          const nextConfig: SiteConfig = { ...prev, presets: nextPresets };
+          try {
+            localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(nextConfig));
+          } catch (_) {}
+          return nextConfig;
+        });
+      } finally {
+        setTimeout(() => {
+          isApplyingCloudConfigRef.current = false;
+        }, 0);
+      }
+    });
+
     return () => {
       isMounted = false;
       unsubAuth();
       unsubStorefront();
+      unsubInventory();
       if (unsubOrders) unsubOrders();
       if (unsubReviews) unsubReviews();
+      if (unsubCustomerOrders) unsubCustomerOrders();
+      if (unsubUserCommerce) unsubUserCommerce();
     };
   }, []);
 
@@ -1526,6 +1754,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       lastCloudFingerprintRef.current = nextFingerprint;
       setCloudConfigStatus('synced');
       setLastCloudSyncAt(payload.updatedAt);
+      // Keep authoritative /inventory/{productId} stock docs synchronized with Admin catalog updates
+      void syncCatalogInventoryToCloud(getAllCatalogProductsFromConfig(dynamicConfig));
       return true;
     }
     setCloudConfigStatus('error');
@@ -2306,20 +2536,32 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return nextConfig;
     });
 
+    const purchasedInventoryItems = cart.map((item) => ({
+      productId: item.product.id,
+      quantity: item.quantity,
+    }));
+
     setOrders((prev) => {
       const next = [newOrder, ...prev];
       safeStorage.setItem('luxe_cached_orders', JSON.stringify(next));
       return next;
     });
 
+    if (auth.currentUser?.uid) {
+      setCustomerOrders((prev) => [newOrder, ...prev.filter((o) => o.id !== newOrder.id)]);
+    }
+
     // Store the customer's own last tracking code safely for quick lookup without exposing all orders
     try {
       safeStorage.setItem('luxe_my_last_tracking', trackingCode);
     } catch (_) {}
 
-    // Cloud Firestore persistence (orders + sanitized tracking doc)
+    // Cloud Firestore persistence (orders + sanitized tracking doc) & atomic transactional stock deduction
     persistOrderToCloud(newOrder).catch((err) => {
       console.warn('Could not persist order to Firestore in background:', err);
+    });
+    deductInventoryAtomically(purchasedInventoryItems).catch((err) => {
+      console.warn('Could not deduct cloud inventory atomically:', err);
     });
 
     clearCart();
@@ -2388,6 +2630,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       document.title = lang === 'ar' ? `سلة المشتريات وإتمام الطلب | ${brandName}` : `Shopping Bag & Checkout | ${activeData.storeName.en}`;
     } else if (currentRoute === 'about') {
       document.title = lang === 'ar' ? `من نحن وقصة المتجر | ${brandName}` : `About Our Story | ${activeData.storeName.en}`;
+    } else if (currentRoute === 'privacy') {
+      document.title = lang === 'ar' ? `سياسة الخصوصية وحماية البيانات | ${brandName}` : `Privacy Policy | ${activeData.storeName.en}`;
     } else if (currentRoute === 'tracker') {
       document.title = lang === 'ar' ? `تتبع الشحنة المباشر | ${brandName}` : `Live Order Tracking | ${activeData.storeName.en}`;
     } else if (currentRoute === 'pdp' && activeProduct) {
@@ -2464,6 +2708,8 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isDeveloperModeLocked,
         toggleLockDeveloperMode,
         orders,
+        customerOrders,
+        isLoadingCustomerOrders,
         placeOrder,
         updateOrderStatus,
         clearAllOrders,

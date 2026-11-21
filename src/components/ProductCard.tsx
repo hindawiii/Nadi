@@ -11,6 +11,7 @@ import { WhatsAppIcon } from './icons/WhatsAppIcon';
 import { openExternalUrl } from '../lib/navigation';
 import { canAcceptCartAddTap, isAtStockLimit } from '../lib/cartButtonGuard';
 import { getCleanCategoryLabel } from '../lib/productCollections';
+import { formatSmartCardTitle } from '../lib/smartProductTitle';
 import { NADI_LOCAL_IMAGE_FALLBACK, handleImageLoadError } from '../lib/imageResilience';
 
 export interface ProductCardProps {
@@ -262,16 +263,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             onError={(e) => handleImageLoadError(e.currentTarget)}
           />
 
-          {/* Top-Start: Corner-Flush Luxury Discount Ribbon Badge in Rose-Red */}
-          <div className="absolute top-0 start-0 z-10 pointer-events-none">
+          {/* Top-Start: Compact Pointed Price Tag Smartly Anchored Flush to Top-Start Image Edge */}
+          <div className="absolute top-[2px] start-0 z-10 pointer-events-none">
             <SmartDiscountBadge
               basePriceUSD={safeBasePrice}
               originalPriceUSD={safeOrigPriceUSD}
               manualPercent={product.discountPercentage}
               lang={lang}
-              size="xs"
+              displayStyle="pendant"
               variant="rose"
-              className="rounded-none rounded-ee-xl shadow-xs"
             />
           </div>
 
@@ -340,9 +340,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           </div>
 
-          {/* Product Title */}
-          <h3 className="font-extrabold text-slate-900 text-[12px] sm:text-[15px] leading-[1.45] line-clamp-2 min-h-[35px] sm:min-h-[44px] group-hover:text-theme-primary transition-colors">
-            {product.name[lang]}
+          {/* Smart Semantic Single-Line Product Title (Core identity preserved; full title in PDP) */}
+          <h3
+            title={product.name[lang]}
+            className="font-extrabold text-slate-900 text-[12px] sm:text-[14.5px] leading-snug truncate group-hover:text-theme-primary transition-colors"
+          >
+            {formatSmartCardTitle(product.name[lang], lang)}
           </h3>
 
           {/* Concise Unboxed Trust Indicator */}
